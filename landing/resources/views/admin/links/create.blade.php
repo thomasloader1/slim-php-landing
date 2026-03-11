@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="max-w-2xl">
-    <form action="/admin/links/create" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-sm space-y-6">
+    <form action="{{ url('admin/links/create') }}" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-sm space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="col-span-2 md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Título del Enlace</label>
@@ -57,7 +57,7 @@
             <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
                 Guardar Enlace
             </button>
-            <a href="/admin/links" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-8 py-3 rounded-xl font-bold transition-all">
+            <a href="{{ url('admin/links') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-8 py-3 rounded-xl font-bold transition-all">
                 Cancelar
             </a>
         </div>

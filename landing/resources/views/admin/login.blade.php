@@ -17,7 +17,7 @@
             <p class="text-slate-400 mt-2">Ingresá tus credenciales para administrar</p>
         </div>
 
-        <form action="/admin/login" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+        <form action="{{ url('admin/login') }}" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
             @if(isset($error))
                 <div class="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 text-sm">
                     {{ $error }}

@@ -8,7 +8,7 @@
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <h3 class="text-lg font-bold text-white">Lista de Enlaces</h3>
-        <a href="/admin/links/create" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+        <a href="{{ url('admin/links/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nuevo Enlace
         </a>
     </div>
@@ -51,10 +51,10 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <a href="/admin/links/edit/{{ $link->id }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
+                                    <a href="{{ url('admin/links/edit/' . $link->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                         <i class="fa-solid fa-pen-to-square text-sm"></i>
                                     </a>
-                                    <form action="/admin/links/delete/{{ $link->id }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este enlace?')">
+                                    <form action="{{ url('admin/links/delete/' . $link->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este enlace?')">
                                         <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                             <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>

@@ -8,7 +8,7 @@
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <h3 class="text-lg font-bold text-white">Administradores</h3>
-        <a href="/admin/users/create" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+        <a href="{{ url('admin/users/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
         </a>
     </div>
@@ -50,11 +50,11 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-2">
-                                <a href="/admin/users/edit/{{ $user->id }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
+                                <a href="{{ url('admin/users/edit/' . $user->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                     <i class="fa-solid fa-user-gear text-sm"></i>
                                 </a>
                                 @if($user->id != 1)
-                                <form action="/admin/users/delete/{{ $user->id }}" method="POST" onsubmit="return confirm('¿Eliminar este administrador?')">
+                                <form action="{{ url('admin/users/delete/' . $user->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este administrador?')">
                                     <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                         <i class="fa-solid fa-trash-can text-sm"></i>
                                     </button>

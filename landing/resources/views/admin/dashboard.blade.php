@@ -17,7 +17,7 @@
                 <h3 class="text-3xl font-bold text-white">{{ $linksCount }}</h3>
             </div>
         </div>
-        <a href="/admin/links" class="text-blue-500 text-xs font-bold uppercase tracking-wider hover:text-blue-400 transition-colors">Gestionar Links →</a>
+        <a href="{{ url('admin/links') }}" class="text-blue-500 text-xs font-bold uppercase tracking-wider hover:text-blue-400 transition-colors">Gestionar Links →</a>
     </div>
 
     <!-- Stat Card -->
@@ -45,7 +45,7 @@
                 <h3 class="text-xl font-bold text-white">{{ $settings['site_name'] ?? 'Landing V2' }}</h3>
             </div>
         </div>
-        <a href="/admin/settings" class="text-green-500 text-xs font-bold uppercase tracking-wider hover:text-green-400 transition-colors">Editar Estilo →</a>
+        <a href="{{ url('admin/settings') }}" class="text-green-500 text-xs font-bold uppercase tracking-wider hover:text-green-400 transition-colors">Editar Estilo →</a>
     </div>
 </div>
 
