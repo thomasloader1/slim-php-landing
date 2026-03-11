@@ -43,7 +43,7 @@ class LinkAdminController
             'active'=> isset($data['active']) ? 1 : 0
         ]);
 
-        return $response->withHeader('Location', '/admin/links')->withStatus(302);
+        return $response->withHeader('Location', url('admin/links'))->withStatus(302);
     }
 
     public function edit(Request $request, Response $response, array $args): Response
@@ -68,13 +68,13 @@ class LinkAdminController
             'active'=> isset($data['active']) ? 1 : 0
         ]);
 
-        return $response->withHeader('Location', '/admin/links')->withStatus(302);
+        return $response->withHeader('Location', url('admin/links'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
     {
         $link = Link::findOrFail($args['id']);
         $link->delete();
-        return $response->withHeader('Location', '/admin/links')->withStatus(302);
+        return $response->withHeader('Location', url('admin/links'))->withStatus(302);
     }
 }

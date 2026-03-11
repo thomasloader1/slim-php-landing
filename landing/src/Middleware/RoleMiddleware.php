@@ -23,7 +23,7 @@ class RoleMiddleware implements MiddlewareInterface
 
         if ($userRole !== $this->requiredRole) {
             $response = new SlimResponse();
-            return $response->withHeader('Location', '/admin')->withStatus(302);
+            return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
         return $handler->handle($request);

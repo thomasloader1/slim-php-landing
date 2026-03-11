@@ -42,7 +42,7 @@ class UserAdminController
             'active' => isset($data['active']) ? 1 : 0
         ]);
 
-        return $response->withHeader('Location', '/admin/users')->withStatus(302);
+        return $response->withHeader('Location', url('admin/users'))->withStatus(302);
     }
 
     public function edit(Request $request, Response $response, array $args): Response
@@ -71,7 +71,7 @@ class UserAdminController
 
         $user->update($updateData);
 
-        return $response->withHeader('Location', '/admin/users')->withStatus(302);
+        return $response->withHeader('Location', url('admin/users'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -81,6 +81,6 @@ class UserAdminController
         if ($user->id != 1) {
             $user->delete();
         }
-        return $response->withHeader('Location', '/admin/users')->withStatus(302);
+        return $response->withHeader('Location', url('admin/users'))->withStatus(302);
     }
 }

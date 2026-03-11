@@ -5,13 +5,14 @@ services:
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
-      DB_HOST: mysql-server
-      DB_PORT: 3306
+      DB_HOST: DB_HOST
+      DB_PORT: DB_PORT
       DB_NAME: ${DB_NAME:-project_landing}
-      DB_USER: root
-      DB_PASS: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_USER: DB_USER
+      DB_PASS: ${DB_PASS:-password}
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
     volumes:
-      - ./v2_landing:/var/www/html
+      - ./landing:/var/www/html
     ports:
       - "8001:80"
     networks:

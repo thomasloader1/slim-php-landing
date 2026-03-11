@@ -20,7 +20,7 @@ class AuthController
     public function showLogin(Request $request, Response $response): Response
     {
         if ($this->auth->isAuthenticated()) {
-            return $response->withHeader('Location', '/admin')->withStatus(302);
+            return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
         $html = $this->view->make('admin/login')->render();
@@ -35,7 +35,7 @@ class AuthController
         $password = $data['password'] ?? '';
 
         if ($this->auth->login($email, $password)) {
-            return $response->withHeader('Location', '/admin')->withStatus(302);
+            return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
         $html = $this->view->make('admin/login', ['error' => 'Credenciales inválidas'])->render();
@@ -46,6 +46,6 @@ class AuthController
     public function logout(Request $request, Response $response): Response
     {
         $this->auth->logout();
-        return $response->withHeader('Location', '/admin/login')->withStatus(302);
+        return $response->withHeader('Location', url('admin/login'))->withStatus(302);
     }
 }

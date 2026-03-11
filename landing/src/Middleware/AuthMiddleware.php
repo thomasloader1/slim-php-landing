@@ -22,7 +22,7 @@ class AuthMiddleware implements MiddlewareInterface
     {
         if (!$this->auth->isAuthenticated()) {
             $response = new SlimResponse();
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', url('admin/login'))->withStatus(302);
         }
 
         return $handler->handle($request);

@@ -66,6 +66,6 @@ class SettingsAdminController
             }
         }
 
-        return $response->withHeader('Location', '/admin/settings')->withStatus(302);
+        return $response->withHeader('Location', url('admin/settings'))->withStatus(302);
     }
 }

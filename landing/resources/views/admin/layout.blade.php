@@ -40,18 +40,18 @@
             </div>
 
             <nav class="flex-1 px-4 space-y-1 mt-4">
-                <a href="/admin" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin') || request_is('admin/') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                <a href="{{ url('admin') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin') || request_is('admin/') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-chart-line w-5"></i> Dashboard
                 </a>
-                <a href="/admin/links" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/links*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                <a href="{{ url('admin/links') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/links*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-link w-5"></i> Enlaces
                 </a>
                 @if(($_SESSION['user_role'] ?? '') === 'admin')
-                    <a href="/admin/users" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/users*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <a href="{{ url('admin/users') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/users*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                         <i class="fa-solid fa-users w-5"></i> Usuarios
                     </a>
                 @endif
-                <a href="/admin/settings" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                <a href="{{ url('admin/settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-gears w-5"></i> Ajustes
                 </a>
             </nav>
@@ -65,7 +65,7 @@
                         <p class="text-sm font-bold text-white truncate">{{ $_SESSION['user_name'] ?? 'Admin' }}</p>
                         <p class="text-xs text-slate-500 truncate capitalize">{{ $_SESSION['user_role'] ?? 'Editor' }}</p>
                     </div>
-                    <form action="/admin/logout" method="POST">
+                    <form action="{{ url('admin/logout') }}" method="POST">
                         <button type="submit" class="text-slate-500 hover:text-red-400 transition-colors">
                             <i class="fa-solid fa-power-off text-sm"></i>
                         </button>
@@ -82,7 +82,7 @@
                     <p class="text-slate-500 mt-1">@yield('subheader')</p>
                 </div>
                 <div class="flex gap-4">
-                    <a href="/" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm border border-slate-700">
+                    <a href="{{ url() }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm border border-slate-700">
                         <i class="fa-solid fa-eye text-xs"></i> Ver Sitio
                     </a>
                 </div>

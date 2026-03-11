@@ -23,6 +23,12 @@ $container = $containerBuilder->build();
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
+// Configurar base path (para hosting en subpath, ej: /landing)
+$basePath = rtrim($_ENV['APP_BASE_PATH'] ?? '', '/');
+if ($basePath !== '') {
+    $app->setBasePath($basePath);
+}
+
 // ─── Eloquent ORM Setup ──────────────────────────────────────
 $capsule = new Capsule;
 $capsule->addConnection([
