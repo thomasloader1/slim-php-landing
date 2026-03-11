@@ -1,0 +1,22 @@
+services:
+  landing:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql-server
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-project_landing}
+      DB_USER: root
+      DB_PASS: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - ./v2_landing:/var/www/html
+    ports:
+      - "8001:80"
+    networks:
+      - phpmyadmin_phpmyadminsql-network
+
+networks:
+  phpmyadmin_phpmyadminsql-network:
+    external: true

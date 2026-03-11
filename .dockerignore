@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Node / frontend tools
+node_modules
+npm-debug.log
+
+# SCSS source (no necesaria en runtime)
+backoffice/scss
+landing/scss
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+__MACOSX
+Thumbs.db
+
+# IDE
+.claude
+.vscode
+.idea
+*.swp
+
+# Scripts locales
+start.sh
