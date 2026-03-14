@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>@yield('title') | {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? 'Backoffice V2' }}</title>
+    <title>@yield('title') | {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? $_ENV['APP_NAME'] }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,10 +32,10 @@
         <aside class="w-64 bg-slate-900 h-screen sticky top-0 border-r border-slate-800 flex flex-col">
             <div class="p-6">
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
-                    <span class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-slate-950">
+                    {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? 'Backoffice' }}
+                <span class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-slate-950">
                         <i class="fa-solid fa-bolt text-sm"></i>
                     </span>
-                    {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? 'Backoffice' }} <span class="text-accent">V2</span>
                 </h1>
             </div>
 

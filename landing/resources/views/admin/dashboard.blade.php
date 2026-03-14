@@ -42,7 +42,7 @@
             </div>
             <div>
                 <p class="text-slate-500 text-sm font-medium">Diseño Activo</p>
-                <h3 class="text-xl font-bold text-white">{{ $settings['site_name'] ?? 'Landing V2' }}</h3>
+                <h3 class="text-xl font-bold text-white">{{ $settings['site_name'] ?? 'Landing' }}</h3>
             </div>
         </div>
         <a href="{{ url('admin/settings') }}" class="text-green-500 text-xs font-bold uppercase tracking-wider hover:text-green-400 transition-colors">Editar Estilo →</a>
