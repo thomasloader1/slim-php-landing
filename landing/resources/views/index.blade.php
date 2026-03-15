@@ -8,7 +8,7 @@
     <!-- SEO -->
     <meta name="description" content="{{ $settings['seo_description'] ?? 'Mi perfil digital y enlaces importantes.' }}">
     <meta name="keywords" content="{{ $settings['seo_keywords'] ?? 'perfil, enlaces, bio' }}">
-    <meta name="author" content="{{ $settings['seo_author'] ?? $settings['site_name'] ?? 'V2 Pro' }}">
+    <meta name="author" content="{{ $settings['seo_author'] ?? $settings['site_name'] ?? 'Landing' }}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -173,7 +173,7 @@
         <!-- Footer -->
         <footer class="mt-24 pt-8 border-t border-white/5 w-full text-center">
             <p class="text-[11px] text-white/20 uppercase tracking-[0.2em] font-bold">
-                Created with <span class="accent-text">♥</span> by {{ $settings['site_name'] ?? 'V2 Landing' }}
+                Created with <span class="accent-text">♥</span> by {{ $settings['site_name'] ?? 'Landing' }}
             </p>
         </footer>
     </div>
