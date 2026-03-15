@@ -24,7 +24,10 @@ AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 // Configurar base path (para hosting en subpath, ej: /landing)
-$basePath = rtrim($_ENV['APP_BASE_PATH'] ?? '', '/');
+// getenv() lee el env del proceso Docker directamente; $_ENV como fallback para
+// producción sin Docker (donde el valor viene del .env cargado por Dotenv).
+$_rawBasePath = getenv('APP_BASE_PATH');
+$basePath = rtrim($_rawBasePath !== false ? $_rawBasePath : ($_ENV['APP_BASE_PATH'] ?? ''), '/');
 if ($basePath !== '') {
     $app->setBasePath($basePath);
 }

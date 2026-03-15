@@ -54,7 +54,7 @@
                                     <i class="fa-solid fa-user-gear text-sm"></i>
                                 </a>
                                 @if($user->id != 1)
-                                <form action="{{ url('admin/users/delete/' . $user->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este administrador?')">
+                                <form action="{{ url('admin/users/delete/' . $user->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este administrador?')" data-no-loading>
                                     <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                         <i class="fa-solid fa-trash-can text-sm"></i>
                                     </button>

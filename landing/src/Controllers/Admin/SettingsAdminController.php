@@ -35,7 +35,8 @@ class SettingsAdminController
             'landing_accent_color', 'landing_bg_color', 'landing_text_color',
             'landing_avatar_url', 'landing_logo_url', 'landing_bg_image_url',
             'landing_bg_overlay', 'landing_bg_overlay_opacity',
-            'seo_description', 'seo_keywords', 'seo_author'
+            'seo_description', 'seo_keywords', 'seo_author',
+            'landing_maps_url', 'landing_maps_mode'
         ];
 
         // Handle File Uploads
@@ -54,6 +55,22 @@ class SettingsAdminController
                 
                 $file->moveTo($targetPath);
                 $data[$settingKey] = "/uploads/{$filename}";
+            }
+        }
+
+        // Procesar flags de limpieza de imágenes
+        $clearMap = [
+            'clear_avatar' => 'landing_avatar_url',
+            'clear_logo'   => 'landing_logo_url',
+            'clear_bg'     => 'landing_bg_image_url',
+        ];
+        foreach ($clearMap as $flag => $settingKey) {
+            if (!empty($data[$flag])) {
+                Capsule::table('settings')->updateOrInsert(
+                    ['setting_key' => $settingKey],
+                    ['setting_value' => '', 'updated_at' => date('Y-m-d H:i:s')]
+                );
+                unset($data[$settingKey]);
             }
         }
 

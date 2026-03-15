@@ -75,6 +75,13 @@
         .accent-text { color: var(--accent); }
         .accent-bg { background-color: var(--accent); }
         .accent-border { border-color: var(--accent); }
+        /* Estilos para contenido rich text de la bio */
+        .bio-content ul { list-style: disc; padding-left: 1.5rem; text-align: left; }
+        .bio-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
+        .bio-content strong { font-weight: 700; }
+        .bio-content em { font-style: italic; }
+        .bio-content a { color: var(--accent); text-decoration: underline; }
+        .bio-content p { margin-bottom: 0.5rem; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-20 px-6 overflow-x-hidden relative">
@@ -95,7 +102,8 @@
             </div>
         @endif
 
-        <!-- Profile Section -->
+        <!-- Profile Section: solo mostrar si no hay logo -->
+        @if(empty($settings['landing_logo_url']))
         <div class="relative mb-8 group">
             <div class="absolute -inset-1 opacity-20 rounded-full blur transition duration-1000 group-hover:opacity-40" style="background: var(--accent);"></div>
             <div class="relative w-28 h-28 rounded-full bg-slate-900/50 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl glass">
@@ -106,6 +114,7 @@
                 @endif
             </div>
         </div>
+        @endif
 
         <h1 class="text-4xl font-black mb-2 tracking-tighter text-center">
             {{ $settings['landing_title'] ?? 'My Profile' }}
@@ -135,10 +144,30 @@
         <!-- Bio Section -->
         @if(!empty($settings['landing_bio']))
             <div class="mt-14 text-center px-4">
-                <p class="text-white/50 text-base leading-relaxed max-w-sm mx-auto font-light">
-                    {{ $settings['landing_bio'] }}
-                </p>
+                <div class="bio-content text-white/50 text-base leading-relaxed max-w-sm mx-auto font-light">
+                    {!! $settings['landing_bio'] !!}
+                </div>
             </div>
+        @endif
+
+        <!-- Ubicación Google Maps -->
+        @if(!empty($settings['landing_maps_url']) && ($settings['landing_maps_mode'] ?? 'none') !== 'none')
+            @if($settings['landing_maps_mode'] === 'button')
+                <a href="{{ $settings['landing_maps_url'] }}" target="_blank" rel="noopener noreferrer"
+                   class="glass link-hover mt-6 p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group w-full">
+                    <div class="w-10 h-10 flex items-center justify-center text-xl accent-text group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <span class="flex-1 font-semibold text-lg ml-3">Ver ubicación</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-white/20 text-xs group-hover:text-accent group-hover:opacity-100 transition-all"></i>
+                </a>
+            @elseif($settings['landing_maps_mode'] === 'embed')
+                <div class="glass rounded-2xl overflow-hidden w-full mt-6">
+                    <iframe src="{{ $settings['landing_maps_url'] }}" width="100%" height="300"
+                            style="border:0;" allowfullscreen="" loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+            @endif
         @endif
 
         <!-- Footer -->

@@ -65,7 +65,7 @@
                         <p class="text-sm font-bold text-white truncate">{{ $_SESSION['user_name'] ?? 'Admin' }}</p>
                         <p class="text-xs text-slate-500 truncate capitalize">{{ $_SESSION['user_role'] ?? 'Editor' }}</p>
                     </div>
-                    <form action="{{ url('admin/logout') }}" method="POST">
+                    <form action="{{ url('admin/logout') }}" method="POST" data-no-loading>
                         <button type="submit" class="text-slate-500 hover:text-red-400 transition-colors">
                             <i class="fa-solid fa-power-off text-sm"></i>
                         </button>
@@ -93,5 +93,18 @@
             </div>
         </main>
     </div>
+    @stack('scripts')
+    <script>
+        // Botón de loading al guardar formularios
+        document.querySelectorAll('form:not([data-no-loading])').forEach(function(form) {
+            form.addEventListener('submit', function() {
+                var btn = this.querySelector('[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Guardando...';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

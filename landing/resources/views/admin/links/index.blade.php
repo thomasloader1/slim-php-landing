@@ -54,7 +54,7 @@
                                     <a href="{{ url('admin/links/edit/' . $link->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                         <i class="fa-solid fa-pen-to-square text-sm"></i>
                                     </a>
-                                    <form action="{{ url('admin/links/delete/' . $link->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este enlace?')">
+                                    <form action="{{ url('admin/links/delete/' . $link->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este enlace?')" data-no-loading>
                                         <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                             <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>
