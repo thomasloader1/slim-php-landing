@@ -17,7 +17,7 @@ class UserAdminController
 
     public function index(Request $request, Response $response): Response
     {
-        $users = User::all();
+        $users = User::select('id', 'name', 'email', 'role', 'active', 'created_at')->get();
         $html = $this->view->make('admin/users/index', ['users' => $users])->render();
         $response->getBody()->write($html);
         return $response;

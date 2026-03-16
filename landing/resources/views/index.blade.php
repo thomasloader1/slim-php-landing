@@ -91,8 +91,8 @@
     </div>
 
     <!-- Decorative gradients -->
-    <div class="fixed top-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full opacity-20 blur-[100px]" style="background: var(--accent);"></div>
-    <div class="fixed bottom-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full opacity-10 blur-[80px]" style="background: var(--accent);"></div>
+    <div class="fixed top-[-10%] right-[-10%] w-[150px] h-[150px] md:w-[300px] md:h-[300px] lg:w-[400px] lg:h-[400px] rounded-full opacity-20 blur-[100px]" style="background: var(--accent);"></div>
+    <div class="fixed bottom-[-10%] left-[-10%] w-[100px] h-[100px] md:w-[200px] md:h-[200px] lg:w-[300px] lg:h-[300px] rounded-full opacity-10 blur-[80px]" style="background: var(--accent);"></div>
 
     <div class="max-w-md w-full flex flex-col items-center relative z-10">
         <!-- Logo Section -->
@@ -127,7 +127,8 @@
                 <a href="{{ $link->url }}" 
                    class="glass link-hover p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group"
                    target="_blank">
-                    <div class="w-10 h-10 flex items-center justify-center text-xl accent-text group-hover:scale-110 transition-transform">
+                    <div class="w-10 h-10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
+                         style="color: {{ ($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)') }}">
                         {!! $link->getIconHtml() !!}
                     </div>
                     <span class="flex-1 font-semibold text-lg ml-3">{{ $link->title }}</span>
@@ -163,7 +164,7 @@
                 </a>
             @elseif($settings['landing_maps_mode'] === 'embed')
                 <div class="glass rounded-2xl overflow-hidden w-full mt-6">
-                    <iframe src="{{ $settings['landing_maps_url'] }}" width="100%" height="300"
+                    <iframe src="{{ $settings['landing_maps_url'] }}" class="w-full aspect-video"
                             style="border:0;" allowfullscreen="" loading="lazy"
                             referrerpolicy="no-referrer-when-downgrade"></iframe>
                 </div>
@@ -171,11 +172,11 @@
         @endif
 
         <!-- Footer -->
-        <footer class="mt-24 pt-8 border-t border-white/5 w-full text-center">
+       <!--  <footer class="mt-24 pt-8 border-t border-white/5 w-full text-center">
             <p class="text-[11px] text-white/20 uppercase tracking-[0.2em] font-bold">
                 Created with <span class="accent-text">♥</span> by {{ $settings['site_name'] ?? 'Landing' }}
             </p>
-        </footer>
+        </footer> -->
     </div>
 </body>
 </html>

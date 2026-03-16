@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="max-w-2xl">
-    <form action="{{ url('admin/links/create') }}" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-sm space-y-6">
+    <form action="{{ url('admin/links/create') }}" method="POST" class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="col-span-2 md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Título del Enlace</label>
@@ -35,7 +35,7 @@
                 <div id="icon-panel" class="hidden mt-2 bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-xl">
                     <input type="text" id="icon-search" placeholder="Buscar icono..."
                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 mb-3">
-                    <div id="icon-grid" class="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto"></div>
+                    <div id="icon-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto"></div>
                 </div>
             </div>
 
@@ -60,7 +60,7 @@
             </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800 flex gap-4">
+        <div class="pt-4 border-t border-slate-800 flex flex-wrap gap-3">
             <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
                 Guardar Enlace
             </button>

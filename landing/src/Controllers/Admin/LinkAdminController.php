@@ -73,8 +73,7 @@ class LinkAdminController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
-        $link = Link::findOrFail($args['id']);
-        $link->delete();
+        Link::destroy($args['id']);
         return $response->withHeader('Location', url('admin/links'))->withStatus(302);
     }
 }
