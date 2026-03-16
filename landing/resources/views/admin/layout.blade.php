@@ -27,9 +27,18 @@
     </style>
 </head>
 <body class="text-slate-200 min-h-screen">
-    <div class="flex">
+    <div class="flex min-h-screen">
+
+        <!-- Backdrop (mobile overlay) -->
+        <div id="sidebar-backdrop"
+             class="fixed inset-0 z-30 bg-slate-950/60 backdrop-blur-sm hidden md:hidden">
+        </div>
+
         <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 h-screen sticky top-0 border-r border-slate-800 flex flex-col">
+        <aside id="sidebar"
+               class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col
+                      -translate-x-full md:translate-x-0 transition-transform duration-300
+                      md:relative md:z-auto">
             <div class="p-6">
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
                     {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? 'Backoffice' }}
@@ -75,15 +84,22 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-10">
-            <header class="flex items-center justify-between mb-10">
-                <div>
-                    <h2 class="text-3xl font-bold text-white">@yield('header')</h2>
-                    <p class="text-slate-500 mt-1">@yield('subheader')</p>
+        <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-10">
+            <header class="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-10">
+                <div class="flex items-center gap-3 min-w-0">
+                    <!-- Hamburger (mobile only) -->
+                    <button id="menu-btn"
+                            class="md:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition-colors flex-shrink-0">
+                        <i class="fa-solid fa-bars text-sm"></i>
+                    </button>
+                    <div class="min-w-0">
+                        <h2 class="text-xl md:text-3xl font-bold text-white truncate">@yield('header')</h2>
+                        <p class="text-slate-500 mt-0.5 text-sm hidden sm:block">@yield('subheader')</p>
+                    </div>
                 </div>
-                <div class="flex gap-4">
-                    <a href="{{ url() }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm border border-slate-700">
-                        <i class="fa-solid fa-eye text-xs"></i> Ver Sitio
+                <div class="flex gap-3 flex-shrink-0">
+                    <a href="{{ url() }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-sm border border-slate-700">
+                        <i class="fa-solid fa-eye text-xs"></i> <span class="hidden sm:inline">Ver Sitio</span>
                     </a>
                 </div>
             </header>
@@ -93,6 +109,7 @@
             </div>
         </main>
     </div>
+
     @stack('scripts')
     <script>
         // Botón de loading al guardar formularios
@@ -105,6 +122,31 @@
                 }
             });
         });
+
+        // Sidebar toggle (mobile)
+        (function() {
+            var sidebar  = document.getElementById('sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            var menuBtn  = document.getElementById('menu-btn');
+            function openSidebar()  {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            if (menuBtn)  menuBtn.addEventListener('click', function() {
+                sidebar.classList.contains('-translate-x-full') ? openSidebar() : closeSidebar();
+            });
+            if (backdrop) backdrop.addEventListener('click', closeSidebar);
+            // Cerrar al navegar en mobile
+            sidebar.querySelectorAll('a').forEach(function(a) {
+                a.addEventListener('click', function() { if (window.innerWidth < 768) closeSidebar(); });
+            });
+        })();
     </script>
 </body>
 </html>

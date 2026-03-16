@@ -41,7 +41,8 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_bg_overlay_opacity',  '0.5'),
     ('seo_description',             ''),
     ('seo_keywords',                ''),
-    ('seo_author',                  '')
+    ('seo_author',                  ''),
+    ('landing_accent_force',        '1')
 AS new_values
 ON DUPLICATE KEY UPDATE
     `setting_value` = new_values.`setting_value`;

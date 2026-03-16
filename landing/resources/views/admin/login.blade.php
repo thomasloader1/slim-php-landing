@@ -44,9 +44,7 @@
             </div>
         </form>
         
-        <p class="text-center mt-8 text-slate-500 text-xs tracking-widest uppercase">
-            Powered by Slim 4 + Eloquent
-        </p>
+       
     </div>
 </body>
 </html>

@@ -18,7 +18,7 @@ class SettingsAdminController
     public function index(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
-        
+
         $html = $this->view->make('admin/settings', ['settings' => $settings])->render();
         $response->getBody()->write($html);
         return $response;
@@ -28,7 +28,7 @@ class SettingsAdminController
     {
         $data = $request->getParsedBody();
         $files = $request->getUploadedFiles();
-        
+
         // Allowed keys to update
         $allowedKeys = [
             'site_name', 'landing_title', 'landing_subtitle', 'landing_bio',
@@ -36,7 +36,8 @@ class SettingsAdminController
             'landing_avatar_url', 'landing_logo_url', 'landing_bg_image_url',
             'landing_bg_overlay', 'landing_bg_overlay_opacity',
             'seo_description', 'seo_keywords', 'seo_author',
-            'landing_maps_url', 'landing_maps_mode'
+            'landing_maps_url', 'landing_maps_mode',
+            'landing_accent_force'
         ];
 
         // Handle File Uploads
@@ -52,9 +53,15 @@ class SettingsAdminController
                 $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
                 $filename = "{$settingKey}_" . time() . ".{$extension}";
                 $targetPath = __DIR__ . "/../../../public/uploads/{$filename}";
-                
+
+                // Borrar archivo previo si era una imagen local subida
+                $oldValue = Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '';
+                if ($oldValue) {
+                    $this->deleteUploadedFile($oldValue);
+                }
+
                 $file->moveTo($targetPath);
-                $data[$settingKey] = "/uploads/{$filename}";
+                $data[$settingKey] = url("uploads/{$filename}");
             }
         }
 
@@ -66,6 +73,12 @@ class SettingsAdminController
         ];
         foreach ($clearMap as $flag => $settingKey) {
             if (!empty($data[$flag])) {
+                // Borrar archivo físico antes de limpiar el registro en DB
+                $oldValue = Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '';
+                if ($oldValue) {
+                    $this->deleteUploadedFile($oldValue);
+                }
+
                 Capsule::table('settings')->updateOrInsert(
                     ['setting_key' => $settingKey],
                     ['setting_value' => '', 'updated_at' => date('Y-m-d H:i:s')]
@@ -84,5 +97,28 @@ class SettingsAdminController
         }
 
         return $response->withHeader('Location', url('admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Borra un archivo físico de uploads/ si la ruta es local (no URL externa).
+     */
+    private function deleteUploadedFile(string $settingValue): void
+    {
+        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
+
+        // Solo borrar si la ruta empieza con /uploads/ (ignorar URLs externas)
+        if (!str_contains($urlPath, '/uploads/')) {
+            return;
+        }
+
+        $filename = basename($urlPath);
+        if ($filename === '' || $filename === '.') {
+            return;
+        }
+
+        $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
     }
 }

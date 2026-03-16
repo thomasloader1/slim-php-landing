@@ -31,12 +31,12 @@
                         <input type="text" name="landing_subtitle" value="{{ $settings['landing_subtitle'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-2 mb-16">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Biografía / Descripción</label>
                         <div id="bio-editor" class="bg-slate-950 border border-slate-800 rounded-xl text-white min-h-[120px]" style="font-size:1rem; line-height:1.5;">{!! $settings['landing_bio'] ?? '' !!}</div>
                         <textarea name="landing_bio" id="bio-hidden" class="hidden">{{ $settings['landing_bio'] ?? '' }}</textarea>
                     </div>
-                    <div>
+                    <div class="col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Avatar (Subir Imagen)</label>
                         <input type="file" name="avatar_file" accept="image/*"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
@@ -51,7 +51,7 @@
                             </div>
                         @endif
                     </div>
-                    <div>
+                    <div class="col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL externa</label>
                         <input type="text" name="landing_avatar_url" value="{{ $settings['landing_avatar_url'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
@@ -69,13 +69,26 @@
                 </h3>
             </div>
             <div class="p-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="flex gap-4">
+                        <div>
                         <label class="block text-sm font-medium text-slate-400 mb-4">Color de Acento</label>
                         <div class="flex items-center gap-4">
                             <input type="color" name="landing_accent_color" value="{{ $settings['landing_accent_color'] ?? '#f59e0b' }}"
                                    class="w-16 h-16 bg-slate-950 border border-slate-800 rounded-2xl p-2 cursor-pointer transition-transform hover:scale-105">
                             <span class="text-slate-500 font-mono text-sm uppercase">{{ $settings['landing_accent_color'] ?? '#F59E0B' }}</span>
+                        </div>
+                    </div>
+
+                        <div class="mt-3 flex flex-col items-center gap-3">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="hidden" name="landing_accent_force" value="0">
+                                <input type="checkbox" name="landing_accent_force" value="1"
+                                       {{ ($settings['landing_accent_force'] ?? '1') === '1' ? 'checked' : '' }}
+                                       class="w-4 h-4 rounded cursor-pointer accent-checkbox">
+                                <span class="text-sm text-slate-400">Forzar en links</span>
+                            </label>
+                            <span class="text-xs text-slate-500 italic">Desactivado: cada link usa su propio color.</span>
                         </div>
                     </div>
                     <div>
@@ -95,13 +108,22 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-4">Texto</label>
+                        <div class="flex items-center gap-4">
+                            <input type="color" name="landing_text_color" value="{{ $settings['landing_text_color'] ?? '#ffffff' }}"
+                                   class="w-16 h-16 bg-slate-950 border border-slate-800 rounded-2xl p-2 cursor-pointer transition-transform hover:scale-105">
+                            <span class="text-slate-500 font-mono text-sm uppercase">{{ $settings['landing_text_color'] ?? '#FFFFFF' }}</span>
+                        </div>
+                    </div>
+
                     <div class="col-span-1">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Opacidad Overlay (0-100)</label>
                         <input type="number" name="landing_bg_overlay_opacity" value="{{ $settings['landing_bg_overlay_opacity'] ?? '50' }}" min="0" max="100"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
                     </div>
 
-                    <div class="col-span-2">
+                    <div class="md:col-span-2 lg:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Imagen de Fondo (Subir)</label>
                         <input type="file" name="bg_file" accept="image/*"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
@@ -117,8 +139,8 @@
                         @endif
                     </div>
 
-                    <div class="col-span-3">
-                        <label class="block text-sm font-medium text-slate-400 mb-2">U usar URL de fondo externa</label>
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL de fondo externa</label>
                         <input type="text" name="landing_bg_image_url" value="{{ $settings['landing_bg_image_url'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
                                placeholder="https://...">
@@ -139,21 +161,14 @@
                         @endif
                     </div>
 
-                    <div class="col-span-2">
+                    <div class="md:col-span-1 lg:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL de logo externa</label>
                         <input type="text" name="landing_logo_url" value="{{ $settings['landing_logo_url'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
                                placeholder="https://...">
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-4">Texto</label>
-                        <div class="flex items-center gap-4">
-                            <input type="color" name="landing_text_color" value="{{ $settings['landing_text_color'] ?? '#ffffff' }}"
-                                   class="w-16 h-16 bg-slate-950 border border-slate-800 rounded-2xl p-2 cursor-pointer transition-transform hover:scale-105">
-                            <span class="text-slate-500 font-mono text-sm uppercase">{{ $settings['landing_text_color'] ?? '#FFFFFF' }}</span>
-                        </div>
-                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -233,6 +248,7 @@
 <script>
     var quill = new Quill('#bio-editor', {
         theme: 'snow',
+        formats: ['bold', 'italic', 'list', 'link'],
         modules: {
             toolbar: [
                 ['bold', 'italic'],
