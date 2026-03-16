@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\Front\LandingController;
+use App\Controllers\Front\SitemapController;
 use App\Controllers\Api\LinkApiController;
 use App\Controllers\Admin\AuthController;
 use App\Controllers\Admin\DashboardController;
@@ -11,6 +12,8 @@ use Slim\Routing\RouteCollectorProxy;
 
 // Web Routes
 $app->get('/', LandingController::class);
+$app->get('/sitemap.xml', [SitemapController::class, 'sitemap']);
+$app->get('/robots.txt',  [SitemapController::class, 'robots']);
 
 // API Routes
 $app->group('/api', function (RouteCollectorProxy $group) {

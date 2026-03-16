@@ -5,11 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $settings['landing_title'] ?? 'Landing' }} | {{ $settings['site_name'] ?? 'Digital Profile' }}</title>
     
-    <!-- SEO -->
+    <!-- SEO básico -->
     <meta name="description" content="{{ $settings['seo_description'] ?? 'Mi perfil digital y enlaces importantes.' }}">
-    <meta name="keywords" content="{{ $settings['seo_keywords'] ?? 'perfil, enlaces, bio' }}">
-    <meta name="author" content="{{ $settings['seo_author'] ?? $settings['site_name'] ?? 'Landing' }}">
-    
+    <meta name="keywords"    content="{{ $settings['seo_keywords'] ?? 'perfil, enlaces, bio' }}">
+    <meta name="author"      content="{{ $settings['seo_author'] ?? $settings['site_name'] ?? 'Landing' }}">
+    <meta name="robots"      content="{{ ($settings['seo_noindex'] ?? '0') === '1' ? 'noindex, nofollow' : 'index, follow' }}">
+    @if(!empty($settings['seo_site_url']))
+    <link rel="canonical" href="{{ rtrim($settings['seo_site_url'], '/') . '/' }}">
+    @endif
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content="website">
+    <meta property="og:title"       content="{{ $settings['landing_title'] ?? $settings['site_name'] ?? '' }}">
+    <meta property="og:description" content="{{ $settings['seo_description'] ?? '' }}">
+    <meta property="og:image"       content="{{ !empty($settings['seo_og_image']) ? $settings['seo_og_image'] : ($settings['landing_avatar_url'] ?? '') }}">
+    <meta property="og:locale"      content="{{ $settings['seo_locale'] ?? 'es_AR' }}">
+    <meta property="og:site_name"   content="{{ $settings['site_name'] ?? '' }}">
+    @if(!empty($settings['seo_site_url']))
+    <meta property="og:url"         content="{{ rtrim($settings['seo_site_url'], '/') . '/' }}">
+    @endif
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="{{ $settings['landing_title'] ?? $settings['site_name'] ?? '' }}">
+    <meta name="twitter:description" content="{{ $settings['seo_description'] ?? '' }}">
+    <meta name="twitter:image"       content="{{ !empty($settings['seo_og_image']) ? $settings['seo_og_image'] : ($settings['landing_avatar_url'] ?? '') }}">
+    @if(!empty($settings['seo_twitter_handle']))
+    <meta name="twitter:creator"     content="@{{ $settings['seo_twitter_handle'] }}">
+    @endif
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +107,76 @@
         .bio-content a { color: var(--accent); text-decoration: underline; }
         .bio-content p { margin-bottom: 0.5rem; }
     </style>
+
+    @php
+        /* ── JSON-LD Schema.org ──────────────────────────────────────── */
+        $schemaType   = $settings['seo_schema_type'] ?? 'Person';
+        $siteName     = $settings['site_name'] ?? '';
+        $siteUrl      = rtrim($settings['seo_site_url'] ?? '', '/') ?: null;
+        $description  = strip_tags($settings['seo_description'] ?? '');
+        $image        = !empty($settings['seo_og_image']) ? $settings['seo_og_image'] : ($settings['landing_avatar_url'] ?? '');
+
+        // Extraer URLs sociales y de contacto de los links
+        $sameAs     = [];
+        $telephone  = null;
+        $emailAddr  = null;
+        foreach ($links as $link) {
+            if ($link->type === 'social' && !empty($link->url)) {
+                $sameAs[] = $link->url;
+            }
+            if ($link->type === 'phone' && !empty($link->url)) {
+                // Extraer número limpio de tel: o wa.me
+                $telephone = preg_replace('/^(tel:|https?:\/\/wa\.me\/)/', '', $link->url);
+            }
+            if ($link->type === 'email' && !empty($link->url)) {
+                $emailAddr = preg_replace('/^mailto:/', '', $link->url);
+            }
+        }
+
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type'    => $schemaType,
+        ];
+
+        if ($schemaType === 'LocalBusiness') {
+            $businessType = $settings['seo_business_type'] ?? '';
+            if ($businessType) {
+                $schema['@type'] = $businessType;
+            }
+            $schema['name']        = $siteName;
+            $schema['description'] = $description;
+            if ($siteUrl)    $schema['url']   = $siteUrl . '/';
+            if ($image)      $schema['image'] = $image;
+            if ($telephone)  $schema['telephone'] = $telephone;
+            if ($emailAddr)  $schema['email']     = $emailAddr;
+            $address = $settings['seo_address'] ?? '';
+            if ($address) {
+                $schema['address'] = [
+                    '@type'           => 'PostalAddress',
+                    'streetAddress'   => $address,
+                ];
+            }
+            if ($sameAs) $schema['sameAs'] = $sameAs;
+
+        } elseif ($schemaType === 'Organization') {
+            $schema['name']        = $siteName;
+            $schema['description'] = $description;
+            if ($siteUrl)  $schema['url']  = $siteUrl . '/';
+            if ($image)    $schema['logo'] = $image;
+            if ($sameAs)   $schema['sameAs'] = $sameAs;
+
+        } else {
+            // Person (default)
+            $schema['name']        = $settings['landing_title'] ?? $siteName;
+            $schema['description'] = $description;
+            if ($siteUrl) $schema['url']   = $siteUrl . '/';
+            if ($image)   $schema['image'] = $image;
+            if ($sameAs)  $schema['sameAs'] = $sameAs;
+        }
+    @endphp
+    <script type="application/ld+json">
+    {!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
 </head>
 <body class="min-h-screen flex flex-col items-center py-20 px-6 overflow-x-hidden relative">
     <!-- Background System -->

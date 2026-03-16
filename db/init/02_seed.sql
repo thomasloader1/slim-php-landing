@@ -42,6 +42,14 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('seo_description',             ''),
     ('seo_keywords',                ''),
     ('seo_author',                  ''),
+    ('seo_site_url',                ''),
+    ('seo_og_image',                ''),
+    ('seo_locale',                  'es_AR'),
+    ('seo_twitter_handle',          ''),
+    ('seo_schema_type',             'Person'),
+    ('seo_business_type',           ''),
+    ('seo_address',                 ''),
+    ('seo_noindex',                 '0'),
     ('landing_accent_force',        '1')
 AS new_values
 ON DUPLICATE KEY UPDATE

@@ -36,6 +36,8 @@ class SettingsAdminController
             'landing_avatar_url', 'landing_logo_url', 'landing_bg_image_url',
             'landing_bg_overlay', 'landing_bg_overlay_opacity',
             'seo_description', 'seo_keywords', 'seo_author',
+            'seo_site_url', 'seo_og_image', 'seo_locale', 'seo_twitter_handle',
+            'seo_schema_type', 'seo_business_type', 'seo_address', 'seo_noindex',
             'landing_maps_url', 'landing_maps_mode',
             'landing_accent_force'
         ];
