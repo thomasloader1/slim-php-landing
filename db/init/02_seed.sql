@@ -50,7 +50,10 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('seo_business_type',           ''),
     ('seo_address',                 ''),
     ('seo_noindex',                 '0'),
-    ('landing_accent_force',        '1')
+    ('landing_accent_force',        '1'),
+    ('menu_enabled',                '0'),
+    ('menu_header_text',            'Nuestra Carta'),
+    ('menu_footer_text',            '')
 AS new_values
 ON DUPLICATE KEY UPDATE
     `setting_value` = new_values.`setting_value`;

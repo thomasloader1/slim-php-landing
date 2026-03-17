@@ -63,6 +63,17 @@
                 <a href="{{ url('admin/settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-gears w-5"></i> Ajustes
                 </a>
+                @php
+                    $menuEnabled = \Illuminate\Database\Capsule\Manager::table('settings')
+                        ->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0';
+                @endphp
+                <a href="{{ url($menuEnabled === '1' ? 'admin/menu/items' : 'admin/menu/settings') }}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/menu*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-utensils w-5"></i> Menú
+                    @if($menuEnabled !== '1')
+                        <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
+                    @endif
+                </a>
             </nav>
 
             <div class="p-4 mt-auto border-t border-slate-800">

@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="max-w-4xl">
-    <form action="{{ url('admin/settings') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+    <form id="settings-form" action="{{ url('admin/settings') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
         <!-- Site Content -->
         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             <div class="p-6 border-b border-slate-800 bg-slate-900/50">
@@ -412,7 +412,7 @@
         }
     });
     // Al enviar, copiar HTML al textarea oculto
-    document.querySelector('form').addEventListener('submit', function() {
+    document.getElementById('settings-form').addEventListener('submit', function() {
         document.getElementById('bio-hidden').value = quill.root.innerHTML;
     });
 </script>

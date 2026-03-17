@@ -12,6 +12,7 @@ use Slim\Routing\RouteCollectorProxy;
 
 // Web Routes
 $app->get('/', LandingController::class);
+$app->get('/menu', \App\Controllers\Front\MenuController::class);
 $app->get('/sitemap.xml', [SitemapController::class, 'sitemap']);
 $app->get('/robots.txt',  [SitemapController::class, 'robots']);
 
@@ -52,4 +53,26 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     // Settings
     $group->get('/settings', [\App\Controllers\Admin\SettingsAdminController::class, 'index']);
     $group->post('/settings', [\App\Controllers\Admin\SettingsAdminController::class, 'update']);
+
+    // Menú – Configuración
+    $group->get('/menu/settings',  [\App\Controllers\Admin\MenuSettingsAdminController::class, 'index']);
+    $group->post('/menu/settings', [\App\Controllers\Admin\MenuSettingsAdminController::class, 'update']);
+
+    // Menú – Secciones
+    $group->get('/menu/sections',              [\App\Controllers\Admin\MenuSectionAdminController::class, 'index']);
+    $group->get('/menu/sections/create',       [\App\Controllers\Admin\MenuSectionAdminController::class, 'create']);
+    $group->post('/menu/sections/create',      [\App\Controllers\Admin\MenuSectionAdminController::class, 'store']);
+    $group->get('/menu/sections/edit/{id}',    [\App\Controllers\Admin\MenuSectionAdminController::class, 'edit']);
+    $group->post('/menu/sections/edit/{id}',   [\App\Controllers\Admin\MenuSectionAdminController::class, 'update']);
+    $group->post('/menu/sections/delete/{id}', [\App\Controllers\Admin\MenuSectionAdminController::class, 'delete']);
+    $group->post('/menu/sections/reorder',     [\App\Controllers\Admin\MenuSectionAdminController::class, 'reorder']);
+
+    // Menú – Ítems
+    $group->get('/menu/items',              [\App\Controllers\Admin\MenuItemAdminController::class, 'index']);
+    $group->get('/menu/items/create',       [\App\Controllers\Admin\MenuItemAdminController::class, 'create']);
+    $group->post('/menu/items/create',      [\App\Controllers\Admin\MenuItemAdminController::class, 'store']);
+    $group->get('/menu/items/edit/{id}',    [\App\Controllers\Admin\MenuItemAdminController::class, 'edit']);
+    $group->post('/menu/items/edit/{id}',   [\App\Controllers\Admin\MenuItemAdminController::class, 'update']);
+    $group->post('/menu/items/delete/{id}', [\App\Controllers\Admin\MenuItemAdminController::class, 'delete']);
+    $group->post('/menu/items/reorder',     [\App\Controllers\Admin\MenuItemAdminController::class, 'reorder']);
 })->add(AuthMiddleware::class);

@@ -1,0 +1,160 @@
+<?php
+
+namespace App\Controllers\Admin;
+
+use App\Models\MenuItem;
+use App\Models\MenuSection;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class MenuItemAdminController
+{
+    protected $view;
+
+    public function __construct(\Psr\Container\ContainerInterface $container)
+    {
+        $this->view = $container->get('view');
+    }
+
+    public function index(Request $request, Response $response): Response
+    {
+        $items    = MenuItem::with('section')->orderBy('sort_order')->orderBy('id')->get();
+        $sections = MenuSection::active()->orderBy('sort_order')->get();
+        $html = $this->view->make('admin/menu/items/index', compact('items', 'sections'))->render();
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function create(Request $request, Response $response): Response
+    {
+        $sections = MenuSection::active()->orderBy('sort_order')->get();
+        $html = $this->view->make('admin/menu/items/create', ['sections' => $sections])->render();
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function store(Request $request, Response $response): Response
+    {
+        $data  = $request->getParsedBody();
+        $files = $request->getUploadedFiles();
+
+        $maxOrder = MenuItem::max('sort_order') ?? 0;
+
+        $imageUrl = null;
+        if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
+            $file      = $files['image_file'];
+            $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
+            $filename  = 'menu_item_' . time() . '.' . $extension;
+            $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
+            $file->moveTo($targetPath);
+            $imageUrl = url('uploads/' . $filename);
+        }
+
+        MenuItem::create([
+            'section_id'  => !empty($data['section_id']) ? (int) $data['section_id'] : null,
+            'title'       => trim($data['title'] ?? ''),
+            'price'       => (float) ($data['price'] ?? 0),
+            'description' => trim($data['description'] ?? ''),
+            'image_url'   => $imageUrl,
+            'sort_order'  => $maxOrder + 1,
+            'active'      => isset($data['active']) ? 1 : 0,
+        ]);
+
+        return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
+    }
+
+    public function edit(Request $request, Response $response, array $args): Response
+    {
+        $item     = MenuItem::findOrFail($args['id']);
+        $sections = MenuSection::active()->orderBy('sort_order')->get();
+        $html = $this->view->make('admin/menu/items/edit', compact('item', 'sections'))->render();
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function update(Request $request, Response $response, array $args): Response
+    {
+        $item  = MenuItem::findOrFail($args['id']);
+        $data  = $request->getParsedBody();
+        $files = $request->getUploadedFiles();
+
+        $imageUrl = $item->image_url;
+
+        // Quitar imagen existente si se solicitó
+        if (!empty($data['clear_image'])) {
+            $this->deleteUploadedFile($imageUrl ?? '');
+            $imageUrl = null;
+        }
+
+        // Nueva imagen subida
+        if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
+            $this->deleteUploadedFile($imageUrl ?? '');
+            $file      = $files['image_file'];
+            $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
+            $filename  = 'menu_item_' . time() . '.' . $extension;
+            $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
+            $file->moveTo($targetPath);
+            $imageUrl = url('uploads/' . $filename);
+        }
+
+        $item->update([
+            'section_id'  => !empty($data['section_id']) ? (int) $data['section_id'] : null,
+            'title'       => trim($data['title'] ?? ''),
+            'price'       => (float) ($data['price'] ?? 0),
+            'description' => trim($data['description'] ?? ''),
+            'image_url'   => $imageUrl,
+            'active'      => isset($data['active']) ? 1 : 0,
+        ]);
+
+        return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
+    }
+
+    public function delete(Request $request, Response $response, array $args): Response
+    {
+        $item = MenuItem::find($args['id']);
+        if ($item) {
+            $this->deleteUploadedFile($item->image_url ?? '');
+            $item->delete();
+        }
+        return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
+    }
+
+    // Recibe JSON {"order": [3, 1, 2]} y actualiza sort_order en bulk
+    public function reorder(Request $request, Response $response): Response
+    {
+        $body = (string) $request->getBody();
+        $data = json_decode($body, true);
+
+        if (!isset($data['order']) || !is_array($data['order'])) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid payload']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        foreach ($data['order'] as $index => $id) {
+            MenuItem::where('id', (int) $id)->update(['sort_order' => $index]);
+        }
+
+        $response->getBody()->write(json_encode(['ok' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    // Borra un archivo físico de uploads/ si la ruta es local (no URL externa)
+    private function deleteUploadedFile(string $settingValue): void
+    {
+        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
+
+        if (!str_contains($urlPath, '/uploads/')) {
+            return;
+        }
+
+        $filename = basename($urlPath);
+        if ($filename === '' || $filename === '.') {
+            return;
+        }
+
+        $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+    }
+}
