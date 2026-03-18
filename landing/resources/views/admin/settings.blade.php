@@ -37,6 +37,28 @@
                         <textarea name="landing_bio" id="bio-hidden" class="hidden">{{ $settings['landing_bio'] ?? '' }}</textarea>
                     </div>
                     <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Favicon (Subir Imagen)</label>
+                        <input type="file" name="favicon_file" accept="image/png,image/x-icon,image/svg+xml"
+                               class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+                        @if(!empty($settings['landing_favicon_url']))
+                            <div class="mt-3 flex items-center gap-3 flex-wrap">
+                                <img src="{{ $settings['landing_favicon_url'] }}" class="w-8 h-8 border border-slate-700 rounded object-contain bg-slate-950 p-1">
+                                <span class="text-[10px] text-slate-500 truncate max-w-[200px]">{{ $settings['landing_favicon_url'] }}</span>
+                                <label class="flex items-center gap-2 cursor-pointer ml-2 select-none">
+                                    <input type="checkbox" name="clear_favicon" value="1" class="sr-only peer">
+                                    <span class="text-xs text-red-400 peer-checked:line-through border border-red-400/40 px-2 py-1 rounded-lg hover:bg-red-400/10 transition-colors">Quitar favicon</span>
+                                </label>
+                            </div>
+                        @endif
+                        <p class="text-[10px] text-slate-500 mt-2 italic">Formatos: .png, .ico, .svg — Tamaño recomendado: 32x32 o 64x64 px.</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL de favicon externa</label>
+                        <input type="text" name="landing_favicon_url" value="{{ $settings['landing_favicon_url'] ?? '' }}"
+                               class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
+                               placeholder="https://...">
+                    </div>
+                    <div class="col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Avatar (Subir Imagen)</label>
                         <input type="file" name="avatar_file" accept="image/*"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
@@ -147,6 +169,17 @@
                     </div>
 
                     <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Tamaño del Logo</label>
+                        <select name="landing_logo_size"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
+                            <option value="sm" {{ ($settings['landing_logo_size'] ?? 'sm') === 'sm' ? 'selected' : '' }}>Pequeño (64px)</option>
+                            <option value="md" {{ ($settings['landing_logo_size'] ?? '') === 'md' ? 'selected' : '' }}>Mediano (96px)</option>
+                            <option value="lg" {{ ($settings['landing_logo_size'] ?? '') === 'lg' ? 'selected' : '' }}>Grande (128px)</option>
+                            <option value="xl" {{ ($settings['landing_logo_size'] ?? '') === 'xl' ? 'selected' : '' }}>Extra grande (160px)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Logo (Subir)</label>
                         <input type="file" name="logo_file" accept="image/*"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
@@ -172,6 +205,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modo de Visualización de Links -->
+        @if(($settings['module_links_enabled'] ?? '1') === '1')
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-grip text-cyan-500"></i> Visualización de Enlaces
+                </h3>
+            </div>
+            <div class="p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Modo de visualización</label>
+                        <select name="landing_links_display"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
+                            <option value="list" {{ ($settings['landing_links_display'] ?? 'list') === 'list' ? 'selected' : '' }}>Lista (texto + icono)</option>
+                            <option value="grid" {{ ($settings['landing_links_display'] ?? '') === 'grid' ? 'selected' : '' }}>Grilla de iconos</option>
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-2 italic">Grilla: muestra solo los iconos en cuadrados, ideal para redes sociales.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @endif
 
         <!-- SEO -->
         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
@@ -344,35 +402,6 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-
-        <!-- Ubicación Google Maps -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-            <div class="p-6 border-b border-slate-800 bg-slate-900/50">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-map-location-dot text-emerald-500"></i> Ubicación
-                </h3>
-            </div>
-            <div class="p-8 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">Modo de visualización</label>
-                        <select name="landing_maps_mode"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-                            <option value="none" {{ ($settings['landing_maps_mode'] ?? 'none') === 'none' ? 'selected' : '' }}>Ocultar</option>
-                            <option value="button" {{ ($settings['landing_maps_mode'] ?? '') === 'button' ? 'selected' : '' }}>Mostrar botón</option>
-                            <option value="embed" {{ ($settings['landing_maps_mode'] ?? '') === 'embed' ? 'selected' : '' }}>Mapa embebido</option>
-                        </select>
-                        <p class="text-[10px] text-slate-500 mt-2 italic">Para "Mapa embebido" usa la URL de Google Maps → Compartir → Insertar mapa.</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">URL de Google Maps</label>
-                        <input type="text" name="landing_maps_url" value="{{ $settings['landing_maps_url'] ?? '' }}"
-                               class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
-                               placeholder="https://maps.google.com/...">
-                    </div>
-                </div>
             </div>
         </div>
 

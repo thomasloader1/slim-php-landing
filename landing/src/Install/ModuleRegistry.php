@@ -9,7 +9,7 @@ class ModuleRegistry
     public function __construct()
     {
         // Los módulos viven en db/modules/ relativo a la raíz del proyecto
-        $this->modulesDir = __DIR__ . '/../../../db/modules';
+        $this->modulesDir = __DIR__ . '/../../db/modules';
     }
 
     /**

@@ -38,15 +38,18 @@ class SettingsAdminController
             'seo_description', 'seo_keywords', 'seo_author',
             'seo_site_url', 'seo_og_image', 'seo_locale', 'seo_twitter_handle',
             'seo_schema_type', 'seo_business_type', 'seo_address', 'seo_noindex',
-            'landing_maps_url', 'landing_maps_mode',
-            'landing_accent_force'
+            'landing_accent_force',
+            'landing_favicon_url',
+            'landing_links_display',
+            'landing_logo_size'
         ];
 
         // Handle File Uploads
         $uploadMap = [
-            'avatar_file' => 'landing_avatar_url',
-            'logo_file'   => 'landing_logo_url',
-            'bg_file'     => 'landing_bg_image_url'
+            'avatar_file'  => 'landing_avatar_url',
+            'logo_file'    => 'landing_logo_url',
+            'bg_file'      => 'landing_bg_image_url',
+            'favicon_file' => 'landing_favicon_url'
         ];
 
         foreach ($uploadMap as $inputName => $settingKey) {
@@ -69,9 +72,10 @@ class SettingsAdminController
 
         // Procesar flags de limpieza de imágenes
         $clearMap = [
-            'clear_avatar' => 'landing_avatar_url',
-            'clear_logo'   => 'landing_logo_url',
-            'clear_bg'     => 'landing_bg_image_url',
+            'clear_avatar'  => 'landing_avatar_url',
+            'clear_logo'    => 'landing_logo_url',
+            'clear_bg'      => 'landing_bg_image_url',
+            'clear_favicon' => 'landing_favicon_url',
         ];
         foreach ($clearMap as $flag => $settingKey) {
             if (!empty($data[$flag])) {

@@ -14,6 +14,7 @@ class Link extends Model
         'type',
         'icon',
         'color',
+        'bg_color',
         'sort_order',
         'active'
     ];

@@ -34,6 +34,11 @@
     <meta name="twitter:creator"     content="@{{ $settings['seo_twitter_handle'] }}">
     @endif
 
+    <!-- Favicon -->
+    @if(!empty($settings['landing_favicon_url']))
+    <link rel="icon" href="{{ $settings['landing_favicon_url'] }}">
+    @endif
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +112,18 @@
         .bio-content a { color: var(--accent); text-decoration: underline; }
         .bio-content p { margin-bottom: 0.5rem; }
     </style>
+
+    @php
+        /* ── Función de auto-contraste para bg_color ── */
+        function bgContrastColor($hex) {
+            $hex = ltrim($hex, '#');
+            if (strlen($hex) === 3) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+            return (0.299*$r + 0.587*$g + 0.114*$b) / 255 > 0.5 ? '#000000' : '#ffffff';
+        }
+    @endphp
 
     @php
         /* ── JSON-LD Schema.org ──────────────────────────────────────── */
@@ -189,10 +206,16 @@
     <div class="fixed bottom-[-10%] left-[-10%] w-[100px] h-[100px] md:w-[200px] md:h-[200px] lg:w-[300px] lg:h-[300px] rounded-full opacity-10 blur-[80px]" style="background: var(--accent);"></div>
 
     <div class="max-w-md w-full flex flex-col items-center relative z-10">
+        @php
+            $logoSizeMap = ['sm' => '64px', 'md' => '96px', 'lg' => '128px', 'xl' => '160px'];
+            $logoSize = $logoSizeMap[$settings['landing_logo_size'] ?? 'sm'] ?? '64px';
+        @endphp
+
+        @if(($settings['module_avatar_enabled'] ?? '1') === '1')
         <!-- Logo Section -->
         @if(!empty($settings['landing_logo_url']))
             <div class="mb-8 flex justify-center">
-                <img src="{{ $settings['landing_logo_url'] }}" alt="{{ $settings['site_name'] ?? 'Logo' }}" class="max-h-16 w-auto object-contain">
+                <img src="{{ $settings['landing_logo_url'] }}" alt="{{ $settings['site_name'] ?? 'Logo' }}" class="w-auto object-contain" style="max-height: {{ $logoSize }}">
             </div>
         @endif
 
@@ -209,34 +232,68 @@
             </div>
         </div>
         @endif
+        @endif
 
+        @if(($settings['module_title_enabled'] ?? '1') === '1')
         <h1 class="text-4xl font-black mb-2 tracking-tighter text-center">
             {{ $settings['landing_title'] ?? 'My Profile' }}
         </h1>
         <p class="text-white/60 font-medium mb-12 text-center tracking-tight text-lg">{{ $settings['landing_subtitle'] ?? 'Digital Creator' }}</p>
+        @endif
 
         <!-- Links Section -->
-        <div class="w-full flex flex-col space-y-5">
+        @if(($settings['module_links_enabled'] ?? '1') === '1')
+        @php $displayMode = $settings['landing_links_display'] ?? 'list'; @endphp
+
+        @if($displayMode === 'grid')
+        {{-- Modo Grilla: iconos solamente --}}
+        <div class="w-full grid grid-cols-3 sm:grid-cols-4 gap-6">
             @forelse($links as $link)
-                <a href="{{ $link->url }}" 
-                   class="glass link-hover p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group"
-                   target="_blank">
-                    <div class="w-10 h-10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
-                         style="color: {{ ($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)') }}">
+                @php $__hasBg = !empty($link->bgColor); @endphp
+                <a href="{{ $link->url }}"
+                   class="{{ $__hasBg ? '' : 'glass link-hover' }} aspect-square rounded-2xl flex items-center justify-center transition-all duration-300 group"
+                   style="{{ $__hasBg ? 'background-color:' . $link->bgColor . '; box-shadow: 0 4px 15px -3px rgba(0,0,0,0.3);' : '' }}"
+                   target="_blank" title="{{ $link->title }}">
+                    <div class="flex items-center justify-center text-2xl group-hover:scale-110 transition-transform"
+                         style="color: {{ $__hasBg ? bgContrastColor($link->bgColor) : (($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)')) }};">
                         {!! $link->getIconHtml() !!}
                     </div>
-                    <span class="flex-1 font-semibold text-lg ml-3">{{ $link->title }}</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-white/20 text-xs group-hover:text-accent group-hover:opacity-100 transition-all"></i>
+                </a>
+            @empty
+                <div class="col-span-full glass p-12 rounded-3xl text-center border-dashed border-white/10">
+                    <i class="fa-solid fa-link-slash text-white/20 text-4xl mb-4 block"></i>
+                    <p class="text-white/40 text-base">No hay enlaces todavía.</p>
+                </div>
+            @endforelse
+        </div>
+        @else
+        {{-- Modo Lista (default) --}}
+        <div class="w-full flex flex-col space-y-5">
+            @forelse($links as $link)
+                @php $__hasBg = !empty($link->bgColor); $__contrast = $__hasBg ? bgContrastColor($link->bgColor) : null; @endphp
+                <a href="{{ $link->url }}"
+                   class="{{ $__hasBg ? '' : 'glass link-hover' }} p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group"
+                   style="{{ $__hasBg ? 'background-color:' . $link->bgColor . '; box-shadow: 0 4px 15px -3px rgba(0,0,0,0.3);' : '' }}"
+                   target="_blank">
+                    <div class="w-10 h-10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
+                         style="color: {{ $__hasBg ? $__contrast : (($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)')) }};">
+                        {!! $link->getIconHtml() !!}
+                    </div>
+                    <span class="flex-1 font-semibold text-lg ml-3" style="{{ $__hasBg ? 'color:' . $__contrast : '' }}">{{ $link->title }}</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-xs transition-all" style="{{ $__hasBg ? 'color:' . $__contrast . '; opacity:0.4;' : 'color: rgba(255,255,255,0.2);' }}"></i>
                 </a>
             @empty
                 <div class="glass p-12 rounded-3xl text-center border-dashed border-white/10">
                     <i class="fa-solid fa-link-slash text-white/20 text-4xl mb-4 block"></i>
-                    <p class="text-white/40 text-base">No links available yet.</p>
+                    <p class="text-white/40 text-base">No hay enlaces todavía.</p>
                 </div>
             @endforelse
         </div>
+        @endif
+        @endif
 
         <!-- Bio Section -->
+        @if(($settings['module_bio_enabled'] ?? '1') === '1')
         @if(!empty($settings['landing_bio']))
             <div class="mt-14 text-center px-4">
                 <div class="bio-content text-white/50 text-base leading-relaxed max-w-sm mx-auto font-light">
@@ -244,25 +301,41 @@
                 </div>
             </div>
         @endif
+        @endif
 
-        <!-- Ubicación Google Maps -->
-        @if(!empty($settings['landing_maps_url']) && ($settings['landing_maps_mode'] ?? 'none') !== 'none')
-            @if($settings['landing_maps_mode'] === 'button')
-                <a href="{{ $settings['landing_maps_url'] }}" target="_blank" rel="noopener noreferrer"
-                   class="glass link-hover mt-6 p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group w-full">
-                    <div class="w-10 h-10 flex items-center justify-center text-xl accent-text group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-map-location-dot"></i>
-                    </div>
-                    <span class="flex-1 font-semibold text-lg ml-3">Ver ubicación</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-white/20 text-xs group-hover:text-accent group-hover:opacity-100 transition-all"></i>
-                </a>
-            @elseif($settings['landing_maps_mode'] === 'embed')
-                <div class="glass rounded-2xl overflow-hidden w-full mt-6">
-                    <iframe src="{{ $settings['landing_maps_url'] }}" class="w-full aspect-video"
-                            style="border:0;" allowfullscreen="" loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"></iframe>
-                </div>
-            @endif
+        <!-- Ubicaciones -->
+        @if(($settings['module_locations_enabled'] ?? '1') === '1' && !empty($locations))
+            <div class="w-full mt-8 space-y-5">
+                @foreach($locations as $loc)
+                    @if($loc->mode === 'button' && !empty($loc->url))
+                        <a href="{{ $loc->url }}" target="_blank" rel="noopener noreferrer"
+                           class="glass link-hover p-4 px-6 rounded-2xl flex items-center transition-all duration-300 group w-full">
+                            <div class="w-10 h-10 flex items-center justify-center text-xl accent-text group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                            </div>
+                            <div class="flex-1 ml-3">
+                                <span class="font-semibold text-lg block">{{ $loc->name }}</span>
+                                @if($loc->address)
+                                    <span class="text-white/40 text-sm">{{ $loc->address }}</span>
+                                @endif
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 text-xs group-hover:text-accent group-hover:opacity-100 transition-all"></i>
+                        </a>
+                    @elseif($loc->mode === 'embed')
+                        @php $embedSrc = $loc->getEmbedSrc(); @endphp
+                        @if($embedSrc)
+                        <div class="w-full">
+                            <p class="text-white/60 text-sm font-semibold mb-2">{{ $loc->name }}@if($loc->address) <span class="font-normal text-white/30">— {{ $loc->address }}</span>@endif</p>
+                            <div class="glass rounded-2xl overflow-hidden">
+                                <iframe src="{{ $embedSrc }}" class="w-full aspect-video"
+                                        style="border:0;" allowfullscreen="" loading="lazy"
+                                        referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            </div>
+                        </div>
+                        @endif
+                    @endif
+                @endforeach
+            </div>
         @endif
 
         <!-- Footer -->

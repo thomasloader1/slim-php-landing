@@ -35,12 +35,13 @@ class LinkAdminController
         $data = $request->getParsedBody();
         
         Link::create([
-            'title' => $data['title'] ?? '',
-            'url'   => $data['url'] ?? '',
-            'type'  => $data['type'] ?? 'url',
-            'icon'  => $data['icon'] ?? 'fa-link',
-            'color' => $data['color'] ?? '#ffffff',
-            'active'=> isset($data['active']) ? 1 : 0
+            'title'    => $data['title'] ?? '',
+            'url'      => $data['url'] ?? '',
+            'type'     => $data['type'] ?? 'url',
+            'icon'     => $data['icon'] ?? 'fa-link',
+            'color'    => $data['color'] ?? '#ffffff',
+            'bg_color' => !empty($data['bg_color_enabled']) ? ($data['bg_color'] ?? null) : null,
+            'active'   => isset($data['active']) ? 1 : 0
         ]);
 
         return $response->withHeader('Location', url('admin/links'))->withStatus(302);
@@ -60,12 +61,13 @@ class LinkAdminController
         $data = $request->getParsedBody();
 
         $link->update([
-            'title' => $data['title'] ?? '',
-            'url'   => $data['url'] ?? '',
-            'type'  => $data['type'] ?? 'url',
-            'icon'  => $data['icon'] ?? 'fa-link',
-            'color' => $data['color'] ?? '#ffffff',
-            'active'=> isset($data['active']) ? 1 : 0
+            'title'    => $data['title'] ?? '',
+            'url'      => $data['url'] ?? '',
+            'type'     => $data['type'] ?? 'url',
+            'icon'     => $data['icon'] ?? 'fa-link',
+            'color'    => $data['color'] ?? '#ffffff',
+            'bg_color' => !empty($data['bg_color_enabled']) ? ($data['bg_color'] ?? null) : null,
+            'active'   => isset($data['active']) ? 1 : 0
         ]);
 
         return $response->withHeader('Location', url('admin/links'))->withStatus(302);

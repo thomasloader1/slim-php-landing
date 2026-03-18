@@ -48,13 +48,35 @@
                 </h1>
             </div>
 
+            @php
+                $__modules = \Illuminate\Database\Capsule\Manager::table('settings')
+                    ->whereIn('setting_key', ['module_links_enabled','module_locations_enabled','module_menu_enabled'])
+                    ->pluck('setting_value', 'setting_key')->toArray();
+                $__linksEnabled     = ($__modules['module_links_enabled'] ?? '1') === '1';
+                $__locationsEnabled = ($__modules['module_locations_enabled'] ?? '1') === '1';
+                $__menuEnabled      = ($__modules['module_menu_enabled'] ?? '1') === '1';
+                $__menuConfigured   = \Illuminate\Database\Capsule\Manager::table('settings')
+                    ->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0';
+            @endphp
             <nav class="flex-1 px-4 space-y-1 mt-4">
                 <a href="{{ url('admin') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin') || request_is('admin/') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-chart-line w-5"></i> Dashboard
                 </a>
+                @if(($_SESSION['user_role'] ?? '') === 'admin')
+                    <a href="{{ url('admin/modules') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/modules*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                        <i class="fa-solid fa-puzzle-piece w-5"></i> Módulos
+                    </a>
+                @endif
+                @if($__linksEnabled)
                 <a href="{{ url('admin/links') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/links*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-link w-5"></i> Enlaces
                 </a>
+                @endif
+                @if($__locationsEnabled)
+                <a href="{{ url('admin/locations') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/locations*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-map-location-dot w-5"></i> Ubicaciones
+                </a>
+                @endif
                 @if(($_SESSION['user_role'] ?? '') === 'admin')
                     <a href="{{ url('admin/users') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/users*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                         <i class="fa-solid fa-users w-5"></i> Usuarios
@@ -63,17 +85,15 @@
                 <a href="{{ url('admin/settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-gears w-5"></i> Ajustes
                 </a>
-                @php
-                    $menuEnabled = \Illuminate\Database\Capsule\Manager::table('settings')
-                        ->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0';
-                @endphp
-                <a href="{{ url($menuEnabled === '1' ? 'admin/menu/items' : 'admin/menu/settings') }}"
+                @if($__menuEnabled)
+                <a href="{{ url($__menuConfigured === '1' ? 'admin/menu/items' : 'admin/menu/settings') }}"
                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/menu*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-utensils w-5"></i> Menú
-                    @if($menuEnabled !== '1')
+                    @if($__menuConfigured !== '1')
                         <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
                     @endif
                 </a>
+                @endif
             </nav>
 
             <div class="p-4 mt-auto border-t border-slate-800">

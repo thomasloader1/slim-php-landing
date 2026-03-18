@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Models\Link;
+use App\Models\Location;
 use App\Entities\LinkEntity;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -28,9 +29,13 @@ class LandingController
         
         $links = array_map(fn($item) => new LinkEntity($item), $linksData);
 
+        // Locations
+        $locations = Location::active()->orderBy('sort_order')->get();
+
         $html = $this->view->make('index', [
-            'settings' => $settings,
-            'links'    => $links
+            'settings'  => $settings,
+            'links'     => $links,
+            'locations' => $locations,
         ])->render();
 
         $response->getBody()->write($html);

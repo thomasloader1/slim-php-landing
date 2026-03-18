@@ -32,6 +32,12 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('', DashboardController::class);
     $group->get('/', DashboardController::class);
     
+    // Módulos (admin only)
+    $group->group('/modules', function (RouteCollectorProxy $modGroup) {
+        $modGroup->get('', [\App\Controllers\Admin\ModuleAdminController::class, 'index']);
+        $modGroup->post('', [\App\Controllers\Admin\ModuleAdminController::class, 'update']);
+    })->add(\App\Middleware\RoleMiddleware::class);
+
     // Links CRUD
     $group->get('/links', [\App\Controllers\Admin\LinkAdminController::class, 'index']);
     $group->get('/links/create', [\App\Controllers\Admin\LinkAdminController::class, 'create']);
@@ -40,6 +46,15 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->post('/links/edit/{id}', [\App\Controllers\Admin\LinkAdminController::class, 'update']);
     $group->post('/links/delete/{id}', [\App\Controllers\Admin\LinkAdminController::class, 'delete']);
     
+    // Locations CRUD
+    $group->get('/locations', [\App\Controllers\Admin\LocationAdminController::class, 'index']);
+    $group->get('/locations/create', [\App\Controllers\Admin\LocationAdminController::class, 'create']);
+    $group->post('/locations/create', [\App\Controllers\Admin\LocationAdminController::class, 'store']);
+    $group->get('/locations/edit/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'edit']);
+    $group->post('/locations/edit/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'update']);
+    $group->post('/locations/delete/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'delete']);
+    $group->post('/locations/reorder', [\App\Controllers\Admin\LocationAdminController::class, 'reorder']);
+
     // Users CRUD
     $group->group('/users', function (RouteCollectorProxy $userGroup) {
         $userGroup->get('', [\App\Controllers\Admin\UserAdminController::class, 'index']);

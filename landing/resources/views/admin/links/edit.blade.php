@@ -51,6 +51,24 @@
 
             <div class="col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700 shrink-0">
+                        <input type="checkbox" name="bg_color_enabled" id="bg_color_enabled" {{ $link->bg_color ? 'checked' : '' }} class="sr-only peer">
+                        <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
+                    </div>
+                    <span class="text-sm font-medium text-slate-400">Color de fondo del icono</span>
+                </label>
+                <div id="bg-color-picker" class="{{ $link->bg_color ? '' : 'hidden' }} mt-3">
+                    <div class="flex gap-2">
+                        <input type="color" name="bg_color" value="{{ $link->bg_color ?? '#fec771' }}"
+                               class="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 focus:border-blue-500/50 outline-none transition-all cursor-pointer">
+                        <input type="text" value="{{ $link->bg_color ?? '#fec771' }}" readonly id="bg_color_hex"
+                               class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-500 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-2">
+                <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
                         <input type="checkbox" name="active" {{ $link->active ? 'checked' : '' }} class="sr-only peer">
                         <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
@@ -172,6 +190,23 @@
             panel.classList.add('hidden');
         }
     });
+})();
+
+/* ── Toggle bg_color picker ── */
+(function() {
+    var toggle = document.getElementById('bg_color_enabled');
+    var picker = document.getElementById('bg-color-picker');
+    var colorInput = document.querySelector('input[name="bg_color"]');
+    var hexDisplay = document.getElementById('bg_color_hex');
+    if (!toggle || !picker) return;
+    toggle.addEventListener('change', function() {
+        picker.classList.toggle('hidden', !this.checked);
+    });
+    if (colorInput && hexDisplay) {
+        colorInput.addEventListener('input', function() {
+            hexDisplay.value = this.value;
+        });
+    }
 })();
 </script>
 @endpush

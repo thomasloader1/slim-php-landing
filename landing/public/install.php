@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $log[] = '✓ Conexión a base de datos establecida.';
 
                 // 3. Core schema + seed
-                $dbInitDir = __DIR__ . '/../../db/init';
+                $dbInitDir = __DIR__ . '/../db/init';
                 foreach (['01_schema.sql', '02_seed.sql'] as $sqlFile) {
                     $filePath = $dbInitDir . '/' . $sqlFile;
                     $fileLog  = $installer->runSqlFile($pdo, $filePath);

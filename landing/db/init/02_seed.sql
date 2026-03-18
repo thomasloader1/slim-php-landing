@@ -53,7 +53,16 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_accent_force',        '1'),
     ('menu_enabled',                '0'),
     ('menu_header_text',            'Nuestra Carta'),
-    ('menu_footer_text',            '')
+    ('menu_footer_text',            ''),
+    ('landing_favicon_url',         ''),
+    ('module_title_enabled',        '1'),
+    ('module_avatar_enabled',       '1'),
+    ('module_links_enabled',        '1'),
+    ('module_bio_enabled',          '1'),
+    ('module_locations_enabled',    '1'),
+    ('module_menu_enabled',         '1'),
+    ('landing_links_display',       'list'),
+    ('landing_logo_size',           'sm')
 AS new_values
 ON DUPLICATE KEY UPDATE
     `setting_value` = new_values.`setting_value`;

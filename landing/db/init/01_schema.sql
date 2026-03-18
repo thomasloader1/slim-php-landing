@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `links` (
     `type`       VARCHAR(30)   NOT NULL DEFAULT 'url',
     `icon`       VARCHAR(100)      NULL DEFAULT 'fa-link',
     `color`      VARCHAR(20)       NULL DEFAULT '#ffffff',
+    `bg_color`   VARCHAR(20)       NULL DEFAULT NULL,
     `sort_order` INT UNSIGNED  NOT NULL DEFAULT 0,
     `active`     TINYINT(1)    NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -52,6 +53,24 @@ CREATE TABLE IF NOT EXISTS `settings` (
     `updated_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_settings_key` (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+--  Tabla: locations
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `locations` (
+    `id`          INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+    `name`        VARCHAR(150)   NOT NULL,
+    `address`     VARCHAR(300)       NULL DEFAULT NULL,
+    `embed_code`  TEXT               NULL,
+    `url`         VARCHAR(500)       NULL DEFAULT NULL,
+    `mode`        ENUM('button','embed') NOT NULL DEFAULT 'embed',
+    `sort_order`  INT UNSIGNED   NOT NULL DEFAULT 0,
+    `active`      TINYINT(1)     NOT NULL DEFAULT 1,
+    `created_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_locations_active_sort` (`active`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------

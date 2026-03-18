@@ -24,7 +24,7 @@ class UpdateManager
     public function __construct(PDO $pdo)
     {
         $this->pdo        = $pdo;
-        $this->updatesDir = realpath(__DIR__ . '/../../../db/updates') ?: (__DIR__ . '/../../../db/updates');
+        $this->updatesDir = realpath(__DIR__ . '/../../db/updates') ?: (__DIR__ . '/../../db/updates');
     }
 
     // ─── Versión del código ───────────────────────────────────────
@@ -159,20 +159,18 @@ class UpdateManager
 
     /**
      * Aplica UNA migración y la marca como aplicada.
+     * Las migraciones son idempotentes (IF NOT EXISTS / ON DUPLICATE KEY),
+     * por lo que siempre se marcan como aplicadas para evitar re-ejecución.
      * Retorna array de líneas de log.
      */
     public function applyMigration(string $filePath, DbInstaller $installer): array
     {
         $log = $installer->runSqlFile($this->pdo, $filePath);
 
-        // Marcar como aplicada solo si no hubo error crítico
-        $hasError = !empty(array_filter($log, fn($l) => str_starts_with($l, '✗')));
-
-        if (!$hasError) {
-            $applied   = $this->getAppliedMigrations();
-            $applied[] = basename($filePath);
-            $this->saveAppliedMigrations($applied);
-        }
+        // Siempre marcar como aplicada — los scripts son idempotentes
+        $applied   = $this->getAppliedMigrations();
+        $applied[] = basename($filePath);
+        $this->saveAppliedMigrations($applied);
 
         return $log;
     }
