@@ -13,8 +13,8 @@
 -- -------------------------------------------------------------
 INSERT INTO `users` (`name`, `email`, `password_hash`, `role`, `active`, `email_verified`)
 VALUES (
-    'Admin Mi Landing',                                         -- ✏️ nombre del admin
-    'admin@mi-landing.com',                                    -- ✏️ email de acceso
+    'Admin',                                         -- ✏️ nombre del admin
+    'admin@rufi.com.ar',                                    -- ✏️ email de acceso
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',  -- password: "password"
     'admin',
     1,
@@ -63,6 +63,5 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_menu_enabled',         '1'),
     ('landing_links_display',       'list'),
     ('landing_logo_size',           'sm')
-AS new_values
 ON DUPLICATE KEY UPDATE
-    `setting_value` = new_values.`setting_value`;
+    `setting_value` = VALUES(`setting_value`);

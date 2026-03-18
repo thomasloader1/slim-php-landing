@@ -15,6 +15,5 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('seo_business_type',  ''),
     ('seo_address',        ''),
     ('seo_noindex',        '0')
-AS new_vals
 ON DUPLICATE KEY UPDATE
-    `setting_value` = new_vals.`setting_value`;
+    `setting_value` = VALUES(`setting_value`);

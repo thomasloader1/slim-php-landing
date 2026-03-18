@@ -51,7 +51,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('menu_enabled',     '0'),
     ('menu_header_text', 'Nuestra Carta'),
     ('menu_footer_text', '')
-AS new_vals
-ON DUPLICATE KEY UPDATE `setting_value` = new_vals.`setting_value`;
+ON DUPLICATE KEY UPDATE
+    `setting_value` = VALUES(`setting_value`);
 
 SET FOREIGN_KEY_CHECKS = 1;

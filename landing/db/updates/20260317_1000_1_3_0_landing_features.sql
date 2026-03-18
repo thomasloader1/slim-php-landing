@@ -29,4 +29,5 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_maps_embed_code',''),
     ('landing_links_display',  'list'),
     ('landing_logo_size',      'sm')
-ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
+ON DUPLICATE KEY UPDATE
+    `setting_value` = VALUES(`setting_value`);

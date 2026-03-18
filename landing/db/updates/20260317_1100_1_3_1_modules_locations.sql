@@ -31,5 +31,5 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_links_enabled',     '1'),
     ('module_bio_enabled',       '1'),
     ('module_locations_enabled', '1'),
-    ('module_menu_enabled',      '1')
-ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
+    ('module_menu_enabled',      '1') ON DUPLICATE KEY UPDATE
+    `setting_value` = VALUES(`setting_value`);
