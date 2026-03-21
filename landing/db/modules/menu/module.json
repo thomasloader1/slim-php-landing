@@ -1,8 +1,0 @@
-{
-    "id": "menu",
-    "name": "Menú de Restaurante",
-    "description": "Página pública /menu con secciones, ítems, precios, imágenes, búsqueda y orden drag & drop.",
-    "sql": "install.sql",
-    "required": false,
-    "version": "1.0.0"
-}

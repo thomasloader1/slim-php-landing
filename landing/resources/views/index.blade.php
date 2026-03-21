@@ -5,39 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $settings['landing_title'] ?? 'Landing' }} | {{ $settings['site_name'] ?? 'Digital Profile' }}</title>
     
-    <!-- SEO básico -->
-    <meta name="description" content="{{ $settings['seo_description'] ?? 'Mi perfil digital y enlaces importantes.' }}">
-    <meta name="keywords"    content="{{ $settings['seo_keywords'] ?? 'perfil, enlaces, bio' }}">
-    <meta name="author"      content="{{ $settings['seo_author'] ?? $settings['site_name'] ?? 'Landing' }}">
-    <meta name="robots"      content="{{ ($settings['seo_noindex'] ?? '0') === '1' ? 'noindex, nofollow' : 'index, follow' }}">
-    @if(!empty($settings['seo_site_url']))
-    <link rel="canonical" href="{{ rtrim($settings['seo_site_url'], '/') . '/' }}">
-    @endif
-
-    <!-- Open Graph -->
-    <meta property="og:type"        content="website">
-    <meta property="og:title"       content="{{ $settings['landing_title'] ?? $settings['site_name'] ?? '' }}">
-    <meta property="og:description" content="{{ $settings['seo_description'] ?? '' }}">
-    <meta property="og:image"       content="{{ !empty($settings['seo_og_image']) ? $settings['seo_og_image'] : ($settings['landing_avatar_url'] ?? '') }}">
-    <meta property="og:locale"      content="{{ $settings['seo_locale'] ?? 'es_AR' }}">
-    <meta property="og:site_name"   content="{{ $settings['site_name'] ?? '' }}">
-    @if(!empty($settings['seo_site_url']))
-    <meta property="og:url"         content="{{ rtrim($settings['seo_site_url'], '/') . '/' }}">
-    @endif
-
-    <!-- Twitter Cards -->
-    <meta name="twitter:card"        content="summary_large_image">
-    <meta name="twitter:title"       content="{{ $settings['landing_title'] ?? $settings['site_name'] ?? '' }}">
-    <meta name="twitter:description" content="{{ $settings['seo_description'] ?? '' }}">
-    <meta name="twitter:image"       content="{{ !empty($settings['seo_og_image']) ? $settings['seo_og_image'] : ($settings['landing_avatar_url'] ?? '') }}">
-    @if(!empty($settings['seo_twitter_handle']))
-    <meta name="twitter:creator"     content="@{{ $settings['seo_twitter_handle'] }}">
-    @endif
-
-    <!-- Favicon -->
-    @if(!empty($settings['landing_favicon_url']))
-    <link rel="icon" href="{{ $settings['landing_favicon_url'] }}">
-    @endif
+    @include('partials/seo-head', [
+        'settings'  => $settings,
+        'pageTitle' => $settings['landing_title'] ?? $settings['site_name'] ?? '',
+        'pageUrl'   => $pageUrl ?? '',
+    ])
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -194,6 +166,28 @@
     <script type="application/ld+json">
     {!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     </script>
+
+    @if(!empty($faqItems) && count($faqItems) > 0)
+    @php
+        $faqSchema = [
+            '@context'   => 'https://schema.org',
+            '@type'      => 'FAQPage',
+            'mainEntity' => array_map(function($faq) {
+                return [
+                    '@type' => 'Question',
+                    'name'  => $faq->question,
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text'  => strip_tags($faq->answer),
+                    ],
+                ];
+            }, is_array($faqItems) ? $faqItems : $faqItems->all()),
+        ];
+    @endphp
+    <script type="application/ld+json">
+    {!! json_encode($faqSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
+    @endif
 </head>
 <body class="min-h-screen flex flex-col items-center py-20 px-6 overflow-x-hidden relative">
     <!-- Background System -->

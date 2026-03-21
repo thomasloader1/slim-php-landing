@@ -62,6 +62,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_locations_enabled',    '1'),
     ('module_menu_enabled',         '1'),
     ('landing_links_display',       'list'),
-    ('landing_logo_size',           'sm')
+    ('landing_logo_size',           'sm'),
+    ('favicon_version',             '')
 ON DUPLICATE KEY UPDATE
     `setting_value` = VALUES(`setting_value`);

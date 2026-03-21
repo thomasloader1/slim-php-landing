@@ -1,8 +1,0 @@
-{
-    "id": "landing_base",
-    "name": "Landing Page Base",
-    "description": "Módulo base de la landing page: links, configuración y estadísticas de clicks.",
-    "sql": "install.sql",
-    "required": true,
-    "version": "1.0.0"
-}

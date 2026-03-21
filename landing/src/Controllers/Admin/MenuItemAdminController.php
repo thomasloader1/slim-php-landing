@@ -4,11 +4,13 @@ namespace App\Controllers\Admin;
 
 use App\Models\MenuItem;
 use App\Models\MenuSection;
+use App\Traits\ProcessesImages;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class MenuItemAdminController
 {
+    use ProcessesImages;
     protected $view;
 
     public function __construct(\Psr\Container\ContainerInterface $container)
@@ -42,12 +44,16 @@ class MenuItemAdminController
 
         $imageUrl = null;
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
-            $file      = $files['image_file'];
-            $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-            $filename  = 'menu_item_' . time() . '.' . $extension;
-            $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
-            $file->moveTo($targetPath);
-            $imageUrl = url('uploads/' . $filename);
+            $file = $files['image_file'];
+
+            if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
+                $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
+                $filename  = 'menu_item_' . time() . '.' . $extension;
+                $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
+                $file->moveTo($targetPath);
+                $this->processAndSaveImage($targetPath, 800, 800, 75);
+                $imageUrl = url('uploads/' . $filename);
+            }
         }
 
         MenuItem::create([
@@ -88,13 +94,17 @@ class MenuItemAdminController
 
         // Nueva imagen subida
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
-            $this->deleteUploadedFile($imageUrl ?? '');
-            $file      = $files['image_file'];
-            $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-            $filename  = 'menu_item_' . time() . '.' . $extension;
-            $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
-            $file->moveTo($targetPath);
-            $imageUrl = url('uploads/' . $filename);
+            $file = $files['image_file'];
+
+            if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
+                $this->deleteUploadedFile($imageUrl ?? '');
+                $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
+                $filename  = 'menu_item_' . time() . '.' . $extension;
+                $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
+                $file->moveTo($targetPath);
+                $this->processAndSaveImage($targetPath, 800, 800, 75);
+                $imageUrl = url('uploads/' . $filename);
+            }
         }
 
         $item->update([

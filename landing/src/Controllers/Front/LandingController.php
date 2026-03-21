@@ -4,6 +4,7 @@ namespace App\Controllers\Front;
 
 use App\Models\Link;
 use App\Models\Location;
+use App\Models\FaqItem;
 use App\Entities\LinkEntity;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -32,10 +33,20 @@ class LandingController
         // Locations
         $locations = Location::active()->orderBy('sort_order')->get();
 
+        // URL canónica
+        $pageUrl = !empty($settings['seo_site_url'])
+            ? rtrim($settings['seo_site_url'], '/') . '/'
+            : '';
+
+        // FAQ items para Schema.org
+        $faqItems = FaqItem::active()->orderBy('sort_order')->get();
+
         $html = $this->view->make('index', [
             'settings'  => $settings,
             'links'     => $links,
             'locations' => $locations,
+            'pageUrl'   => $pageUrl,
+            'faqItems'  => $faqItems,
         ])->render();
 
         $response->getBody()->write($html);

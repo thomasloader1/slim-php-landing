@@ -35,6 +35,7 @@ class ModuleAdminController
             'module_bio_enabled',
             'module_locations_enabled',
             'module_menu_enabled',
+            'module_site_manager_enabled',
         ];
 
         foreach ($moduleKeys as $key) {
@@ -45,6 +46,20 @@ class ModuleAdminController
             );
         }
 
+        //$this->clearBladeCache();
+
         return $response->withHeader('Location', url('admin/modules'))->withStatus(302);
+    }
+
+    /**
+     * Limpia la caché de templates Blade compilados.
+     */
+    private function clearBladeCache(): void
+    {
+        $cacheDir = __DIR__ . '/../../../storage/cache';
+        $files = glob($cacheDir . '/*.php');
+        if ($files) {
+            array_map('unlink', $files);
+        }
     }
 }

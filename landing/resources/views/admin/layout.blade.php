@@ -50,11 +50,12 @@
 
             @php
                 $__modules = \Illuminate\Database\Capsule\Manager::table('settings')
-                    ->whereIn('setting_key', ['module_links_enabled','module_locations_enabled','module_menu_enabled'])
+                    ->whereIn('setting_key', ['module_links_enabled','module_locations_enabled','module_menu_enabled','module_site_manager_enabled'])
                     ->pluck('setting_value', 'setting_key')->toArray();
-                $__linksEnabled     = ($__modules['module_links_enabled'] ?? '1') === '1';
-                $__locationsEnabled = ($__modules['module_locations_enabled'] ?? '1') === '1';
-                $__menuEnabled      = ($__modules['module_menu_enabled'] ?? '1') === '1';
+                $__linksEnabled        = ($__modules['module_links_enabled'] ?? '1') === '1';
+                $__locationsEnabled    = ($__modules['module_locations_enabled'] ?? '1') === '1';
+                $__menuEnabled         = ($__modules['module_menu_enabled'] ?? '1') === '1';
+                $__siteManagerEnabled  = ($__modules['module_site_manager_enabled'] ?? '0') === '1';
                 $__menuConfigured   = \Illuminate\Database\Capsule\Manager::table('settings')
                     ->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0';
             @endphp
@@ -85,6 +86,12 @@
                 <a href="{{ url('admin/settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-gears w-5"></i> Ajustes
                 </a>
+                <a href="{{ url('admin/seo') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/seo*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-magnifying-glass w-5"></i> SEO
+                </a>
+                <a href="{{ url('admin/favicon') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/favicon*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-icons w-5"></i> Favicons
+                </a>
                 @if($__menuEnabled)
                 <a href="{{ url($__menuConfigured === '1' ? 'admin/menu/items' : 'admin/menu/settings') }}"
                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/menu*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
@@ -92,6 +99,11 @@
                     @if($__menuConfigured !== '1')
                         <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
                     @endif
+                </a>
+                @endif
+                @if($__siteManagerEnabled && ($_SESSION['user_role'] ?? '') === 'admin')
+                <a href="{{ url('admin/sites') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/sites*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-server w-5"></i> Sitios
                 </a>
                 @endif
             </nav>
@@ -134,6 +146,22 @@
                     </a>
                 </div>
             </header>
+
+            @php
+                $__siteSuspended = $_REQUEST['_site_suspended'] ?? false;
+                // Verificar si el sitio está suspendido (módulo site_client)
+                try {
+                    $__siteStatus = \Illuminate\Database\Capsule\Manager::table('settings')
+                        ->where('setting_key', 'site_status')->value('setting_value');
+                    $__siteSuspended = $__siteStatus === 'suspended';
+                } catch (\Exception $e) {}
+            @endphp
+            @if($__siteSuspended)
+            <div class="bg-red-600 text-white p-4 text-center font-bold rounded-xl mb-6">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                Este sitio está suspendido. Contacte al administrador para renovar su plan.
+            </div>
+            @endif
 
             <div class="space-y-8">
                 @yield('content')

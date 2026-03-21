@@ -84,6 +84,7 @@ $container->set('view', function () {
 });
 
 // Middleware
+$app->add(new \App\Middleware\SiteStatusMiddleware());
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(true, true, true);
 

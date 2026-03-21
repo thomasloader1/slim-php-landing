@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $settings['menu_header_text'] ?? 'Menú' }} | {{ $settings['site_name'] ?? 'Carta' }}</title>
-    <meta name="description" content="{{ $settings['seo_description'] ?? '' }}">
-    <meta name="robots" content="{{ ($settings['seo_noindex'] ?? '0') === '1' ? 'noindex, nofollow' : 'index, follow' }}">
+    @include('partials/seo-head', [
+        'settings'  => $settings,
+        'pageTitle' => ($settings['menu_header_text'] ?? 'Menú') . ' | ' . ($settings['site_name'] ?? ''),
+        'pageUrl'   => $pageUrl ?? '',
+    ])
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

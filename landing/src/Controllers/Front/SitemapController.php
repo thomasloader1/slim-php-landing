@@ -17,22 +17,37 @@ class SitemapController
         $siteUrl  = rtrim($settings['seo_site_url'] ?? '', '/');
 
         if (empty($siteUrl)) {
-            // Sin URL configurada devolvemos un sitemap mínimo con la URL del servidor
             $proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $host    = $_SERVER['HTTP_HOST'] ?? 'localhost';
             $siteUrl = $proto . '://' . $host;
         }
 
-        $lastmod = date('Y-m-d');
+        // Obtener última modificación de settings
+        $lastmod = Capsule::table('settings')->max('updated_at');
+        $lastmod = $lastmod ? date('Y-m-d', strtotime($lastmod)) : date('Y-m-d');
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        // Página principal
         $xml .= '  <url>' . "\n";
         $xml .= '    <loc>' . htmlspecialchars($siteUrl . '/') . '</loc>' . "\n";
         $xml .= '    <lastmod>' . $lastmod . '</lastmod>' . "\n";
         $xml .= '    <changefreq>weekly</changefreq>' . "\n";
         $xml .= '    <priority>1.0</priority>' . "\n";
         $xml .= '  </url>' . "\n";
+
+        // Página de menú (solo si está habilitada)
+        $menuEnabled = ($settings['menu_enabled'] ?? '0') === '1';
+        if ($menuEnabled) {
+            $xml .= '  <url>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($siteUrl . '/menu') . '</loc>' . "\n";
+            $xml .= '    <lastmod>' . $lastmod . '</lastmod>' . "\n";
+            $xml .= '    <changefreq>weekly</changefreq>' . "\n";
+            $xml .= '    <priority>0.8</priority>' . "\n";
+            $xml .= '  </url>' . "\n";
+        }
+
         $xml .= '</urlset>';
 
         $response->getBody()->write($xml);

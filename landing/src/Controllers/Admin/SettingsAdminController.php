@@ -2,12 +2,14 @@
 
 namespace App\Controllers\Admin;
 
+use App\Traits\ProcessesImages;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class SettingsAdminController
 {
+    use ProcessesImages;
     protected $view;
 
     public function __construct(\Psr\Container\ContainerInterface $container)
@@ -35,9 +37,6 @@ class SettingsAdminController
             'landing_accent_color', 'landing_bg_color', 'landing_text_color',
             'landing_avatar_url', 'landing_logo_url', 'landing_bg_image_url',
             'landing_bg_overlay', 'landing_bg_overlay_opacity',
-            'seo_description', 'seo_keywords', 'seo_author',
-            'seo_site_url', 'seo_og_image', 'seo_locale', 'seo_twitter_handle',
-            'seo_schema_type', 'seo_business_type', 'seo_address', 'seo_noindex',
             'landing_accent_force',
             'landing_favicon_url',
             'landing_links_display',
@@ -52,9 +51,22 @@ class SettingsAdminController
             'favicon_file' => 'landing_favicon_url'
         ];
 
+        // Dimensiones máximas por tipo de imagen
+        $maxDimensions = [
+            'avatar_file'  => [400, 400],
+            'logo_file'    => [600, 600],
+            'bg_file'      => [1920, 1920],
+        ];
+
         foreach ($uploadMap as $inputName => $settingKey) {
             if (isset($files[$inputName]) && $files[$inputName]->getError() === UPLOAD_ERR_OK) {
                 $file = $files[$inputName];
+
+                // Validar tamaño máximo (5MB)
+                if (!$this->validateImageSize($file, 5 * 1024 * 1024)) {
+                    continue;
+                }
+
                 $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
                 $filename = "{$settingKey}_" . time() . ".{$extension}";
                 $targetPath = __DIR__ . "/../../../public/uploads/{$filename}";
@@ -66,6 +78,13 @@ class SettingsAdminController
                 }
 
                 $file->moveTo($targetPath);
+
+                // Procesar imagen (redimensionar + comprimir) si no es favicon
+                if (isset($maxDimensions[$inputName])) {
+                    [$maxW, $maxH] = $maxDimensions[$inputName];
+                    $this->processAndSaveImage($targetPath, $maxW, $maxH, 80);
+                }
+
                 $data[$settingKey] = url("uploads/{$filename}");
             }
         }
@@ -102,7 +121,21 @@ class SettingsAdminController
             }
         }
 
+        //$this->clearBladeCache();
+
         return $response->withHeader('Location', url('admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Limpia la caché de templates Blade compilados.
+     */
+    private function clearBladeCache(): void
+    {
+        $cacheDir = __DIR__ . '/../../../storage/cache';
+        $files = glob($cacheDir . '/*.php');
+        if ($files) {
+            array_map('unlink', $files);
+        }
     }
 
     /**

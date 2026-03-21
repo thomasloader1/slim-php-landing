@@ -42,7 +42,12 @@ class MenuController
             ->orderBy('id')
             ->get();
 
-        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned'))->render();
+        // URL canónica
+        $pageUrl = !empty($settings['seo_site_url'])
+            ? rtrim($settings['seo_site_url'], '/') . '/menu'
+            : '';
+
+        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl'))->render();
         $response->getBody()->write($html);
         return $response;
     }

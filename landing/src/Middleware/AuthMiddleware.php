@@ -25,6 +25,16 @@ class AuthMiddleware implements MiddlewareInterface
             return $response->withHeader('Location', url('admin/login'))->withStatus(302);
         }
 
+        // Refrescar datos de sesión desde DB en cada request
+        $user = \App\Models\User::where('id', $_SESSION['user_id'])->where('active', 1)->first();
+        if (!$user) {
+            $this->auth->logout();
+            $response = new SlimResponse();
+            return $response->withHeader('Location', url('admin/login'))->withStatus(302);
+        }
+        $_SESSION['user_name'] = $user->name;
+        $_SESSION['user_role'] = $user->role;
+
         return $handler->handle($request);
     }
 }

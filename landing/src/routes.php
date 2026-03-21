@@ -69,6 +69,24 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('/settings', [\App\Controllers\Admin\SettingsAdminController::class, 'index']);
     $group->post('/settings', [\App\Controllers\Admin\SettingsAdminController::class, 'update']);
 
+    // Favicon
+    $group->get('/favicon', [\App\Controllers\Admin\FaviconAdminController::class, 'index']);
+    $group->post('/favicon', [\App\Controllers\Admin\FaviconAdminController::class, 'upload']);
+    $group->post('/favicon/delete', [\App\Controllers\Admin\FaviconAdminController::class, 'delete']);
+
+    // SEO
+    $group->get('/seo', [\App\Controllers\Admin\SeoAdminController::class, 'index']);
+    $group->post('/seo', [\App\Controllers\Admin\SeoAdminController::class, 'update']);
+
+    // FAQ
+    $group->get('/seo/faq', [\App\Controllers\Admin\FaqAdminController::class, 'index']);
+    $group->get('/seo/faq/create', [\App\Controllers\Admin\FaqAdminController::class, 'create']);
+    $group->post('/seo/faq/create', [\App\Controllers\Admin\FaqAdminController::class, 'store']);
+    $group->get('/seo/faq/edit/{id}', [\App\Controllers\Admin\FaqAdminController::class, 'edit']);
+    $group->post('/seo/faq/edit/{id}', [\App\Controllers\Admin\FaqAdminController::class, 'update']);
+    $group->post('/seo/faq/delete/{id}', [\App\Controllers\Admin\FaqAdminController::class, 'delete']);
+    $group->post('/seo/faq/reorder', [\App\Controllers\Admin\FaqAdminController::class, 'reorder']);
+
     // Menú – Configuración
     $group->get('/menu/settings',  [\App\Controllers\Admin\MenuSettingsAdminController::class, 'index']);
     $group->post('/menu/settings', [\App\Controllers\Admin\MenuSettingsAdminController::class, 'update']);
@@ -90,4 +108,17 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->post('/menu/items/edit/{id}',   [\App\Controllers\Admin\MenuItemAdminController::class, 'update']);
     $group->post('/menu/items/delete/{id}', [\App\Controllers\Admin\MenuItemAdminController::class, 'delete']);
     $group->post('/menu/items/reorder',     [\App\Controllers\Admin\MenuItemAdminController::class, 'reorder']);
+
+    // Gestor de Sitios (admin only)
+    $group->group('/sites', function (RouteCollectorProxy $siteGroup) {
+        $siteGroup->get('', [\App\Controllers\Admin\SiteAdminController::class, 'index']);
+        $siteGroup->get('/create', [\App\Controllers\Admin\SiteAdminController::class, 'create']);
+        $siteGroup->post('/create', [\App\Controllers\Admin\SiteAdminController::class, 'store']);
+        $siteGroup->get('/edit/{id}', [\App\Controllers\Admin\SiteAdminController::class, 'edit']);
+        $siteGroup->post('/edit/{id}', [\App\Controllers\Admin\SiteAdminController::class, 'update']);
+        $siteGroup->post('/delete/{id}', [\App\Controllers\Admin\SiteAdminController::class, 'delete']);
+        $siteGroup->post('/{id}/suspend', [\App\Controllers\Admin\SiteAdminController::class, 'suspend']);
+        $siteGroup->post('/{id}/activate', [\App\Controllers\Admin\SiteAdminController::class, 'activate']);
+        $siteGroup->post('/{id}/test', [\App\Controllers\Admin\SiteAdminController::class, 'testConnection']);
+    })->add(\App\Middleware\RoleMiddleware::class);
 })->add(AuthMiddleware::class);
