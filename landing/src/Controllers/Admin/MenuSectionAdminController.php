@@ -38,6 +38,10 @@ class MenuSectionAdminController
 
         MenuSection::create([
             'name'       => trim($data['name'] ?? ''),
+            'icon'       => trim($data['icon'] ?? '') ?: null,
+            'note'       => trim($data['note'] ?? '') ?: null,
+            'note_type'  => in_array($data['note_type'] ?? '', ['none','info','preorder','time'])
+                                ? $data['note_type'] : 'none',
             'sort_order' => $maxOrder + 1,
             'active'     => isset($data['active']) ? 1 : 0,
         ]);
@@ -59,8 +63,12 @@ class MenuSectionAdminController
         $data = $request->getParsedBody();
 
         $section->update([
-            'name'   => trim($data['name'] ?? ''),
-            'active' => isset($data['active']) ? 1 : 0,
+            'name'      => trim($data['name'] ?? ''),
+            'icon'      => trim($data['icon'] ?? '') ?: null,
+            'note'      => trim($data['note'] ?? '') ?: null,
+            'note_type' => in_array($data['note_type'] ?? '', ['none','info','preorder','time'])
+                                ? $data['note_type'] : 'none',
+            'active'    => isset($data['active']) ? 1 : 0,
         ]);
 
         return $response->withHeader('Location', url('admin/menu/sections'))->withStatus(302);
@@ -72,7 +80,6 @@ class MenuSectionAdminController
         return $response->withHeader('Location', url('admin/menu/sections'))->withStatus(302);
     }
 
-    // Recibe JSON {"order": [3, 1, 2]} y actualiza sort_order en bulk
     public function reorder(Request $request, Response $response): Response
     {
         $body = (string) $request->getBody();

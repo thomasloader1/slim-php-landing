@@ -53,7 +53,8 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('/locations/edit/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'edit']);
     $group->post('/locations/edit/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'update']);
     $group->post('/locations/delete/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'delete']);
-    $group->post('/locations/reorder', [\App\Controllers\Admin\LocationAdminController::class, 'reorder']);
+    $group->post('/locations/reorder',  [\App\Controllers\Admin\LocationAdminController::class, 'reorder']);
+    $group->post('/locations/display',  [\App\Controllers\Admin\LocationAdminController::class, 'updateDisplay']);
 
     // Users CRUD
     $group->group('/users', function (RouteCollectorProxy $userGroup) {

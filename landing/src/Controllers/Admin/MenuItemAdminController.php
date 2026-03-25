@@ -45,7 +45,6 @@ class MenuItemAdminController
         $imageUrl = null;
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
             $file = $files['image_file'];
-
             if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
                 $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
                 $filename  = 'menu_item_' . time() . '.' . $extension;
@@ -57,13 +56,23 @@ class MenuItemAdminController
         }
 
         MenuItem::create([
-            'section_id'  => !empty($data['section_id']) ? (int) $data['section_id'] : null,
-            'title'       => trim($data['title'] ?? ''),
-            'price'       => (float) ($data['price'] ?? 0),
-            'description' => trim($data['description'] ?? ''),
-            'image_url'   => $imageUrl,
-            'sort_order'  => $maxOrder + 1,
-            'active'      => isset($data['active']) ? 1 : 0,
+            'section_id'    => !empty($data['section_id']) ? (int) $data['section_id'] : null,
+            'title'         => trim($data['title'] ?? ''),
+            'price'         => (float) ($data['price'] ?? 0),
+            'price_label_1' => trim($data['price_label_1'] ?? '') ?: null,
+            'price_2'       => strlen(trim($data['price_2'] ?? '')) > 0 ? (float) $data['price_2'] : null,
+            'price_label_2' => trim($data['price_label_2'] ?? '') ?: null,
+            'price_3'       => strlen(trim($data['price_3'] ?? '')) > 0 ? (float) $data['price_3'] : null,
+            'price_label_3' => trim($data['price_label_3'] ?? '') ?: null,
+            'unit'          => trim($data['unit'] ?? '') ?: null,
+            'description'   => trim($data['description'] ?? ''),
+            'flavors'       => trim($data['flavors'] ?? '') ?: null,
+            'gift_note'     => trim($data['gift_note'] ?? '') ?: null,
+            'badge_type'    => in_array($data['badge_type'] ?? '', ['none','premium','preorder','special'])
+                                    ? $data['badge_type'] : 'none',
+            'image_url'     => $imageUrl,
+            'sort_order'    => $maxOrder + 1,
+            'active'        => isset($data['active']) ? 1 : 0,
         ]);
 
         return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
@@ -86,16 +95,13 @@ class MenuItemAdminController
 
         $imageUrl = $item->image_url;
 
-        // Quitar imagen existente si se solicitó
         if (!empty($data['clear_image'])) {
             $this->deleteUploadedFile($imageUrl ?? '');
             $imageUrl = null;
         }
 
-        // Nueva imagen subida
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
             $file = $files['image_file'];
-
             if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
                 $this->deleteUploadedFile($imageUrl ?? '');
                 $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
@@ -108,12 +114,22 @@ class MenuItemAdminController
         }
 
         $item->update([
-            'section_id'  => !empty($data['section_id']) ? (int) $data['section_id'] : null,
-            'title'       => trim($data['title'] ?? ''),
-            'price'       => (float) ($data['price'] ?? 0),
-            'description' => trim($data['description'] ?? ''),
-            'image_url'   => $imageUrl,
-            'active'      => isset($data['active']) ? 1 : 0,
+            'section_id'    => !empty($data['section_id']) ? (int) $data['section_id'] : null,
+            'title'         => trim($data['title'] ?? ''),
+            'price'         => (float) ($data['price'] ?? 0),
+            'price_label_1' => trim($data['price_label_1'] ?? '') ?: null,
+            'price_2'       => strlen(trim($data['price_2'] ?? '')) > 0 ? (float) $data['price_2'] : null,
+            'price_label_2' => trim($data['price_label_2'] ?? '') ?: null,
+            'price_3'       => strlen(trim($data['price_3'] ?? '')) > 0 ? (float) $data['price_3'] : null,
+            'price_label_3' => trim($data['price_label_3'] ?? '') ?: null,
+            'unit'          => trim($data['unit'] ?? '') ?: null,
+            'description'   => trim($data['description'] ?? ''),
+            'flavors'       => trim($data['flavors'] ?? '') ?: null,
+            'gift_note'     => trim($data['gift_note'] ?? '') ?: null,
+            'badge_type'    => in_array($data['badge_type'] ?? '', ['none','premium','preorder','special'])
+                                    ? $data['badge_type'] : 'none',
+            'image_url'     => $imageUrl,
+            'active'        => isset($data['active']) ? 1 : 0,
         ]);
 
         return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
@@ -129,7 +145,6 @@ class MenuItemAdminController
         return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
     }
 
-    // Recibe JSON {"order": [3, 1, 2]} y actualiza sort_order en bulk
     public function reorder(Request $request, Response $response): Response
     {
         $body = (string) $request->getBody();
@@ -148,20 +163,16 @@ class MenuItemAdminController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    // Borra un archivo físico de uploads/ si la ruta es local (no URL externa)
     private function deleteUploadedFile(string $settingValue): void
     {
         $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
-
         if (!str_contains($urlPath, '/uploads/')) {
             return;
         }
-
         $filename = basename($urlPath);
         if ($filename === '' || $filename === '.') {
             return;
         }
-
         $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
         if (file_exists($filePath)) {
             @unlink($filePath);

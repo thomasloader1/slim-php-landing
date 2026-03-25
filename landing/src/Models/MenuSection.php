@@ -9,7 +9,7 @@ class MenuSection extends Model
 {
     protected $table = 'menu_sections';
 
-    protected $fillable = ['name', 'sort_order', 'active'];
+    protected $fillable = ['name', 'icon', 'note', 'note_type', 'sort_order', 'active'];
 
     public function scopeActive($query)
     {

@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Precios | Focaccia & Co</title>
+    <meta name="description" content="Lista de precios de Focaccia & Co. Focaccias, tartas, línea premium, panificados y repostería artesanal.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* ── Design Tokens ───────────────────────────────────────── */
+        :root {
+            --accent:    #fec771;
+            --accent-2:  #e8a845;
+            --bg-base:   #1a1208;
+            --bg-card:   rgba(255,255,255,0.04);
+            --bg-card-hover: rgba(255,255,255,0.07);
+            --text:      #f5efe0;
+            --text-muted: rgba(245,239,224,0.55);
+            --border:    rgba(254,199,113,0.15);
+            --border-hover: rgba(254,199,113,0.35);
+            --premium:   #d4a857;
+            --badge-preorder: #c87941;
+        }
+
+        /* ── Base ────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text);
+            margin: 0;
+            min-height: 100vh;
+            /* Warm grain texture overlay */
+            background-image:
+                radial-gradient(ellipse at 20% 0%, rgba(254,199,113,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(200,121,65,0.05) 0%, transparent 60%);
+        }
+
+        /* ── Typography ──────────────────────────────────────────── */
+        .font-display { font-family: 'Playfair Display', serif; }
+
+        /* ── Decorative olive border ─────────────────────────────── */
+        .olive-border {
+            border: 2px solid var(--border);
+            border-image: none;
+            position: relative;
+        }
+        .olive-border::before,
+        .olive-border::after {
+            content: '✦';
+            position: absolute;
+            color: var(--accent);
+            font-size: 0.75rem;
+            opacity: 0.6;
+        }
+        .olive-border::before { top: -0.6rem; left: 50%; transform: translateX(-50%); background: var(--bg-base); padding: 0 0.5rem; }
+        .olive-border::after  { bottom: -0.6rem; left: 50%; transform: translateX(-50%); background: var(--bg-base); padding: 0 0.5rem; }
+
+        /* ── Section title divider ───────────────────────────────── */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .section-title::before,
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+        }
+
+        /* ── Search ──────────────────────────────────────────────── */
+        #search {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #search::placeholder { color: var(--text-muted); }
+        #search:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(254,199,113,0.12);
+        }
+
+        /* ── Category Pills ──────────────────────────────────────── */
+        .cat-pill {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .cat-pill:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+        .cat-pill.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg-base);
+            font-weight: 700;
+        }
+
+        /* ── Menu Card ───────────────────────────────────────────── */
+        .menu-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1.25rem;
+            overflow: hidden;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+            /* Entrance animation */
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        .menu-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .menu-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            box-shadow: 0 8px 32px rgba(254,199,113,0.08);
+        }
+
+        /* ── Price badge ─────────────────────────────────────────── */
+        .price-badge {
+            background: rgba(254,199,113,0.12);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.82rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.6rem;
+            white-space: nowrap;
+        }
+        .price-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .price-size {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── Special badges ──────────────────────────────────────── */
+        .badge-premium {
+            background: rgba(212,168,87,0.15);
+            color: var(--premium);
+            border: 1px solid rgba(212,168,87,0.3);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.15rem 0.5rem;
+            border-radius: 99px;
+        }
+        .badge-preorder {
+            background: rgba(200,121,65,0.15);
+            color: var(--badge-preorder);
+            border: 1px solid rgba(200,121,65,0.3);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.15rem 0.5rem;
+            border-radius: 99px;
+        }
+        .badge-gift {
+            background: rgba(100,200,100,0.1);
+            color: #7ec87e;
+            border: 1px solid rgba(100,200,100,0.25);
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 99px;
+        }
+
+        /* ── Icon accent circle ──────────────────────────────────── */
+        .icon-circle {
+            width: 2.8rem;
+            height: 2.8rem;
+            border-radius: 50%;
+            background: rgba(254,199,113,0.1);
+            border: 1px solid rgba(254,199,113,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        /* ── Section header strip ────────────────────────────────── */
+        .section-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(16px);
+            background: rgba(26,18,8,0.85);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 0 1rem 1rem;
+        }
+
+        /* ── Scroll pills container ──────────────────────────────── */
+        .pills-scroll {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .pills-scroll::-webkit-scrollbar { display: none; }
+
+        /* ── Payment strip ───────────────────────────────────────── */
+        .payment-strip {
+            background: rgba(254,199,113,0.06);
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── No results ──────────────────────────────────────────── */
+        #no-results { display: none; }
+
+        /* ── Fade transition for sections ────────────────────────── */
+        .cat-section {
+            transition: opacity 0.2s ease;
+        }
+        .cat-section.hidden {
+            display: none;
+        }
+
+        /* ── Responsive grid custom ──────────────────────────────── */
+        @media (min-width: 640px) {
+            .card-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) {
+            .card-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* ── Flavor pills (sabores) ──────────────────────────────── */
+        .flavor-chip {
+            display: inline-block;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 99px;
+            padding: 0.1rem 0.5rem;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0.1rem 0;
+        }
+
+        /* ── Scroll to top button ────────────────────────────────── */
+        #scroll-top {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg-base);
+            border: none;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(254,199,113,0.3);
+            transition: transform 0.2s, opacity 0.2s;
+            z-index: 50;
+        }
+        #scroll-top.visible { display: flex; }
+        #scroll-top:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <!-- ╔══ HEADER ══════════════════════════════════════════════╗ -->
+    <header class="text-center pt-14 pb-10 px-4" role="banner">
+
+        <!-- Brand mark -->
+        <div class="flex justify-center mb-4">
+            <div class="icon-circle" style="width:4rem;height:4rem;" aria-hidden="true">
+                <i class="fa-solid fa-bread-slice text-2xl"></i>
+            </div>
+        </div>
+
+        <h1 class="font-display text-5xl sm:text-6xl font-black tracking-tight mb-1"
+            style="color: var(--accent);">
+            Focaccia <span style="color:var(--text);">&amp;</span> Co
+        </h1>
+
+        <p class="text-sm font-medium tracking-widest uppercase mb-6"
+           style="color: var(--text-muted);">
+            Lista de Precios · Enero 2026
+        </p>
+
+        <!-- Decorative divider -->
+        <div class="flex items-center justify-center gap-3 mb-2" aria-hidden="true">
+            <span style="color:var(--border); font-size:1.25rem;">— 🌿 —</span>
+        </div>
+
+    </header>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+
+    <!-- ╔══ STICKY NAV: BUSCADOR + FILTROS ═════════════════════╗ -->
+    <div class="sticky top-0 z-20 py-4 px-4"
+         style="background: rgba(26,18,8,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border);">
+
+        <div class="max-w-5xl mx-auto space-y-3">
+
+            <!-- Buscador -->
+            <div class="relative" role="search">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                      style="color: var(--text-muted);" aria-hidden="true">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input id="search" type="search"
+                       placeholder="Buscar en la carta..."
+                       aria-label="Buscar productos en el menú"
+                       autocomplete="off"
+                       class="w-full rounded-2xl pl-11 pr-5 py-3 text-base">
+            </div>
+
+            <!-- Filtros por categoría -->
+            <nav aria-label="Filtrar por categoría" class="pills-scroll">
+                <div class="flex gap-2 pb-1" role="list">
+                    <button class="cat-pill active rounded-full px-4 py-1.5 text-sm"
+                            data-cat="all" role="listitem"
+                            aria-pressed="true" aria-label="Mostrar todas las categorías">
+                        <i class="fa-solid fa-border-all mr-1.5 text-xs" aria-hidden="true"></i>Todos
+                    </button>
+                    <button class="cat-pill rounded-full px-4 py-1.5 text-sm"
+                            data-cat="especialidades" role="listitem"
+                            aria-pressed="false" aria-label="Ver Especialidades">
+                        <i class="fa-solid fa-star mr-1.5 text-xs" aria-hidden="true"></i>Especialidades
+                    </button>
+                    <button class="cat-pill rounded-full px-4 py-1.5 text-sm"
+                            data-cat="tartas" role="listitem"
+                            aria-pressed="false" aria-label="Ver Tartas y Canastitas">
+                        <i class="fa-solid fa-circle-half-stroke mr-1.5 text-xs" aria-hidden="true"></i>Tartas
+                    </button>
+                    <button class="cat-pill rounded-full px-4 py-1.5 text-sm"
+                            data-cat="premium" role="listitem"
+                            aria-pressed="false" aria-label="Ver Línea Premium">
+                        <i class="fa-solid fa-gem mr-1.5 text-xs" aria-hidden="true"></i>Premium
+                    </button>
+                    <button class="cat-pill rounded-full px-4 py-1.5 text-sm"
+                            data-cat="panificados" role="listitem"
+                            aria-pressed="false" aria-label="Ver Panificados y Repostería">
+                        <i class="fa-solid fa-cookie-bite mr-1.5 text-xs" aria-hidden="true"></i>Panificados
+                    </button>
+                </div>
+            </nav>
+
+        </div>
+    </div>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+
+    <!-- ╔══ MENÚ PRINCIPAL ══════════════════════════════════════╗ -->
+    <main id="menu-root" class="max-w-5xl mx-auto px-4 pt-10 pb-24 space-y-16"
+          aria-label="Carta de productos">
+
+
+        <!-- ▸ NUESTRAS ESPECIALIDADES ──────────────────────────── -->
+        <section class="cat-section" data-cat="especialidades" aria-labelledby="title-especialidades">
+
+            <div class="section-title mb-8">
+                <h2 id="title-especialidades"
+                    class="font-display text-2xl sm:text-3xl font-bold flex items-center gap-3"
+                    style="color: var(--text); white-space: nowrap;">
+                    <span class="icon-circle" aria-hidden="true">
+                        <i class="fa-solid fa-star text-sm"></i>
+                    </span>
+                    Nuestras Especialidades
+                </h2>
+            </div>
+
+            <div class="grid card-grid gap-5" role="list" aria-label="Productos de Especialidades">
+
+                <!-- Focaccia Simple -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="focaccia simple"
+                         data-desc="focaccia artesanal sin relleno chica grande">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-bread-slice text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Focaccia Simple
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Masa artesanal, aceite de oliva y hierbas
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row" aria-label="Precios">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge" aria-label="precio chica $10.000">$10.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge" aria-label="precio grande $13.000">$13.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Focaccia Rellena Caprese -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="focaccia rellena caprese"
+                         data-desc="tomate mozzarella albahaca caprese">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-pizza-slice text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Focaccia Rellena Caprese
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Tomate, mozzarella y albahaca fresca
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge">$15.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$20.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Focaccia Rellena Rúcula -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="focaccia rellena rucula"
+                         data-desc="rúcula ensalada verde">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-leaf text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Focaccia Rellena Rúcula
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Rúcula fresca y aceite de oliva
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge">$15.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$20.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Focaccia Rellena Jamón Crudo y Parmesano -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="focaccia rellena jamon crudo parmesano"
+                         data-desc="jamón crudo parmesano queso premium">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-cheese text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Focaccia Jamón &amp; Parmesano
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Jamón crudo y queso parmesano
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge">$15.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$20.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+
+        <!-- ▸ TARTAS Y CANASTITAS ──────────────────────────────── -->
+        <section class="cat-section" data-cat="tartas" aria-labelledby="title-tartas">
+
+            <div class="section-title mb-2">
+                <h2 id="title-tartas"
+                    class="font-display text-2xl sm:text-3xl font-bold flex items-center gap-3"
+                    style="color: var(--text); white-space: nowrap;">
+                    <span class="icon-circle" aria-hidden="true">
+                        <i class="fa-solid fa-circle-half-stroke text-sm"></i>
+                    </span>
+                    Tartas y Canastitas
+                </h2>
+            </div>
+            <p class="text-xs mb-8 ml-1" style="color: var(--text-muted);">
+                <i class="fa-solid fa-seedling mr-1" aria-hidden="true"></i>
+                Masa Integral Casera
+            </p>
+
+            <div class="grid card-grid gap-5" role="list" aria-label="Productos de Tartas y Canastitas">
+
+                <!-- Tarta Grande -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="tarta grande integral"
+                         data-desc="tarta grande masa integral casera">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-circle-half-stroke text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Tarta Grande
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Masa integral casera, rellenos a elección
+                                </p>
+                                <!-- Sabores -->
+                                <div class="mt-2" aria-label="Sabores disponibles">
+                                    <span class="flavor-chip">Acelga y bechamel</span>
+                                    <span class="flavor-chip">Calabaza y champiñones</span>
+                                    <span class="flavor-chip">Espinaca</span>
+                                    <span class="flavor-chip">Caprese</span>
+                                    <span class="flavor-chip">Zucchinis</span>
+                                    <span class="flavor-chip">Puerros</span>
+                                    <span class="flavor-chip">Brócoli</span>
+                                    <span class="flavor-chip">entre otros…</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5" aria-label="Precio $20.000 cada una">$20.000 c/u</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Tarta Chica -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="tarta chica integral"
+                         data-desc="tarta chica porciones masa integral">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-circle-half-stroke text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Tarta Chica
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Porción individual, masa integral
+                                </p>
+                                <div class="mt-2" aria-label="Sabores disponibles">
+                                    <span class="flavor-chip">Acelga y bechamel</span>
+                                    <span class="flavor-chip">Calabaza y champiñones</span>
+                                    <span class="flavor-chip">Espinaca</span>
+                                    <span class="flavor-chip">Caprese</span>
+                                    <span class="flavor-chip">+ más sabores</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$6.500 c/u</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Canastitas Integrales -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="canastitas integrales docena"
+                         data-desc="canastitas docena masa integral">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-bowl-food text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Canastitas Integrales
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Docena — masa integral casera
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$35.000 docena</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Tapas de Tarta -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="tapas tarta integral"
+                         data-desc="tapas de tarta masa integral casera">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-layer-group text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                    Tapas de Tarta Integral
+                                </h3>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Unidad — masa integral casera
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$2.200 c/u</span>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+
+        <!-- ▸ LÍNEA PREMIUM & DELICATESSEN ────────────────────── -->
+        <section class="cat-section" data-cat="premium" aria-labelledby="title-premium">
+
+            <div class="section-title mb-2">
+                <h2 id="title-premium"
+                    class="font-display text-2xl sm:text-3xl font-bold flex items-center gap-3"
+                    style="color: var(--text); white-space: nowrap;">
+                    <span class="icon-circle" aria-hidden="true">
+                        <i class="fa-solid fa-gem text-sm"></i>
+                    </span>
+                    Línea Premium &amp; Delicatessen
+                </h2>
+            </div>
+            <!-- Aviso pedido previo -->
+            <div class="flex items-center gap-2 mb-8 ml-1"
+                 role="note"
+                 aria-label="Atención: entregas los viernes, solo por pedido previo">
+                <i class="fa-solid fa-circle-exclamation text-sm" style="color: var(--badge-preorder);" aria-hidden="true"></i>
+                <p class="text-xs" style="color: var(--text-muted);">
+                    Entregas los <strong style="color:var(--badge-preorder);">viernes</strong>, solo por pedido previo
+                </p>
+            </div>
+
+            <div class="grid card-grid gap-5" role="list" aria-label="Productos de Línea Premium">
+
+                <!-- Escabeches -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="escabeches berenjenas verduras pollo"
+                         data-desc="escabeche delicatessen premium conserva">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-jar text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">Escabeches</h3>
+                                    <span class="badge-premium">Premium</span>
+                                    <span class="badge-preorder">Pedido previo</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Berenjenas, Verduras o Pollo
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chico</span>
+                                <span class="price-badge">$10.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$20.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Untables -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="untables hummus mayonesa zanahoria remolacha"
+                         data-desc="untables dip spread vegano">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-mortar-pestle text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">Untables</h3>
+                                    <span class="badge-premium">Premium</span>
+                                    <span class="badge-preorder">Pedido previo</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Mayonesa de Zanahoria, Remolacha o Hummus
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$7.000 c/u</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Buñuelos de Acelga -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="buñuelos acelga docena salsa"
+                         data-desc="buñuelos verdura frito aperitivo">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-pepper-hot text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">Buñuelos de Acelga</h3>
+                                    <span class="badge-preorder">Pedido previo</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Docena —
+                                    <span class="badge-gift">
+                                        <i class="fa-solid fa-gift text-xs mr-0.5" aria-hidden="true"></i>con salsa de regalo
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$12.000 docena</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Falafel -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="falafel docena vegano"
+                         data-desc="falafel garbanzo vegano vegetariano">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-circle-dot text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">Falafel</h3>
+                                    <span class="badge-preorder">Pedido previo</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Docena — garbanzo y especias
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$15.000 docena</span>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+
+        <!-- ▸ PANIFICADOS Y REPOSTERÍA ─────────────────────────── -->
+        <section class="cat-section" data-cat="panificados" aria-labelledby="title-panificados">
+
+            <div class="section-title mb-2">
+                <h2 id="title-panificados"
+                    class="font-display text-2xl sm:text-3xl font-bold flex items-center gap-3"
+                    style="color: var(--text); white-space: nowrap;">
+                    <span class="icon-circle" aria-hidden="true">
+                        <i class="fa-solid fa-cookie-bite text-sm"></i>
+                    </span>
+                    Panificados y Repostería
+                </h2>
+            </div>
+            <!-- Aviso anticipación -->
+            <div class="flex items-center gap-2 mb-8 ml-1"
+                 role="note"
+                 aria-label="Pedidos con 72 horas de anticipación">
+                <i class="fa-solid fa-clock text-sm" style="color: var(--badge-preorder);" aria-hidden="true"></i>
+                <p class="text-xs" style="color: var(--text-muted);">
+                    Pedidos con <strong style="color:var(--badge-preorder);">72 hs. de anticipación</strong>
+                </p>
+            </div>
+
+            <div class="grid card-grid gap-5" role="list" aria-label="Productos de Panificados y Repostería">
+
+                <!-- Panes de Molde -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="panes molde integrales"
+                         data-desc="pan integral molde casero artesanal">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-bread-slice text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                        Panes de Molde Integrales
+                                    </h3>
+                                    <span class="badge-preorder">72 hs.</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Pan artesanal de harina integral
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-badge text-base px-3 py-1.5">$5.000</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Prepizzas -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="prepizzas integrales"
+                         data-desc="prepizza integral masa casera">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-pizza-slice text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                        Prepizzas Integrales
+                                    </h3>
+                                    <span class="badge-preorder">72 hs.</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Masa integral casera lista para usar
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge">$3.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$4.500</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Budines -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="budines comunes mascabo integral"
+                         data-desc="budin repostería dulce artesanal">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-cake-candles text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                        Budines (chicos)
+                                    </h3>
+                                    <span class="badge-preorder">72 hs.</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Artesanales, opciones comunes e integrales
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Comunes</span>
+                                <span class="price-badge">$7.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Mascabo/Integral</span>
+                                <span class="price-badge">$8.500</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Budines Grandes -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="budines grandes comunes mascabo integral"
+                         data-desc="budin grande repostería artesanal">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-cake-candles text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                        Budines Grandes
+                                    </h3>
+                                    <span class="badge-preorder">72 hs.</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Formato grande, comunes e integrales
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Comunes</span>
+                                <span class="price-badge">$13.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Mascabo/Integral</span>
+                                <span class="price-badge">$15.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Torta Galesa Especial -->
+                <article class="menu-card"
+                         role="listitem"
+                         data-title="torta galesa especial"
+                         data-desc="torta galesa repostería especial casera">
+                    <div class="p-5">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="icon-circle" aria-hidden="true">
+                                <i class="fa-solid fa-birthday-cake text-base"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h3 class="font-bold text-lg leading-tight" style="color: var(--text);">
+                                        Torta Galesa Especial
+                                    </h3>
+                                    <span class="badge-premium">Especial</span>
+                                    <span class="badge-preorder">72 hs.</span>
+                                </div>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">
+                                    Receta tradicional, tres tamaños disponibles
+                                </p>
+                            </div>
+                        </div>
+                        <div class="price-row flex-wrap gap-y-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Chica</span>
+                                <span class="price-badge">$15.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Mediana</span>
+                                <span class="price-badge">$20.000</span>
+                            </div>
+                            <span style="color:var(--border);">·</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="price-size">Grande</span>
+                                <span class="price-badge">$35.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+
+        <!-- Sin resultados búsqueda -->
+        <div id="no-results" class="text-center py-20" aria-live="polite" aria-atomic="true">
+            <i class="fa-solid fa-magnifying-glass text-5xl mb-5 block" style="color: var(--border);" aria-hidden="true"></i>
+            <p class="text-lg" style="color: var(--text-muted);">No se encontraron resultados.</p>
+            <p class="text-sm mt-2" style="color: var(--text-muted);">Probá con otro término de búsqueda.</p>
+        </div>
+
+    </main>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+
+    <!-- ╔══ FOOTER: MEDIOS DE PAGO ══════════════════════════════╗ -->
+    <footer class="payment-strip px-4 py-10 text-center" role="contentinfo">
+        <div class="max-w-2xl mx-auto">
+
+            <h3 class="font-display text-xl font-bold mb-5" style="color: var(--text);">
+                <i class="fa-solid fa-credit-card mr-2" style="color: var(--accent);" aria-hidden="true"></i>
+                Medios de Pago
+            </h3>
+
+            <div class="flex justify-center gap-4 flex-wrap mb-6">
+                <div class="flex items-center gap-2 px-5 py-3 rounded-2xl"
+                     style="background: rgba(255,255,255,0.05); border: 1px solid var(--border);"
+                     role="img" aria-label="Efectivo aceptado">
+                    <i class="fa-solid fa-money-bill-wave" style="color: var(--accent);" aria-hidden="true"></i>
+                    <span class="font-semibold text-sm">Efectivo</span>
+                </div>
+                <div class="flex items-center gap-2 px-5 py-3 rounded-2xl"
+                     style="background: rgba(255,255,255,0.05); border: 1px solid var(--border);"
+                     role="img" aria-label="Transferencia bancaria aceptada">
+                    <i class="fa-solid fa-building-columns" style="color: var(--accent);" aria-hidden="true"></i>
+                    <span class="font-semibold text-sm">Transferencia</span>
+                </div>
+            </div>
+
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl"
+                 style="background: rgba(254,199,113,0.08); border: 1px solid var(--border);"
+                 aria-label="Alias para transferencia: amamoscocinar">
+                <span class="text-xs" style="color: var(--text-muted);">Alias:</span>
+                <span class="font-bold tracking-wide text-sm" style="color: var(--accent);">amamoscocinar</span>
+                <button onclick="copyAlias()" title="Copiar alias"
+                        aria-label="Copiar alias amamoscocinar al portapapeles"
+                        class="ml-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                        style="background:none; border:none; color: var(--accent); padding:0;">
+                    <i class="fa-solid fa-copy text-xs" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <p id="copy-msg" class="text-xs mt-2 transition-opacity opacity-0" style="color: var(--accent);"
+               aria-live="polite">
+                ¡Alias copiado!
+            </p>
+
+            <p class="text-xs mt-8" style="color: var(--text-muted);">
+                © 2026 Focaccia &amp; Co — Hecho con amor artesanal 🫶
+            </p>
+
+        </div>
+    </footer>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+
+    <!-- ╔══ SCROLL TO TOP BUTTON ════════════════════════════════╗ -->
+    <button id="scroll-top" aria-label="Volver al inicio de la página" title="Ir al inicio">
+        <i class="fa-solid fa-chevron-up text-sm" aria-hidden="true"></i>
+    </button>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+
+    <!-- ╔══ JAVASCRIPT ══════════════════════════════════════════╗ -->
+    <script>
+    (function () {
+        'use strict';
+
+        /* ── Card entrance animation ────────────────────────── */
+        var cards = document.querySelectorAll('.menu-card');
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('visible');
+                        io.unobserve(e.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            cards.forEach(function (c) { io.observe(c); });
+        } else {
+            cards.forEach(function (c) { c.classList.add('visible'); });
+        }
+
+        /* ── Category filter ────────────────────────────────── */
+        var pills    = document.querySelectorAll('.cat-pill');
+        var sections = document.querySelectorAll('.cat-section');
+        var activeCat = 'all';
+
+        function setCategory(cat) {
+            activeCat = cat;
+
+            /* Update pill ARIA + class */
+            pills.forEach(function (p) {
+                var isActive = (p.dataset.cat === cat);
+                p.classList.toggle('active', isActive);
+                p.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+
+            /* Show/hide sections */
+            sections.forEach(function (sec) {
+                if (cat === 'all' || sec.dataset.cat === cat) {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+
+            /* Re-run search if there's a query */
+            filterCards(document.getElementById('search').value);
+        }
+
+        pills.forEach(function (p) {
+            p.addEventListener('click', function () { setCategory(this.dataset.cat); });
+        });
+
+        /* ── Search filter ──────────────────────────────────── */
+        var noResults = document.getElementById('no-results');
+
+        function filterCards(q) {
+            q = q.toLowerCase().trim();
+            var totalVisible = 0;
+
+            sections.forEach(function (sec) {
+                if (sec.classList.contains('hidden')) return;
+
+                var items   = sec.querySelectorAll('.menu-card');
+                var visible = 0;
+
+                items.forEach(function (card) {
+                    var match = !q ||
+                        (card.dataset.title || '').includes(q) ||
+                        (card.dataset.desc  || '').includes(q);
+                    card.style.display = match ? '' : 'none';
+                    if (match) visible++;
+                });
+
+                totalVisible += visible;
+            });
+
+            noResults.style.display = (q && totalVisible === 0) ? '' : 'none';
+        }
+
+        document.getElementById('search').addEventListener('input', function () {
+            filterCards(this.value);
+        });
+
+        /* ── Copy alias ─────────────────────────────────────── */
+        window.copyAlias = function () {
+            var alias = 'amamoscocinar';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(alias).then(showCopyMsg);
+            } else {
+                /* Fallback for older browsers */
+                var el = document.createElement('textarea');
+                el.value = alias;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                showCopyMsg();
+            }
+        };
+
+        function showCopyMsg() {
+            var msg = document.getElementById('copy-msg');
+            msg.style.opacity = '1';
+            setTimeout(function () { msg.style.opacity = '0'; }, 2000);
+        }
+
+        /* ── Scroll to top ──────────────────────────────────── */
+        var scrollBtn = document.getElementById('scroll-top');
+
+        window.addEventListener('scroll', function () {
+            if (window.scrollY > 400) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        }, { passive: true });
+
+        scrollBtn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+    })();
+    </script>
+    <!-- ╚════════════════════════════════════════════════════════╝ -->
+
+</body>
+</html>

@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Models\Location;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 class LocationAdminController
 {
@@ -18,7 +19,12 @@ class LocationAdminController
     public function index(Request $request, Response $response): Response
     {
         $locations = Location::orderBy('sort_order')->get();
-        $html = $this->view->make('admin/locations/index', ['locations' => $locations])->render();
+        $settings  = Capsule::table('settings')
+            ->whereIn('setting_key', ['locations_display', 'locations_columns'])
+            ->pluck('setting_value', 'setting_key')
+            ->toArray();
+
+        $html = $this->view->make('admin/locations/index', compact('locations', 'settings'))->render();
         $response->getBody()->write($html);
         return $response;
     }
@@ -34,13 +40,18 @@ class LocationAdminController
     {
         $data = $request->getParsedBody();
 
+        $maxOrder = Location::max('sort_order') ?? 0;
+
         Location::create([
-            'name'       => $data['name'] ?? '',
-            'address'    => $data['address'] ?? null,
-            'embed_code' => $data['embed_code'] ?? null,
-            'url'        => $data['url'] ?? null,
-            'mode'       => $data['mode'] ?? 'embed',
-            'active'     => isset($data['active']) ? 1 : 0,
+            'name'             => trim($data['name'] ?? ''),
+            'address'          => trim($data['address'] ?? '') ?: null,
+            'whatsapp'         => trim($data['whatsapp'] ?? '') ?: null,
+            'whatsapp_message' => trim($data['whatsapp_message'] ?? '') ?: null,
+            'embed_code'       => trim($data['embed_code'] ?? '') ?: null,
+            'url'              => trim($data['url'] ?? '') ?: null,
+            'mode'             => in_array($data['mode'] ?? '', ['embed', 'button']) ? $data['mode'] : 'embed',
+            'sort_order'       => $maxOrder + 1,
+            'active'           => isset($data['active']) ? 1 : 0,
         ]);
 
         return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
@@ -60,12 +71,14 @@ class LocationAdminController
         $data = $request->getParsedBody();
 
         $location->update([
-            'name'       => $data['name'] ?? '',
-            'address'    => $data['address'] ?? null,
-            'embed_code' => $data['embed_code'] ?? null,
-            'url'        => $data['url'] ?? null,
-            'mode'       => $data['mode'] ?? 'embed',
-            'active'     => isset($data['active']) ? 1 : 0,
+            'name'             => trim($data['name'] ?? ''),
+            'address'          => trim($data['address'] ?? '') ?: null,
+            'whatsapp'         => trim($data['whatsapp'] ?? '') ?: null,
+            'whatsapp_message' => trim($data['whatsapp_message'] ?? '') ?: null,
+            'embed_code'       => trim($data['embed_code'] ?? '') ?: null,
+            'url'              => trim($data['url'] ?? '') ?: null,
+            'mode'             => in_array($data['mode'] ?? '', ['embed', 'button']) ? $data['mode'] : 'embed',
+            'active'           => isset($data['active']) ? 1 : 0,
         ]);
 
         return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
@@ -93,5 +106,28 @@ class LocationAdminController
 
         $response->getBody()->write(json_encode(['ok' => true]));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /** Guarda configuración de display (display mode + columns) */
+    public function updateDisplay(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+
+        $display = in_array($data['locations_display'] ?? '', ['list', 'grid'])
+            ? $data['locations_display'] : 'list';
+
+        $columns = in_array((int)($data['locations_columns'] ?? 2), [1, 2, 3])
+            ? (string)(int)$data['locations_columns'] : '2';
+
+        Capsule::table('settings')->updateOrInsert(
+            ['setting_key' => 'locations_display'],
+            ['setting_value' => $display, 'updated_at' => date('Y-m-d H:i:s')]
+        );
+        Capsule::table('settings')->updateOrInsert(
+            ['setting_key' => 'locations_columns'],
+            ['setting_value' => $columns, 'updated_at' => date('Y-m-d H:i:s')]
+        );
+
+        return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
     }
 }
