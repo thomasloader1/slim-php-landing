@@ -2,13 +2,16 @@
 
 namespace App\Controllers\Admin;
 
+use App\Traits\AdminViewTrait;
+use App\Traits\ProcessesImages;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class FaviconAdminController
 {
-    protected $view;
+    use AdminViewTrait;
+    use ProcessesImages;
 
     /** Carpeta física donde se guardan los favicons */
     private string $faviconDir;
@@ -50,14 +53,11 @@ class FaviconAdminController
         // Verificar si ya existen favicons generados
         $hasGenerated = file_exists($this->faviconDir . '/favicon-32x32.png');
 
-        $html = $this->view->make('admin/favicon', [
+        return $this->render($response, 'admin/favicon', [
             'settings'     => $settings,
             'hasGenerated' => $hasGenerated,
             'sizes'        => self::SIZES,
-        ])->render();
-
-        $response->getBody()->write($html);
-        return $response;
+        ]);
     }
 
     /**
@@ -99,7 +99,7 @@ class FaviconAdminController
         }
 
         // Crear imagen fuente con GD
-        $sourceImage = $this->createGdImage($tmpPath, $imageInfo[2]);
+        $sourceImage = $this->createGdFromFile($tmpPath, $imageInfo[2]);
         @unlink($tmpPath);
 
         if (!$sourceImage) {
@@ -161,20 +161,6 @@ class FaviconAdminController
     }
 
     // ─── Métodos privados ────────────────────────────────────────
-
-    /**
-     * Crea una imagen GD desde archivo según su tipo.
-     */
-    private function createGdImage(string $path, int $type): \GdImage|false
-    {
-        return match ($type) {
-            IMAGETYPE_PNG  => @imagecreatefrompng($path),
-            IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
-            IMAGETYPE_GIF  => @imagecreatefromgif($path),
-            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
-            default        => false,
-        };
-    }
 
     /**
      * Redimensiona la imagen y la guarda como PNG.

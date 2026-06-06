@@ -7,6 +7,7 @@
 @section('content')
 <div class="max-w-xl">
     <form action="{{ url('admin/menu/sections/create') }}" method="POST">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             <div class="p-6 border-b border-slate-800 bg-slate-900/50">
                 <h3 class="text-lg font-bold text-white">Datos de la Sección</h3>

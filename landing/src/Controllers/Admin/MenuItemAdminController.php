@@ -4,35 +4,29 @@ namespace App\Controllers\Admin;
 
 use App\Models\MenuItem;
 use App\Models\MenuSection;
+use App\Traits\AdminViewTrait;
 use App\Traits\ProcessesImages;
+use App\Traits\ReordersEntities;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class MenuItemAdminController
 {
+    use AdminViewTrait;
     use ProcessesImages;
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
+    use ReordersEntities;
 
     public function index(Request $request, Response $response): Response
     {
         $items    = MenuItem::with('section')->orderBy('sort_order')->orderBy('id')->get();
         $sections = MenuSection::active()->orderBy('sort_order')->get();
-        $html = $this->view->make('admin/menu/items/index', compact('items', 'sections'))->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/menu/items/index', compact('items', 'sections'));
     }
 
     public function create(Request $request, Response $response): Response
     {
         $sections = MenuSection::active()->orderBy('sort_order')->get();
-        $html = $this->view->make('admin/menu/items/create', ['sections' => $sections])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/menu/items/create', ['sections' => $sections]);
     }
 
     public function store(Request $request, Response $response): Response
@@ -45,15 +39,45 @@ class MenuItemAdminController
         $imageUrl = null;
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
             $file = $files['image_file'];
-            if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
-                $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-                $filename  = 'menu_item_' . time() . '.' . $extension;
-                $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
-                $file->moveTo($targetPath);
-                $this->processAndSaveImage($targetPath, 800, 800, 75);
-                $imageUrl = url('uploads/' . $filename);
+
+            // Validar tamaño máximo (2MB)
+            if (!$this->validateImageSize($file, 2 * 1024 * 1024)) {
+                goto _skip_store_image;
             }
+
+            // Validar extensión
+            $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowedExtensions)) {
+                goto _skip_store_image;
+            }
+
+            // Validar MIME type real con finfo
+            $realMime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $file->getStream());
+            $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            if (!in_array($realMime, $allowedMimes)) {
+                goto _skip_store_image;
+            }
+
+            // Asegurar que el directorio uploads/ existe
+            $uploadDir = __DIR__ . '/../../../public/uploads';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $filename  = 'menu_item_' . time() . '.' . $extension;
+            $targetPath = $uploadDir . '/' . $filename;
+
+            try {
+                $file->moveTo($targetPath);
+            } catch (\Exception $e) {
+                goto _skip_store_image;
+            }
+
+            $this->processAndSaveImage($targetPath, 800, 800, 75);
+            $imageUrl = url('uploads/' . $filename);
         }
+        _skip_store_image:
 
         MenuItem::create([
             'section_id'    => !empty($data['section_id']) ? (int) $data['section_id'] : null,
@@ -82,9 +106,7 @@ class MenuItemAdminController
     {
         $item     = MenuItem::findOrFail($args['id']);
         $sections = MenuSection::active()->orderBy('sort_order')->get();
-        $html = $this->view->make('admin/menu/items/edit', compact('item', 'sections'))->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/menu/items/edit', compact('item', 'sections'));
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -102,16 +124,46 @@ class MenuItemAdminController
 
         if (isset($files['image_file']) && $files['image_file']->getError() === UPLOAD_ERR_OK) {
             $file = $files['image_file'];
-            if ($this->validateImageSize($file, 2 * 1024 * 1024)) {
-                $this->deleteUploadedFile($imageUrl ?? '');
-                $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-                $filename  = 'menu_item_' . time() . '.' . $extension;
-                $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
-                $file->moveTo($targetPath);
-                $this->processAndSaveImage($targetPath, 800, 800, 75);
-                $imageUrl = url('uploads/' . $filename);
+
+            // Validar tamaño máximo (2MB)
+            if (!$this->validateImageSize($file, 2 * 1024 * 1024)) {
+                goto _skip_update_image;
             }
+
+            // Validar extensión
+            $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowedExtensions)) {
+                goto _skip_update_image;
+            }
+
+            // Validar MIME type real con finfo
+            $realMime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $file->getStream());
+            $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            if (!in_array($realMime, $allowedMimes)) {
+                goto _skip_update_image;
+            }
+
+            // Asegurar que el directorio uploads/ existe
+            $uploadDir = __DIR__ . '/../../../public/uploads';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $this->deleteUploadedFile($imageUrl ?? '');
+            $filename  = 'menu_item_' . time() . '.' . $extension;
+            $targetPath = $uploadDir . '/' . $filename;
+
+            try {
+                $file->moveTo($targetPath);
+            } catch (\Exception $e) {
+                goto _skip_update_image;
+            }
+
+            $this->processAndSaveImage($targetPath, 800, 800, 75);
+            $imageUrl = url('uploads/' . $filename);
         }
+        _skip_update_image:
 
         $item->update([
             'section_id'    => !empty($data['section_id']) ? (int) $data['section_id'] : null,
@@ -145,15 +197,11 @@ class MenuItemAdminController
         return $response->withHeader('Location', url('admin/menu/items'))->withStatus(302);
     }
 
-    public function reorder(Request $request, Response $response): Response
+    protected function getReorderModel(): string
     {
-        $body = (string) $request->getBody();
-        $data = json_decode($body, true);
-
-        if (!isset($data['order']) || !is_array($data['order'])) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid payload']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
+        return MenuItem::class;
+    }
+}
 
         foreach ($data['order'] as $index => $id) {
             MenuItem::where('id', (int) $id)->update(['sort_order' => $index]);
@@ -163,19 +211,4 @@ class MenuItemAdminController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    private function deleteUploadedFile(string $settingValue): void
-    {
-        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
-        if (!str_contains($urlPath, '/uploads/')) {
-            return;
-        }
-        $filename = basename($urlPath);
-        if ($filename === '' || $filename === '.') {
-            return;
-        }
-        $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
-        if (file_exists($filePath)) {
-            @unlink($filePath);
-        }
-    }
 }

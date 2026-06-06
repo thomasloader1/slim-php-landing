@@ -22,13 +22,13 @@ $app->group('/api', function (RouteCollectorProxy $group) {
     $group->get('/links/{id}', [LinkApiController::class, 'detail']);
 });
 
-// Admin Auth Routes
-$app->get('/admin/login', [AuthController::class, 'showLogin']);
-$app->post('/admin/login', [AuthController::class, 'login']);
-$app->post('/admin/logout', [AuthController::class, 'logout']);
-
 // Admin Protected Routes
 $app->group('/admin', function (RouteCollectorProxy $group) {
+    // Auth routes FIRST (before middleware that needs them)
+    $group->get('/login', [AuthController::class, 'showLogin']);
+    $group->post('/login', [AuthController::class, 'login']);
+    $group->post('/logout', [AuthController::class, 'logout']);
+
     $group->get('', DashboardController::class);
     $group->get('/', DashboardController::class);
     
@@ -122,4 +122,6 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $siteGroup->post('/{id}/activate', [\App\Controllers\Admin\SiteAdminController::class, 'activate']);
         $siteGroup->post('/{id}/test', [\App\Controllers\Admin\SiteAdminController::class, 'testConnection']);
     })->add(\App\Middleware\RoleMiddleware::class);
-})->add(AuthMiddleware::class);
+})
+    ->add(\App\Middleware\CsrfMiddleware::class)
+    ->add(AuthMiddleware::class);

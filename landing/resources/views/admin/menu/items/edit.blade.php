@@ -7,6 +7,7 @@
 @section('content')
 <div class="max-w-2xl">
     <form action="{{ url('admin/menu/items/edit/' . $item->id) }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="space-y-5">
 
             {{-- ── DATOS BÁSICOS ── --}}

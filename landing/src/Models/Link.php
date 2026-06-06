@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasActiveScope;
 use Illuminate\Database\Eloquent\Model;
 
 class Link extends Model
 {
+    use HasActiveScope;
+
     protected $table = 'links';
     
     protected $fillable = [
@@ -19,18 +22,13 @@ class Link extends Model
         'active'
     ];
 
-    public function scopeActive($query)
-    {
-        return $query->where('active', 1);
-    }
-
-    public function getIconHtml()
+    public function getIconHtml(): string
     {
         $icon = $this->icon ?: 'fa-link';
         // Add fa-solid as default prefix if no style prefix is present
         if (!preg_match('/fa-(solid|brands|regular|light|thin)/', $icon)) {
             $icon = "fa-solid " . $icon;
         }
-        return "<i class=\"{$icon}\"></i>";
+        return '<i class="' . htmlspecialchars($icon, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '"></i>';
     }
 }

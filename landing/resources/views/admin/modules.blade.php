@@ -7,6 +7,7 @@
 @section('content')
 <div class="max-w-3xl">
     <form action="{{ url('admin/modules') }}" method="POST" class="space-y-6">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         @php
             $modules = [
                 ['key' => 'module_title_enabled',     'label' => 'Título y Subtítulo',  'icon' => 'fa-heading',          'desc' => 'Muestra el título y subtítulo en la landing page.'],

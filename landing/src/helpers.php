@@ -14,7 +14,7 @@ if (!function_exists('request_is')) {
     function request_is(string $path): bool {
         $_rawBase2 = getenv('APP_BASE_PATH');
         $base  = rtrim($_rawBase2 !== false ? $_rawBase2 : ($_ENV['APP_BASE_PATH'] ?? ''), '/');
-        $uri   = strtok($_SERVER['REQUEST_URI'] ?? '/', '?'); // quitar query string
+        $uri   = explode('?', $_SERVER['REQUEST_URI'] ?? '/')[0]; // quitar query string
         if ($base && str_starts_with($uri, $base)) {
             $uri = substr($uri, strlen($base));
         }

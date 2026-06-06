@@ -20,6 +20,12 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandler $handler): Response
     {
+        // Exempt login/logout routes from auth check so CsrfMiddleware applies to them
+        $path = $request->getUri()->getPath();
+        if (in_array($path, ['/admin/login', '/admin/logout'], true)) {
+            return $handler->handle($request);
+        }
+
         if (!$this->auth->isAuthenticated()) {
             $response = new SlimResponse();
             return $response->withHeader('Location', url('admin/login'))->withStatus(302);

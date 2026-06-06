@@ -9,6 +9,7 @@
 {{-- ── Panel de visualización ───────────────────────────────── --}}
 <form action="{{ url('admin/locations/display') }}" method="POST"
       class="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6 flex flex-wrap items-end gap-5">
+    <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
     <div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Modo de visualización</p>
@@ -115,6 +116,7 @@
                                 </a>
                                 <form action="{{ url('admin/locations/delete/' . $loc->id) }}" method="POST"
                                       onsubmit="return confirm('¿Estás seguro de eliminar esta ubicación?')" data-no-loading>
+                                    <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                     <button type="submit"
                                             class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                         <i class="fa-solid fa-trash-can text-sm"></i>

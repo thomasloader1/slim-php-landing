@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Regression">
+            <directory>tests/Regression</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_HOST" value="mysql-server"/>
+        <env name="DB_PORT" value="3306"/>
+        <env name="DB_NAME" value="project_landing_test"/>
+        <env name="DB_USER" value="main_user"/>
+        <env name="DB_PASS" value="password"/>
+        <const name="PHPUNIT_RUNNING" value="true"/>
+    </php>
+</phpunit>

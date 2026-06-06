@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasActiveScope;
 use Illuminate\Database\Eloquent\Model;
 
 class Location extends Model
 {
+    use HasActiveScope;
+
     protected $table = 'locations';
 
     protected $fillable = [
@@ -13,11 +16,6 @@ class Location extends Model
         'embed_code', 'url', 'mode',
         'sort_order', 'active',
     ];
-
-    public function scopeActive($query)
-    {
-        return $query->where('active', 1);
-    }
 
     /** Extrae la URL src del iframe embed_code, o devuelve null. */
     public function getEmbedSrc(): ?string

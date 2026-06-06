@@ -13,6 +13,7 @@
     </div>
 
     <form action="{{ url('admin/seo/faq/edit/' . $item->id) }}" method="POST" class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div>
             <label class="block text-sm font-medium text-slate-400 mb-2">Pregunta</label>
             <input type="text" name="question" required value="{{ $item->question }}"

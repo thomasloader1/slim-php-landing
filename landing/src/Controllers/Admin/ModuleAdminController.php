@@ -2,26 +2,19 @@
 
 namespace App\Controllers\Admin;
 
+use App\Traits\AdminViewTrait;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class ModuleAdminController
 {
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
+    use AdminViewTrait;
 
     public function index(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
-
-        $html = $this->view->make('admin/modules', ['settings' => $settings])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/modules', ['settings' => $settings]);
     }
 
     public function update(Request $request, Response $response): Response
@@ -46,20 +39,7 @@ class ModuleAdminController
             );
         }
 
-        //$this->clearBladeCache();
-
         return $response->withHeader('Location', url('admin/modules'))->withStatus(302);
     }
 
-    /**
-     * Limpia la caché de templates Blade compilados.
-     */
-    private function clearBladeCache(): void
-    {
-        $cacheDir = __DIR__ . '/../../../storage/cache';
-        $files = glob($cacheDir . '/*.php');
-        if ($files) {
-            array_map('unlink', $files);
-        }
-    }
 }

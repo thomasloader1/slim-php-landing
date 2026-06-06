@@ -74,6 +74,29 @@ trait ProcessesImages
     }
 
     /**
+     * Borra un archivo físico de uploads/ si la ruta es local (no URL externa).
+     */
+    protected function deleteUploadedFile(string $settingValue): void
+    {
+        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
+
+        // Solo borrar si la ruta empieza con /uploads/ (ignorar URLs externas)
+        if (!str_contains($urlPath, '/uploads/')) {
+            return;
+        }
+
+        $filename = basename($urlPath);
+        if ($filename === '' || $filename === '.') {
+            return;
+        }
+
+        $filePath = __DIR__ . '/../../public/uploads/' . $filename;
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+    }
+
+    /**
      * Crea un recurso GD desde archivo según su tipo IMAGETYPE_*.
      */
     protected function createGdFromFile(string $path, int $type): \GdImage|false

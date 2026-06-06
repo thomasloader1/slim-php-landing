@@ -8,6 +8,7 @@
 <div class="max-w-2xl">
     <form action="{{ url('admin/locations/create') }}" method="POST"
           class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 

@@ -225,7 +225,19 @@ php composer.phar install --no-dev --optimize-autoloader
 
 > Si no tenés Composer global, usá el `composer.phar` incluido en el repo.
 
-### 3. Permisos de escritura
+### 3. Limpiar archivos innecesarios
+
+Eliminá archivos que no deben estar en producción (tests, Docker, config de PHPUnit):
+
+```bash
+php cleanup.php
+```
+
+> Este script verifica que `APP_ENV=production` antes de ejecutarse. Si estás en desarrollo, aborta sin eliminar nada.
+>
+> Para agregar más rutas a limpiar en el futuro, editá el array `$paths` en `cleanup.php`.
+
+### 4. Permisos de escritura
 
 ```bash
 chmod 755 landing/public/uploads/
@@ -233,7 +245,7 @@ chmod 755 landing/storage/
 chmod 755 landing/storage/cache/
 ```
 
-### 4. Crear la base de datos
+### 5. Crear la base de datos
 
 Desde phpMyAdmin o la consola MySQL:
 
@@ -241,7 +253,7 @@ Desde phpMyAdmin o la consola MySQL:
 CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5. Abrir el wizard de instalación
+### 6. Abrir el wizard de instalación
 
 Navegá a:
 
@@ -251,7 +263,7 @@ https://misitio.com/install.php
 
 El wizard te pedirá los datos de conexión a MySQL, generará el `.env` y ejecutará el schema + seed automáticamente.
 
-### 6. Verificar que el rewrite funciona
+### 7. Verificar que el rewrite funciona
 
 Si al abrir la landing ves un error 404, verificá que `mod_rewrite` está activo y que el `.htaccess` de `public/` tiene efecto. En cPanel suele estar habilitado por defecto.
 

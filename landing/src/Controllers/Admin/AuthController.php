@@ -3,13 +3,15 @@
 namespace App\Controllers\Admin;
 
 use App\Services\AuthService;
+use App\Traits\AdminViewTrait;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class AuthController
 {
+    use AdminViewTrait;
+
     protected $auth;
-    protected $view;
 
     public function __construct(\Psr\Container\ContainerInterface $container)
     {
@@ -23,9 +25,7 @@ class AuthController
             return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
-        $html = $this->view->make('admin/login')->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/login');
     }
 
     public function login(Request $request, Response $response): Response
@@ -38,9 +38,7 @@ class AuthController
             return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
-        $html = $this->view->make('admin/login', ['error' => 'Credenciales inválidas'])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/login', ['error' => 'Credenciales inválidas']);
     }
 
     public function logout(Request $request, Response $response): Response

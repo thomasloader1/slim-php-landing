@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Traits\AdminViewTrait;
 use App\Traits\ProcessesImages;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -9,21 +10,13 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 
 class SettingsAdminController
 {
+    use AdminViewTrait;
     use ProcessesImages;
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
 
     public function index(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
-
-        $html = $this->view->make('admin/settings', ['settings' => $settings])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/settings', ['settings' => $settings]);
     }
 
     public function update(Request $request, Response $response): Response
@@ -58,6 +51,15 @@ class SettingsAdminController
             'bg_file'      => [1920, 1920],
         ];
 
+        // Extensiones de imagen permitidas
+        $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'];
+
+        // Asegurar que el directorio uploads/ existe
+        $uploadDir = __DIR__ . '/../../../public/uploads';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
         foreach ($uploadMap as $inputName => $settingKey) {
             if (isset($files[$inputName]) && $files[$inputName]->getError() === UPLOAD_ERR_OK) {
                 $file = $files[$inputName];
@@ -67,22 +69,44 @@ class SettingsAdminController
                     continue;
                 }
 
-                $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-                $filename = "{$settingKey}_" . time() . ".{$extension}";
-                $targetPath = __DIR__ . "/../../../public/uploads/{$filename}";
-
-                // Borrar archivo previo si era una imagen local subida
-                $oldValue = Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '';
-                if ($oldValue) {
-                    $this->deleteUploadedFile($oldValue);
+                // Validar extensión
+                $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+                if (!in_array($extension, $allowedExtensions)) {
+                    continue;
                 }
 
-                $file->moveTo($targetPath);
+                // Validar MIME type real con finfo (no confiar en el cliente)
+                $realMime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $file->getStream());
+                $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
+                if (!in_array($realMime, $allowedMimes)) {
+                    continue;
+                }
+
+                $filename = "{$settingKey}_" . time() . ".{$extension}";
+                $targetPath = $uploadDir . "/{$filename}";
+
+                // Mover archivo primero — si falla, el original se conserva
+                try {
+                    $file->moveTo($targetPath);
+                } catch (\Exception $e) {
+                    continue;
+                }
 
                 // Procesar imagen (redimensionar + comprimir) si no es favicon
                 if (isset($maxDimensions[$inputName])) {
                     [$maxW, $maxH] = $maxDimensions[$inputName];
-                    $this->processAndSaveImage($targetPath, $maxW, $maxH, 80);
+                    $processed = $this->processAndSaveImage($targetPath, $maxW, $maxH, 80);
+                    // Si GD no pudo procesar, eliminar el archivo subido y no actualizar
+                    if (!$processed) {
+                        @unlink($targetPath);
+                        continue;
+                    }
+                }
+
+                // Borrar archivo previo si era una imagen local subida (solo después del éxito)
+                $oldValue = Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '';
+                if ($oldValue) {
+                    $this->deleteUploadedFile($oldValue);
                 }
 
                 $data[$settingKey] = url("uploads/{$filename}");
@@ -121,43 +145,7 @@ class SettingsAdminController
             }
         }
 
-        //$this->clearBladeCache();
-
         return $response->withHeader('Location', url('admin/settings'))->withStatus(302);
     }
 
-    /**
-     * Limpia la caché de templates Blade compilados.
-     */
-    private function clearBladeCache(): void
-    {
-        $cacheDir = __DIR__ . '/../../../storage/cache';
-        $files = glob($cacheDir . '/*.php');
-        if ($files) {
-            array_map('unlink', $files);
-        }
-    }
-
-    /**
-     * Borra un archivo físico de uploads/ si la ruta es local (no URL externa).
-     */
-    private function deleteUploadedFile(string $settingValue): void
-    {
-        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
-
-        // Solo borrar si la ruta empieza con /uploads/ (ignorar URLs externas)
-        if (!str_contains($urlPath, '/uploads/')) {
-            return;
-        }
-
-        $filename = basename($urlPath);
-        if ($filename === '' || $filename === '.') {
-            return;
-        }
-
-        $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
-        if (file_exists($filePath)) {
-            @unlink($filePath);
-        }
-    }
 }

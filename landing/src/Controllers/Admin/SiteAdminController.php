@@ -5,50 +5,28 @@ namespace App\Controllers\Admin;
 use App\Models\Site;
 use App\Services\EncryptionService;
 use App\Services\SiteConnectionService;
+use App\Traits\AdminViewTrait;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class SiteAdminController
 {
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
-
-    private function getEncryptionKey(): string
-    {
-        return Capsule::table('settings')
-            ->where('setting_key', 'site_manager_encryption_key')
-            ->value('setting_value') ?? '';
-    }
-
-    private function getDefaultRedirectUrl(): string
-    {
-        return Capsule::table('settings')
-            ->where('setting_key', 'site_manager_default_redirect_url')
-            ->value('setting_value') ?? '';
-    }
+    use AdminViewTrait;
 
     public function index(Request $request, Response $response): Response
     {
         $sites = Site::orderBy('id', 'desc')->get();
-        $html = $this->view->make('admin/sites/index', ['sites' => $sites])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/sites/index', ['sites' => $sites]);
     }
 
     public function create(Request $request, Response $response): Response
     {
         $defaultRedirect = $this->getDefaultRedirectUrl();
-        $html = $this->view->make('admin/sites/form', [
+        return $this->render($response, 'admin/sites/form', [
             'site'            => null,
             'defaultRedirect' => $defaultRedirect,
-        ])->render();
-        $response->getBody()->write($html);
-        return $response;
+        ]);
     }
 
     public function store(Request $request, Response $response): Response
@@ -88,12 +66,10 @@ class SiteAdminController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $site = Site::findOrFail($args['id']);
-        $html = $this->view->make('admin/sites/form', [
+        return $this->render($response, 'admin/sites/form', [
             'site'            => $site,
             'defaultRedirect' => $this->getDefaultRedirectUrl(),
-        ])->render();
-        $response->getBody()->write($html);
-        return $response;
+        ]);
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -195,5 +171,17 @@ class SiteAdminController
 
         $response->getBody()->write(json_encode($result));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function getEncryptionKey(): string
+    {
+        return Capsule::table('settings')
+            ->where('setting_key', 'encryption_key')
+            ->value('setting_value') ?? '';
+    }
+
+    private function getDefaultRedirectUrl(): string
+    {
+        return '/';
     }
 }

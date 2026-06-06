@@ -3,31 +3,25 @@
 namespace App\Controllers\Admin;
 
 use App\Models\FaqItem;
+use App\Traits\AdminViewTrait;
+use App\Traits\ReordersEntities;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class FaqAdminController
 {
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
+    use AdminViewTrait;
+    use ReordersEntities;
 
     public function index(Request $request, Response $response): Response
     {
         $items = FaqItem::orderBy('sort_order')->orderBy('id')->get();
-        $html = $this->view->make('admin/seo/faq/index', ['items' => $items])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/seo/faq/index', ['items' => $items]);
     }
 
     public function create(Request $request, Response $response): Response
     {
-        $html = $this->view->make('admin/seo/faq/create')->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/seo/faq/create');
     }
 
     public function store(Request $request, Response $response): Response
@@ -47,9 +41,7 @@ class FaqAdminController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $item = FaqItem::findOrFail($args['id']);
-        $html = $this->view->make('admin/seo/faq/edit', ['item' => $item])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/seo/faq/edit', ['item' => $item]);
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -72,21 +64,8 @@ class FaqAdminController
         return $response->withHeader('Location', url('admin/seo/faq'))->withStatus(302);
     }
 
-    public function reorder(Request $request, Response $response): Response
+    protected function getReorderModel(): string
     {
-        $body = (string) $request->getBody();
-        $data = json_decode($body, true);
-
-        if (!isset($data['order']) || !is_array($data['order'])) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid payload']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
-
-        foreach ($data['order'] as $index => $id) {
-            FaqItem::where('id', (int) $id)->update(['sort_order' => $index]);
-        }
-
-        $response->getBody()->write(json_encode(['ok' => true]));
-        return $response->withHeader('Content-Type', 'application/json');
+        return FaqItem::class;
     }
 }

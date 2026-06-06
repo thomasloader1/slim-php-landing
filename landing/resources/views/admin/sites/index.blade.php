@@ -107,6 +107,7 @@
                                         <!-- Suspender / Activar -->
                                         @if($site->status === 'active')
                                             <form action="{{ url('admin/sites/' . $site->id . '/suspend') }}" method="POST" class="inline" data-no-loading>
+                                                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                                 <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-400 transition-colors"
                                                         title="Suspender" onclick="return confirm('¿Suspender este sitio?')">
                                                     <i class="fa-solid fa-ban text-xs"></i>
@@ -114,6 +115,7 @@
                                             </form>
                                         @elseif($site->status === 'suspended')
                                             <form action="{{ url('admin/sites/' . $site->id . '/activate') }}" method="POST" class="inline" data-no-loading>
+                                                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                                 <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-emerald-900 text-slate-400 hover:text-emerald-400 transition-colors"
                                                         title="Activar">
                                                     <i class="fa-solid fa-check text-xs"></i>
@@ -122,6 +124,7 @@
                                         @endif
                                         <!-- Eliminar -->
                                         <form action="{{ url('admin/sites/delete/' . $site->id) }}" method="POST" class="inline" data-no-loading>
+                                            <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                             <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-400 transition-colors"
                                                     title="Eliminar" onclick="return confirm('¿Eliminar este sitio del registro? Esta acción no afecta la base de datos remota.')">
                                                 <i class="fa-solid fa-trash text-xs"></i>

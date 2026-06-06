@@ -12,6 +12,18 @@ use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
 
+// Session cookie hardening (before session is started)
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+}
+
 // Dependency Injection Container
 $containerBuilder = new ContainerBuilder();
 
@@ -86,7 +98,18 @@ $container->set('view', function () {
 // Middleware
 $app->add(new \App\Middleware\SiteStatusMiddleware());
 $app->addRoutingMiddleware();
-$app->addErrorMiddleware(true, true, true);
+
+// Error handling: pantalla técnica en dev, amigable en prod,
+// logs ultra detallados SIEMPRE
+$_isDev = ($_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') === 'development';
+$errorMiddleware = $app->addErrorMiddleware($_isDev, true, true);
+$errorMiddleware->setDefaultErrorHandler(
+    new \App\Handlers\DetailedErrorHandler(
+        $app->getCallableResolver(),
+        $app->getResponseFactory(),
+        $container->get('view')
+    )
+);
 
 // Routes
 require __DIR__ . '/../src/routes.php';

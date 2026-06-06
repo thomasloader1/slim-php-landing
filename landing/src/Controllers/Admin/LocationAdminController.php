@@ -3,18 +3,16 @@
 namespace App\Controllers\Admin;
 
 use App\Models\Location;
+use App\Traits\AdminViewTrait;
+use App\Traits\ReordersEntities;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class LocationAdminController
 {
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
+    use AdminViewTrait;
+    use ReordersEntities;
 
     public function index(Request $request, Response $response): Response
     {
@@ -24,16 +22,12 @@ class LocationAdminController
             ->pluck('setting_value', 'setting_key')
             ->toArray();
 
-        $html = $this->view->make('admin/locations/index', compact('locations', 'settings'))->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/locations/index', compact('locations', 'settings'));
     }
 
     public function create(Request $request, Response $response): Response
     {
-        $html = $this->view->make('admin/locations/create')->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/locations/create');
     }
 
     public function store(Request $request, Response $response): Response
@@ -60,9 +54,7 @@ class LocationAdminController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $location = Location::findOrFail($args['id']);
-        $html = $this->view->make('admin/locations/edit', ['location' => $location])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/locations/edit', ['location' => $location]);
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -90,22 +82,9 @@ class LocationAdminController
         return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
     }
 
-    public function reorder(Request $request, Response $response): Response
+    protected function getReorderModel(): string
     {
-        $body = (string) $request->getBody();
-        $data = json_decode($body, true);
-
-        if (!isset($data['order']) || !is_array($data['order'])) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid payload']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
-
-        foreach ($data['order'] as $index => $id) {
-            Location::where('id', (int) $id)->update(['sort_order' => $index]);
-        }
-
-        $response->getBody()->write(json_encode(['ok' => true]));
-        return $response->withHeader('Content-Type', 'application/json');
+        return Location::class;
     }
 
     /** Guarda configuración de display (display mode + columns) */

@@ -7,6 +7,7 @@
 @section('content')
 <div class="max-w-2xl">
     <form action="{{ url('admin/users/create') }}" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-sm space-y-6">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="col-span-2 md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Nombre Completo</label>

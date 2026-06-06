@@ -18,6 +18,7 @@ class AuthService
         $user = User::where('email', $email)->where('active', 1)->first();
 
         if ($user && password_verify($password, $user->password_hash)) {
+            session_regenerate_id(true);
             $_SESSION['user_id'] = $user->id;
             $_SESSION['user_name'] = $user->name;
             $_SESSION['user_role'] = $user->role;

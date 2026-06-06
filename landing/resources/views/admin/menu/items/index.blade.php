@@ -85,6 +85,7 @@
                                     <form action="{{ url('admin/menu/items/delete/' . $item->id) }}" method="POST"
                                           onsubmit="return confirm('¿Eliminar este ítem del menú?')"
                                           data-no-loading>
+                                        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                             <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>

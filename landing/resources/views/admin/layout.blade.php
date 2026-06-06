@@ -163,6 +163,24 @@
             </div>
             @endif
 
+            {{-- Flash messages desde query string --}}
+            @php
+                $_flashError   = $_GET['error'] ?? null;
+                $_flashSuccess = $_GET['success'] ?? null;
+            @endphp
+            @if($_flashError)
+                <div class="bg-red-950/50 border border-red-800 rounded-2xl p-4 mb-6 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-exclamation text-red-400 mt-0.5"></i>
+                    <p class="text-sm text-red-300">{{ $_flashError }}</p>
+                </div>
+            @endif
+            @if($_flashSuccess)
+                <div class="bg-emerald-950/50 border border-emerald-800 rounded-2xl p-4 mb-6 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i>
+                    <p class="text-sm text-emerald-300">{{ $_flashSuccess }}</p>
+                </div>
+            @endif
+
             <div class="space-y-8">
                 @yield('content')
             </div>

@@ -3,31 +3,23 @@
 namespace App\Controllers\Admin;
 
 use App\Models\User;
+use App\Traits\AdminViewTrait;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class UserAdminController
 {
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
+    use AdminViewTrait;
 
     public function index(Request $request, Response $response): Response
     {
         $users = User::select('id', 'name', 'email', 'role', 'active', 'created_at')->get();
-        $html = $this->view->make('admin/users/index', ['users' => $users])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/users/index', ['users' => $users]);
     }
 
     public function create(Request $request, Response $response): Response
     {
-        $html = $this->view->make('admin/users/create')->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/users/create');
     }
 
     public function store(Request $request, Response $response): Response
@@ -48,9 +40,7 @@ class UserAdminController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $user = User::findOrFail($args['id']);
-        $html = $this->view->make('admin/users/edit', ['user' => $user])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/users/edit', ['user' => $user]);
     }
 
     public function update(Request $request, Response $response, array $args): Response

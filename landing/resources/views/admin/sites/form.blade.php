@@ -11,6 +11,7 @@
     </a>
 
     <form action="{{ url($site ? 'admin/sites/edit/' . $site->id : 'admin/sites/create') }}" method="POST" class="space-y-8">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
         {{-- Información del Sitio --}}
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">

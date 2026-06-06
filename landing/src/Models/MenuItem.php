@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasActiveScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MenuItem extends Model
 {
+    use HasActiveScope;
+
     protected $table = 'menu_items';
 
     protected $fillable = [
@@ -22,11 +25,6 @@ class MenuItem extends Model
         'price_2' => 'decimal:2',
         'price_3' => 'decimal:2',
     ];
-
-    public function scopeActive($query)
-    {
-        return $query->where('active', 1);
-    }
 
     public function section(): BelongsTo
     {

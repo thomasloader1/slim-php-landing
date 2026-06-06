@@ -250,7 +250,7 @@
                    target="_blank" title="{{ $link->title }}">
                     <div class="flex items-center justify-center text-2xl group-hover:scale-110 transition-transform"
                          style="color: {{ $__hasBg ? bgContrastColor($link->bgColor) : (($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)')) }};">
-                        {!! $link->getIconHtml() !!}
+                        {{ $link->getIconHtml() }}
                     </div>
                 </a>
             @empty
@@ -271,7 +271,7 @@
                    target="_blank">
                     <div class="w-10 h-10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform"
                          style="color: {{ $__hasBg ? $__contrast : (($settings['landing_accent_force'] ?? '1') === '1' ? 'var(--accent)' : ($link->color ?: 'var(--accent)')) }};">
-                        {!! $link->getIconHtml() !!}
+                                                 {{ $link->getIconHtml() }}
                     </div>
                     <span class="flex-1 font-semibold text-lg ml-3" style="{{ $__hasBg ? 'color:' . $__contrast : '' }}">{{ $link->title }}</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-xs transition-all" style="{{ $__hasBg ? 'color:' . $__contrast . '; opacity:0.4;' : 'color: rgba(255,255,255,0.2);' }}"></i>
@@ -291,7 +291,7 @@
         @if(!empty($settings['landing_bio']))
             <div class="mt-14 text-center px-4">
                 <div class="bio-content text-white text-base leading-relaxed max-w-sm mx-auto font-light">
-                    {!! $settings['landing_bio'] !!}
+                    {{ $settings['landing_bio'] }}
                 </div>
             </div>
         @endif

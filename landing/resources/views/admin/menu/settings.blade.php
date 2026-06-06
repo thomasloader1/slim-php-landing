@@ -39,6 +39,7 @@
 @endif
 
 <form action="{{ url('admin/menu/settings') }}" method="POST" enctype="multipart/form-data" class="space-y-6 max-w-2xl">
+    <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
     {{-- ── MÓDULO ──────────────────────────────────────────────── --}}
     <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">

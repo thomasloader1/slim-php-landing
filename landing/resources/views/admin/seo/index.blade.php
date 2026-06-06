@@ -7,6 +7,7 @@
 @section('content')
 <div class="max-w-5xl">
     <form id="seo-form" action="{{ url('admin/seo') }}" method="POST" class="space-y-8">
+        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
         {{-- ── Básico + SERP Preview ── --}}
         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">

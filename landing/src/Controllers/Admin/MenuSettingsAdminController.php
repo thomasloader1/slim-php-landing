@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Traits\AdminViewTrait;
 use App\Traits\ProcessesImages;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -9,20 +10,13 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 
 class MenuSettingsAdminController
 {
+    use AdminViewTrait;
     use ProcessesImages;
-    protected $view;
-
-    public function __construct(\Psr\Container\ContainerInterface $container)
-    {
-        $this->view = $container->get('view');
-    }
 
     public function index(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
-        $html = $this->view->make('admin/menu/settings', ['settings' => $settings])->render();
-        $response->getBody()->write($html);
-        return $response;
+        return $this->render($response, 'admin/menu/settings', ['settings' => $settings]);
     }
 
     public function update(Request $request, Response $response): Response
@@ -38,21 +32,52 @@ class MenuSettingsAdminController
         // Imagen de fondo del menú
         if (isset($files['menu_bg_image_file']) && $files['menu_bg_image_file']->getError() === UPLOAD_ERR_OK) {
             $file = $files['menu_bg_image_file'];
-            if ($this->validateImageSize($file, 4 * 1024 * 1024)) {
-                // Borrar imagen anterior si era local
-                $oldUrl = Capsule::table('settings')
-                    ->where('setting_key', 'menu_bg_image_url')->value('setting_value');
-                if (!empty($oldUrl)) {
-                    $this->deleteUploadedFile($oldUrl);
-                }
-                $extension  = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-                $filename   = 'menu_bg_' . time() . '.' . $extension;
-                $targetPath = __DIR__ . '/../../../public/uploads/' . $filename;
-                $file->moveTo($targetPath);
-                $this->processAndSaveImage($targetPath, 1920, 1080, 80);
-                $data['menu_bg_image_url'] = url('uploads/' . $filename);
+
+            // Validar tamaño máximo (4MB)
+            if (!$this->validateImageSize($file, 4 * 1024 * 1024)) {
+                goto _skip_menu_bg;
             }
+
+            // Validar extensión
+            $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowedExtensions)) {
+                goto _skip_menu_bg;
+            }
+
+            // Validar MIME type real con finfo
+            $realMime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $file->getStream());
+            $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!in_array($realMime, $allowedMimes)) {
+                goto _skip_menu_bg;
+            }
+
+            // Asegurar que el directorio uploads/ existe
+            $uploadDir = __DIR__ . '/../../../public/uploads';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            // Borrar imagen anterior si era local
+            $oldUrl = Capsule::table('settings')
+                ->where('setting_key', 'menu_bg_image_url')->value('setting_value');
+            if (!empty($oldUrl)) {
+                $this->deleteUploadedFile($oldUrl);
+            }
+
+            $filename   = 'menu_bg_' . time() . '.' . $extension;
+            $targetPath = $uploadDir . '/' . $filename;
+
+            try {
+                $file->moveTo($targetPath);
+            } catch (\Exception $e) {
+                goto _skip_menu_bg;
+            }
+
+            $this->processAndSaveImage($targetPath, 1920, 1080, 80);
+            $data['menu_bg_image_url'] = url('uploads/' . $filename);
         }
+        _skip_menu_bg:
 
         // Quitar imagen de fondo si se solicitó
         if (!empty($data['clear_menu_bg_image'])) {
@@ -94,19 +119,4 @@ class MenuSettingsAdminController
         return $response->withHeader('Location', url('admin/menu/settings'))->withStatus(302);
     }
 
-    private function deleteUploadedFile(string $settingValue): void
-    {
-        $urlPath = parse_url($settingValue, PHP_URL_PATH) ?? '';
-        if (!str_contains($urlPath, '/uploads/')) {
-            return;
-        }
-        $filename = basename($urlPath);
-        if ($filename === '' || $filename === '.') {
-            return;
-        }
-        $filePath = __DIR__ . '/../../../public/uploads/' . $filename;
-        if (file_exists($filePath)) {
-            @unlink($filePath);
-        }
-    }
 }

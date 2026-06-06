@@ -37,6 +37,7 @@
         </div>
         <div class="p-8">
             <form id="favicon-form" action="{{ url('admin/favicon') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
 
                 {{-- Preview de la imagen seleccionada --}}
                 <div id="preview-zone" class="hidden">
@@ -83,6 +84,7 @@
             </h3>
             <form action="{{ url('admin/favicon/delete') }}" method="POST" data-no-loading
                   onsubmit="return confirm('¿Eliminar todos los favicons generados?')">
+                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                 <button type="submit" class="text-xs text-red-400 border border-red-400/40 px-3 py-1.5 rounded-lg hover:bg-red-400/10 transition-colors">
                     <i class="fa-solid fa-trash-can mr-1"></i> Eliminar todos
                 </button>

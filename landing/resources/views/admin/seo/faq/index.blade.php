@@ -57,6 +57,7 @@
                                             <i class="fa-solid fa-pen-to-square text-sm"></i>
                                         </a>
                                         <form action="{{ url('admin/seo/faq/delete/' . $item->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta pregunta?')" data-no-loading>
+                                            <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                             <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                                 <i class="fa-solid fa-trash-can text-sm"></i>
                                             </button>
