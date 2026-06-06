@@ -25,7 +25,10 @@ class AuthController
             return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
-        return $this->render($response, 'admin/login');
+        $params = $request->getQueryParams();
+        $error = $params['error'] ?? null;
+
+        return $this->render($response, 'admin/login', $error ? ['error' => $error] : []);
     }
 
     public function login(Request $request, Response $response): Response

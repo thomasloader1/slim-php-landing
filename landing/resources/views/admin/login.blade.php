@@ -18,6 +18,7 @@
         </div>
 
         <form action="{{ url('admin/login') }}" method="POST" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+            <input type="hidden" name="_token" value="{{ $_SESSION['csrf_token'] ?? '' }}">
             @if(isset($error))
                 <div class="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 text-sm">
                     {{ $error }}

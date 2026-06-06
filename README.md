@@ -12,10 +12,10 @@ Landing page tipo Linktree con panel de administración. Una sola URL que centra
 4. [Inicio rápido con Docker](#inicio-rápido-con-docker)
 5. [Instalación en servidor (hosting/VPS)](#instalación-en-servidor-hostingvps)
 6. [Configuración `.env`](#configuración-env)
-7. [Wizard de instalación (`install.php`)](#wizard-de-instalación-installphp)
+7. [Ejecutar schema SQL](#ejecutar-schema-sql)
 8. [Panel de administración](#panel-de-administración)
 9. [SEO y posicionamiento](#seo-y-posicionamiento)
-10. [Sistema de actualizaciones (`update.php`)](#sistema-de-actualizaciones-updatephp)
+10. [Migraciones SQL](#migraciones-sql)
 11. [Agregar migraciones a un nuevo commit](#agregar-migraciones-a-un-nuevo-commit)
 12. [Checklist de producción](#checklist-de-producción)
 13. [Arquitectura técnica](#arquitectura-técnica)
@@ -88,8 +88,6 @@ template-2mez-landing/
     │   └── app.php              # Inicialización de Slim + DI + Eloquent
     ├── public/                  # Document root del servidor
     │   ├── index.php            # Entry point
-    │   ├── install.php          # Wizard de instalación inicial
-    │   ├── update.php           # Wizard de actualizaciones
     │   ├── .htaccess            # Rewrite rules para Slim
     │   └── uploads/             # Imágenes subidas (avatar, logo, fondo)
     ├── resources/
@@ -103,21 +101,30 @@ template-2mez-landing/
     │   │   └── Front/           # LandingController, SitemapController
     │   ├── Entities/
     │   │   └── LinkEntity.php   # Lógica de tipos de link (iconos, URLs)
-    │   ├── Install/
-    │   │   ├── DbInstaller.php  # Conexión PDO, ejecutar SQL
-    │   │   ├── InstallLock.php  # Archivo .installed
-    │   │   ├── ModuleRegistry.php # Descubrimiento de módulos
-    │   │   └── UpdateManager.php  # Migraciones + detección de commit
+    │   ├── Traits/              # AdminViewTrait, ProcessesImages, ReordersEntities, etc.
     │   ├── Middleware/
     │   │   ├── AuthMiddleware.php  # Proteger rutas admin
+    │   │   ├── CsrfMiddleware.php  # CSRF en formularios admin
     │   │   └── RoleMiddleware.php  # Proteger rutas solo-admin
     │   ├── Models/
     │   │   ├── Link.php
-    │   │   └── User.php
+    │   │   ├── User.php
+    │   │   ├── Location.php
+    │   │   ├── MenuSection.php
+    │   │   ├── MenuItem.php
+    │   │   ├── FaqItem.php
+    │   │   └── Site.php
     │   ├── Services/
     │   │   └── AuthService.php  # Login, sesión, CSRF, brute-force
+    │   ├── Handlers/
+    │   │   └── DetailedErrorHandler.php  # Manejador de errores 500
     │   ├── helpers.php          # url(), request_is()
     │   └── routes.php           # Definición de todas las rutas
+    ├── db/                      # SQL schema + seed + migraciones
+    │   ├── init/                # 01_schema.sql, 02_seed.sql, etc.
+    │   ├── scripts/             # cron_check_expiry.php
+    │   └── updates/             # Migraciones por commit/versión
+    ├── cleanup.php              # Script de limpieza para producción
     └── storage/
         ├── cache/               # Caché de Blade compilado
         └── logs/
@@ -183,15 +190,25 @@ Conectate a tu instancia MySQL y ejecutá:
 CREATE DATABASE project_landing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5. Instalar la app
+### 5. Ejecutar schema y seed
 
-Abrí el wizard de instalación en el navegador:
+Conectate a MySQL y ejecutá los scripts SQL en orden:
 
+```bash
+mysql -u USER -p DATABASE < db/init/01_schema.sql
+mysql -u USER -p DATABASE < db/init/02_seed.sql
 ```
-http://localhost:8001/install.php
-```
 
-Seguí los pasos del wizard. Al finalizar, el archivo `.env` se genera automáticamente y la base de datos queda lista.
+> Si usás Docker: `docker compose exec -T mysql mysql -u USER -p DATABASE < db/init/01_schema.sql`
+
+### 6. Configurar `.env`
+
+Copiá `.env.example` como `.env` y editá los datos de conexión:
+
+```bash
+cp .env.example .env
+# Editá DB_HOST, DB_NAME, DB_USER, DB_PASS
+```
 
 ---
 
@@ -227,13 +244,15 @@ php composer.phar install --no-dev --optimize-autoloader
 
 ### 3. Limpiar archivos innecesarios
 
-Eliminá archivos que no deben estar en producción (tests, Docker, config de PHPUnit):
+Eliminá archivos que no deben estar en producción (tests, Docker, db/, config de PHPUnit):
 
 ```bash
 php cleanup.php
 ```
 
 > Este script verifica que `APP_ENV=production` antes de ejecutarse. Si estás en desarrollo, aborta sin eliminar nada.
+>
+> Para eliminar `db/` primero valida conexión MySQL + existencia de todas las tablas. Si la BD no está operativa, omite `db/` y avisa.
 >
 > Para agregar más rutas a limpiar en el futuro, editá el array `$paths` en `cleanup.php`.
 
@@ -253,15 +272,16 @@ Desde phpMyAdmin o la consola MySQL:
 CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 6. Abrir el wizard de instalación
+### 6. Ejecutar schema y seed
 
-Navegá a:
+Conectate a MySQL y ejecutá los scripts SQL en orden:
 
+```bash
+mysql -u USER -p DATABASE < db/init/01_schema.sql
+mysql -u USER -p DATABASE < db/init/02_seed.sql
 ```
-https://misitio.com/install.php
-```
 
-El wizard te pedirá los datos de conexión a MySQL, generará el `.env` y ejecutará el schema + seed automáticamente.
+Luego configurá el `.env` a mano (usá `.env.example` como base).
 
 ### 7. Verificar que el rewrite funciona
 
@@ -271,7 +291,7 @@ Si al abrir la landing ves un error 404, verificá que `mod_rewrite` está activ
 
 ## Configuración `.env`
 
-El archivo `.env` se genera automáticamente por el wizard. Podés editarlo manualmente si es necesario:
+El archivo `.env` se configura manualmente. Copiá `.env.example` como `.env` y editá los datos:
 
 ```env
 # Conexión a MySQL
@@ -294,36 +314,29 @@ APP_BASE_PATH=
 
 ---
 
-## Wizard de instalación (`install.php`)
+## Ejecutar schema SQL
 
-Accedé a `/install.php` **solo la primera vez**. El wizard tiene 5 pasos:
+Los scripts SQL están en `db/init/`. Ejecutalos en orden:
 
-| Paso | Descripción |
-|---|---|
-| 1 – Bienvenida | Pantalla inicial |
-| 2 – Base de datos | Ingresás host, puerto, nombre de DB, usuario, contraseña y entorno |
-| 3 – Confirmar | Muestra un resumen de la conexión verificada |
-| 4 – Módulos | Seleccionás los módulos a instalar (el base es requerido) |
-| 5 – Completado | Log de ejecución SQL + acceso al admin |
+```bash
+# 1. Crear la base de datos
+mysql -u USER -p -e "CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-Al completar el paso 5:
-- Se genera `landing/.env` con tus credenciales
-- Se crean las tablas (`users`, `links`, `settings`)
-- Se inserta el usuario admin y los settings por defecto
-- Se crea el archivo `landing/.installed` que **bloquea el wizard** para futuras visitas
+# 2. Schema (tablas)
+mysql -u USER -p mi_landing_db < db/init/01_schema.sql
+
+# 3. Seed (usuario admin + settings por defecto)
+mysql -u USER -p mi_landing_db < db/init/02_seed.sql
+```
 
 ### Credenciales por defecto
 
 | Campo | Valor |
 |---|---|
-| Email | `admin@mi-landing.com` |
+| Email | `admin@rufi.com.ar` |
 | Contraseña | `password` |
 
 > **Cambiá la contraseña inmediatamente** desde el panel admin → Usuarios.
-
-### Reinstalar (solo en emergencia)
-
-Para forzar el wizard nuevamente, eliminá el archivo `landing/.installed` y accedé a `/install.php?force=1`. Esto **no borra** la base de datos existente (los SQL usan `INSERT IGNORE` / `ON DUPLICATE KEY`).
 
 ---
 
@@ -434,30 +447,14 @@ nombre de marca, [categoría] [diferenciador], comprar [producto]
 
 ---
 
-## Sistema de actualizaciones (`update.php`)
+## Migraciones SQL
 
-Cuando desplegás una nueva versión del código que incluye cambios en la base de datos, el wizard `/update.php` aplica las migraciones SQL pendientes de forma segura.
+Cuando desplegás una nueva versión del código con cambios en la base de datos, ejecutá los archivos `.sql` en `db/updates/` manualmente en orden alfabético:
 
-### Cómo funciona
-
-1. **Versión del código** → se detecta en este orden:
-   - `git describe --tags --always` (requiere git en el servidor)
-   - `git rev-parse --short HEAD`
-   - Archivo `landing/VERSION`
-
-2. **Versión instalada** → guardada en la tabla `settings` bajo la clave `app_installed_version`
-
-3. **Migraciones pendientes** → archivos `.sql` en `db/updates/` que aún no se aplicaron (rastreados por nombre de archivo en `app_applied_migrations`)
-
-### Proceso de actualización
-
-```
-1. Hacer git pull en el servidor (o subir los archivos)
-2. Abrir https://tusitio.com/update.php
-3. Loguearse con cuenta admin
-4. Ver la lista de migraciones pendientes
-5. Confirmar y aplicar
-6. El wizard muestra el log SQL por migración
+```bash
+for f in db/updates/*.sql; do
+  mysql -u USER -p DATABASE < "$f"
+done
 ```
 
 ### Convención de nombres para migraciones
@@ -473,12 +470,9 @@ Ejemplos:
 
 El orden de aplicación es **alfabético**, por eso el prefijo de fecha garantiza el orden correcto.
 
-### Seguridad de `update.php`
+### Versión instalada
 
-- Solo accesible si la app está instalada (existe `landing/.installed`)
-- Requiere autenticación con usuario de rol `admin`
-- Token CSRF en cada formulario
-- Marcado como `noindex, nofollow` para que Google no lo indexe
+La versión actual se guarda en `settings` bajo la clave `app_installed_version`. Las migraciones aplicadas se rastrean en `app_applied_migrations`. Esto permite saber qué migraciones están pendientes.
 
 ---
 
@@ -526,8 +520,8 @@ git push
 
 ### Paso 4 — Aplicar en producción
 
-```
-https://tusitio.com/update.php
+```bash
+mysql -u USER -p DATABASE < db/updates/20260401_0900_1_2_0_nueva_feature.sql
 ```
 
 ---
@@ -543,7 +537,7 @@ Antes de publicar, verificá cada punto:
 - [ ] `seo_noindex` desactivado en `/admin/settings` → SEO
 - [ ] Archivo `.env` NO expuesto al público (el document root es `public/`, no la raíz)
 - [ ] Carpeta `landing/src/` NO accesible desde el navegador
-- [ ] `install.php` bloqueado (el archivo `landing/.installed` debe existir)
+- [ ] `cleanup.php` ejecutado (borra tests/ Docker db/ en producción)
 
 ### SEO
 
@@ -664,7 +658,7 @@ Response               → devuelve al navegador
 | `seo_business_type` | Subtipo schema.org (ej: `Locksmith`) |
 | `seo_address` | Dirección física |
 | `seo_noindex` | `1` = noindex (staging), `0` = indexar |
-| `app_installed_version` | Versión instalada (gestionada por update.php) |
+| `app_installed_version` | Versión instalada (se actualiza manualmente al migrar) |
 | `app_applied_migrations` | JSON con migraciones aplicadas |
 
 ### Rutas disponibles
