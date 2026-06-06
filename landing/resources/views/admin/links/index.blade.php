@@ -30,7 +30,7 @@
                         <tr class="hover:bg-slate-800/20 transition-colors group">
                             <td class="px-3 py-3 md:px-6 md:py-4">
                                 <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 border border-slate-700 text-lg" style="color: {{ $link->color }}">
-                                    {{ $link->getIconHtml() }}
+                                    {!! $link->getIconHtml() !!}
                                 </div>
                             </td>
                             <td class="px-3 py-3 md:px-6 md:py-4">
