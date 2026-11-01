@@ -177,10 +177,8 @@ class ProductCsvServiceTest extends TestCase
         $migrator = new MigrationService();
         $migrator->migrate($conn, 'site');
 
-        // Simula una DB vieja: sin índice, con categorías repetidas y sin el upgrade 0007 registrado
-        $upgrade = 'upgrades/site/0007_unique_categories.sql';
+        // Simula una DB vieja: sin índice y con categorías repetidas
         $conn->statement('ALTER TABLE menu_sections DROP INDEX uq_menu_sections_name');
-        $conn->table('schema_migrations')->where('filename', $upgrade)->delete();
         $ids = [];
         try {
             foreach (['ZZ Dup Test', 'zz dup test ', 'ZZ DÚP TEST'] as $i => $name) {
@@ -198,7 +196,6 @@ class ProductCsvServiceTest extends TestCase
         } finally {
             $conn->table('menu_items')->where('title', 'ZZ item')->delete();
             $conn->table('menu_sections')->whereIn('id', $ids)->delete();
-            $conn->table('schema_migrations')->where('filename', $upgrade)->delete();
             $migrator->migrate($conn, 'site'); // asegura el índice si el test falló a mitad
         }
     }

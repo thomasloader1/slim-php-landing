@@ -1,0 +1,260 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Consola de administración (recuperación sin SQL manual + operaciones remotas por SSH).
+ *
+ *   php bin/console help
+ *
+ * Las contraseñas NUNCA van como argumento (quedarían en el historial y en `ps`):
+ * se leen de --*-file=RUTA o de STDIN.
+ */
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
+$app = require __DIR__ . '/../bootstrap/app.php';
+
+use App\Models\Site;
+use App\Models\User;
+use App\Services\MigrationService;
+use App\Services\SiteValidator;
+use App\Services\SystemCheckService;
+use App\Services\EncryptionService;
+use App\Services\TenantProvisioner;
+use Illuminate\Database\Capsule\Manager as Capsule;
+
+[$command, $args, $opts] = parseArgs(array_slice($argv, 1));
+
+try {
+    exit(run($command, $args, $opts));
+} catch (\Throwable $e) {
+    fwrite(STDERR, 'ERROR: ' . $e->getMessage() . "\n");
+    exit(1);
+}
+
+function run(string $command, array $args, array $opts): int
+{
+    switch ($command) {
+        case 'admin:reset-password':
+            $email = need($args, 0, 'email');
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                throw new RuntimeException("No existe el usuario {$email}");
+            }
+            $pass = secret($opts, 'password-file', "Nueva contraseña para {$email}");
+            $user->password_hash = password_hash($pass, PASSWORD_BCRYPT);
+            $user->active = 1;
+            $user->save();
+            // Desbloquear rate-limit de login
+            Capsule::table('settings')->where('setting_key', 'like', 'auth_attempts:%')->delete();
+            out("Contraseña actualizada y usuario activo: {$email}");
+            return 0;
+
+        case 'admin:create':
+            $email = need($args, 0, 'email');
+            // Sin --role: el primer usuario de la master es root; después, admin
+            $role = $opts['role'] ?? (Capsule::table('users')->where('role', 'root')->exists() ? 'admin' : 'root');
+            if ($role !== 'root' && !Capsule::table('roles')->where('slug', $role)->exists()) {
+                throw new RuntimeException("Rol inexistente: {$role}. Usá root, admin, editor o un rol creado en Roles y permisos.");
+            }
+            $pass = secret($opts, 'password-file', "Contraseña para {$email}");
+            Capsule::table('users')->updateOrInsert(['email' => strtolower($email)], [
+                'name' => $opts['name'] ?? 'Administrador',
+                'password_hash' => password_hash($pass, PASSWORD_BCRYPT),
+                'role' => $role, 'active' => 1, 'email_verified' => 1,
+            ]);
+            out("Usuario listo: {$email} (rol {$role})");
+            return 0;
+
+        case 'module:enable':
+        case 'module:disable':
+            $name = need($args, 0, 'módulo (ej: site_manager)');
+            if (!preg_match('/^[a-z_]+$/', $name)) {
+                throw new RuntimeException('Nombre de módulo inválido');
+            }
+            $value = $command === 'module:enable' ? '1' : '0';
+            Capsule::table('settings')->updateOrInsert(['setting_key' => "module_{$name}_enabled"], ['setting_value' => $value]);
+            out("module_{$name}_enabled = {$value}");
+            return 0;
+
+        case 'migrate':
+            foreach ((new MigrationService())->migrate(Capsule::connection('default'), 'master', isset($opts['seed'])) as $line) {
+                out($line);
+            }
+            if (isset($opts['only-master'])) {
+                return 0;
+            }
+            // También las DBs de los sitios cliente (sin seed: no toca su configuración)
+            $sites = (new TenantProvisioner())->migrateAllSites();
+            foreach ($sites['log'] as $line) {
+                out($line);
+            }
+            out("Sitios migrados: {$sites['ok']} OK, {$sites['failed']} con error.");
+            return $sites['failed'] > 0 ? 1 : 0;
+
+        case 'site:migrate':
+            $domain = strtolower(need($args, 0, 'dominio'));
+            $site = Site::where('domain', $domain)->firstOrFail();
+            foreach ((new TenantProvisioner())->migrateSite($site) as $line) {
+                out($line);
+            }
+            return 0;
+
+        case 'system:check':
+            $svc = new SystemCheckService();
+            $checks = $svc->run();
+            if (isset($opts['json'])) {
+                out(json_encode($checks, JSON_UNESCAPED_UNICODE));
+            } else {
+                foreach ($checks as $c) {
+                    out(sprintf('[%-5s] %-12s %-26s %s', strtoupper($c['status']), $c['group'], $c['label'], $c['detail']));
+                }
+            }
+            return $svc->hasErrors($checks) ? 2 : 0;
+
+        case 'key:fingerprint':
+            $key = getenv('TENANT_ENCRYPTION_KEY') ?: ($_ENV['TENANT_ENCRYPTION_KEY'] ?? '');
+            out(SystemCheckService::keyFingerprint($key) ?: 'none');
+            return 0;
+
+        case 'site:list':
+            $sites = Site::orderBy('id')->get(['id', 'name', 'domain', 'db_name', 'status', 'plan_end', 'initialized_at']);
+            out(isset($opts['json']) ? $sites->toJson() : $sites->map(fn ($s) => "#{$s->id} {$s->domain} [{$s->status}] db={$s->db_name}")->implode("\n"));
+            return 0;
+
+        case 'site:register':
+            $data = [
+                'name' => $opts['name'] ?? '', 'domain' => strtolower($opts['domain'] ?? ''),
+                'db_host' => $opts['db-host'] ?? 'localhost', 'db_port' => (int) ($opts['db-port'] ?? 3306),
+                'db_name' => $opts['db-name'] ?? '', 'db_user' => $opts['db-user'] ?? '',
+                'db_pass' => secret($opts, 'db-pass-file', 'Contraseña de la DB del sitio'),
+                'plan_start' => date('Y-m-d'),
+                'plan_end' => date('Y-m-d', strtotime('+' . max(1, (int) ($opts['plan-days'] ?? 365)) . ' days')),
+            ];
+            $existing = Site::where('domain', $data['domain'])->first();
+            if ($error = SiteValidator::validate($data, $existing?->id, true)) {
+                throw new RuntimeException($error);
+            }
+            $enc = new EncryptionService();
+            $fields = [
+                'name' => $data['name'], 'domain' => $data['domain'], 'db_host' => $data['db_host'],
+                'db_port' => $data['db_port'], 'db_name' => $data['db_name'], 'db_user' => $data['db_user'],
+                'db_pass_encrypted' => $enc->encrypt($data['db_pass']),
+            ];
+            if ($existing) {
+                $existing->update($fields); // re-ejecución idempotente del provisionado
+                out("Sitio actualizado: #{$existing->id} {$data['domain']}");
+            } else {
+                $site = Site::create($fields + [
+                    'plan_name' => in_array($opts['plan'] ?? '', SiteValidator::PLANS, true) ? $opts['plan'] : 'basico',
+                    'plan_start' => $data['plan_start'], 'plan_end' => $data['plan_end'], 'status' => 'active',
+                    'redirect_url' => '', 'auto_suspend' => 1,
+                ]);
+                out("Sitio registrado: #{$site->id} {$data['domain']}");
+            }
+            // Sin el módulo activo, el resolver ignora los dominios de sitios
+            $enabled = Capsule::table('settings')->where('setting_key', 'module_site_manager_enabled')->value('setting_value');
+            if ($enabled !== '1') {
+                Capsule::table('settings')->updateOrInsert(['setting_key' => 'module_site_manager_enabled'], ['setting_value' => '1']);
+                out('Módulo site_manager activado.');
+            }
+            return 0;
+
+        case 'site:init':
+            $domain = strtolower(need($args, 0, 'dominio'));
+            $site = Site::where('domain', $domain)->firstOrFail();
+            $email = $opts['admin-email'] ?? '';
+            $pass = secret($opts, 'admin-pass-file', "Contraseña del admin de {$domain}");
+            foreach ((new TenantProvisioner())->initialize($site, $opts['admin-name'] ?? '', $email, $pass) as $line) {
+                out($line);
+            }
+            return 0;
+
+        case 'help':
+        case '':
+            out(<<<TXT
+Uso: php bin/console <comando> [args] [--opciones]
+
+Recuperación
+  admin:reset-password <email> [--password-file=F]   Cambia la clave (y desbloquea el login)
+  admin:create <email> [--name=N] [--role=root|admin|editor|<rol>] [--password-file=F]
+                                                      (sin --role: root si la master no tiene ninguno)
+  module:enable <nombre> | module:disable <nombre>    ej: module:enable site_manager
+  migrate [--only-master]                             Corre db/install.sql en la master y en todos los sitios (idempotente)
+  site:migrate <dominio>                              Aplica el esquema solo a la DB de un sitio
+  system:check [--json]                               Diagnóstico (exit 2 si hay errores)
+  key:fingerprint                                     Huella de TENANT_ENCRYPTION_KEY
+
+Sitios
+  site:list [--json]
+  site:register --name=N --domain=D --db-name=X --db-user=U [--db-host=localhost]
+                [--db-port=3306] [--plan=basico] [--plan-days=365] [--db-pass-file=F]
+  site:init <dominio> --admin-email=E [--admin-name=N] [--admin-pass-file=F]
+
+Las contraseñas se leen del archivo indicado o de STDIN.
+TXT);
+            return 0;
+    }
+
+    throw new RuntimeException("Comando desconocido: {$command}. Usá: php bin/console help");
+}
+
+function parseArgs(array $argv): array
+{
+    $command = '';
+    $args = [];
+    $opts = [];
+    foreach ($argv as $a) {
+        if (str_starts_with($a, '--')) {
+            [$k, $v] = array_pad(explode('=', substr($a, 2), 2), 2, true);
+            $opts[$k] = $v;
+        } elseif ($command === '') {
+            $command = $a;
+        } else {
+            $args[] = $a;
+        }
+    }
+    return [$command, $args, $opts];
+}
+
+function need(array $args, int $i, string $what): string
+{
+    if (!isset($args[$i]) || $args[$i] === '') {
+        throw new RuntimeException("Falta argumento: {$what}");
+    }
+    return $args[$i];
+}
+
+/** Lee un secreto de --<opt>=archivo o de STDIN (sin eco si es una terminal). */
+function secret(array $opts, string $opt, string $prompt): string
+{
+    if (isset($opts[$opt]) && is_string($opts[$opt])) {
+        $value = @file_get_contents($opts[$opt]);
+        if ($value === false) {
+            throw new RuntimeException("No se pudo leer --{$opt}");
+        }
+    } else {
+        $tty = function_exists('posix_isatty') && posix_isatty(STDIN);
+        if ($tty) {
+            fwrite(STDERR, "{$prompt}: ");
+            shell_exec('stty -echo');
+        }
+        $value = fgets(STDIN);
+        if ($tty) {
+            shell_exec('stty echo');
+            fwrite(STDERR, "\n");
+        }
+    }
+    $value = rtrim((string) $value, "\r\n");
+    if ($value === '') {
+        throw new RuntimeException("{$prompt}: vacío");
+    }
+    return $value;
+}
+
+function out(string $line): void
+{
+    fwrite(STDOUT, $line . "\n");
+}

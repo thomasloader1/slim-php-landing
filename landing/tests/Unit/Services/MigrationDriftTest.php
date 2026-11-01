@@ -9,16 +9,19 @@ use Illuminate\Database\Connection;
 use Tests\TestCase;
 
 /**
- * Garantiza que una base NUEVA (db/schema/*.sql) y una base VIEJA actualizada
- * con db/upgrades/** terminen con exactamente el mismo esquema y datos base.
- * Si falla: agregaste un cambio en un lado y no en el otro.
+ * db/install.sql es el único script de base de datos. Verifica que:
+ *  - una base VACÍA y una base VIEJA (esquema anterior) terminen idénticas,
+ *  - se pueda correr muchas veces sin errores ni cambios,
+ *  - funcione como SQL plano (igual que importarlo en phpMyAdmin),
+ *  - no pise datos (settings, permisos editados) y cree el usuario inicial solo si no hay usuarios.
  *
- * Usa dos bases descartables (*_test) que crea y borra.
+ * Usa bases descartables (*_test) que crea y borra.
  */
 class MigrationDriftTest extends TestCase
 {
     private const FRESH = 'project_landing_fresh_test';
     private const LEGACY = 'project_landing_legacy_test';
+    private const RAW = 'project_landing_raw_test';
 
     private static bool $built = false;
     private static array $logs = [];
@@ -35,7 +38,7 @@ class MigrationDriftTest extends TestCase
     public static function tearDownAfterClass(): void
     {
         if (self::$built) {
-            foreach ([self::FRESH, self::LEGACY] as $db) {
+            foreach ([self::FRESH, self::LEGACY, self::RAW] as $db) {
                 Capsule::connection('default')->statement("DROP DATABASE IF EXISTS `{$db}`");
             }
             self::$built = false;
@@ -46,29 +49,39 @@ class MigrationDriftTest extends TestCase
     private function buildDatabases(): void
     {
         $root = Capsule::connection('default');
-        foreach ([self::FRESH, self::LEGACY] as $db) {
+        foreach ([self::FRESH, self::LEGACY, self::RAW] as $db) {
             $root->statement("DROP DATABASE IF EXISTS `{$db}`");
             $root->statement("CREATE DATABASE `{$db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         }
 
-        // Base vieja: esquema anterior a esta refactorización + datos típicos
+        // Base vieja: esquema anterior (ENUM de roles, sin productos/roles) + datos típicos
         $legacy = $this->conn(self::LEGACY);
-        foreach (['legacy_site_schema.sql', 'legacy_master_schema.sql'] as $fixture) {
-            foreach (SqlSplitter::split(file_get_contents(dirname(__DIR__, 2) . '/fixtures/' . $fixture)) as $stmt) {
-                $legacy->unprepared($stmt);
-            }
-        }
+        $this->runSql($legacy, file_get_contents(dirname(__DIR__, 2) . '/fixtures/legacy_site_schema.sql'));
+        $this->runSql($legacy, file_get_contents(dirname(__DIR__, 2) . '/fixtures/legacy_master_schema.sql'));
         $legacy->table('users')->insert([
             ['name' => 'Dueño', 'email' => 'owner@legacy.test', 'password_hash' => 'x', 'role' => 'admin'],
             ['name' => 'Editora', 'email' => 'editor@legacy.test', 'password_hash' => 'x', 'role' => 'editor'],
         ]);
+        $legacy->table('settings')->insert(['setting_key' => 'site_name', 'setting_value' => 'Negocio viejo']);
 
         $svc = new MigrationService();
-        self::$logs['fresh'] = $svc->migrate($this->conn(self::FRESH), 'master', true);
-        self::$logs['legacy'] = $svc->migrate($legacy, 'master', true);
+        self::$logs['fresh'] = $svc->migrate($this->conn(self::FRESH), 'master');
+        self::$logs['legacy'] = $svc->migrate($legacy, 'master');
     }
 
-    /** Conexión a una de las bases descartables (mismo servidor que la de test). */
+    /** Ejecuta SQL sentencia por sentencia, sin MigrationService (como phpMyAdmin / mysql CLI). */
+    private function runSql(Connection $c, string $sql): void
+    {
+        foreach (SqlSplitter::split($sql) as $stmt) {
+            $c->unprepared($stmt);
+        }
+    }
+
+    private function installSql(): string
+    {
+        return file_get_contents(dirname(__DIR__, 3) . '/db/install.sql');
+    }
+
     private function conn(string $db): Connection
     {
         $name = 'drift_' . $db;
@@ -104,15 +117,16 @@ class MigrationDriftTest extends TestCase
     }
 
     /** @test */
-    public function fresh_install_and_upgraded_legacy_db_have_identical_schema(): void
+    public function empty_and_legacy_databases_end_with_identical_schema(): void
     {
         $fresh = $this->schema($this->conn(self::FRESH));
         $legacy = $this->schema($this->conn(self::LEGACY));
 
         $this->assertSame(array_keys($fresh), array_keys($legacy), 'Distintas tablas');
         foreach ($fresh as $table => $ddl) {
-            $this->assertSame($ddl, $legacy[$table], "Esquema distinto en `{$table}`: falta reflejar un upgrade en db/schema/ o viceversa");
+            $this->assertSame($ddl, $legacy[$table], "Esquema distinto en `{$table}`: falta un bloque \"si no existe, agregar\" en install.sql o viceversa");
         }
+        $this->assertSame([], (new MigrationService())->missingTables($this->conn(self::FRESH), 'master'));
     }
 
     /** @test */
@@ -124,46 +138,56 @@ class MigrationDriftTest extends TestCase
     }
 
     /** @test */
-    public function fresh_install_runs_schema_and_marks_upgrades_without_running_them(): void
+    public function works_as_plain_sql_and_can_run_many_times(): void
     {
-        $this->assertStringContainsString('base nueva creada', implode("\n", self::$logs['fresh']));
-        $this->assertStringNotContainsString('upgrades/site/', implode("\n", self::$logs['fresh']));
+        $raw = $this->conn(self::RAW);
+        $this->runSql($raw, $this->installSql());
+        $once = $this->schema($raw);
+        $this->runSql($raw, $this->installSql()); // segunda vez: sin errores
+        $this->runSql($raw, $this->installSql()); // tercera
 
-        foreach ((new MigrationService())->status($this->conn(self::FRESH), 'master') as $row) {
-            $this->assertSame('applied', $row['status'], $row['file']);
-        }
+        $this->assertSame($once, $this->schema($raw));
+        $this->assertSame($this->schema($this->conn(self::FRESH)), $once);
+        $this->assertSame(1, $raw->table('users')->count(), 'no duplica el usuario inicial');
     }
 
     /** @test */
-    public function legacy_admins_become_root_in_master_and_editors_stay(): void
+    public function creates_initial_root_user_only_on_empty_database(): void
     {
-        $roles = $this->conn(self::LEGACY)->table('users')->orderBy('email')->pluck('role', 'email')->all();
-        $this->assertSame(['editor@legacy.test' => 'editor', 'owner@legacy.test' => 'root'], $roles);
+        $user = $this->conn(self::FRESH)->table('users')->where('email', MigrationService::DEFAULT_USER_EMAIL)->first();
+        $this->assertNotNull($user);
+        $this->assertSame('root', $user->role);
+        $this->assertTrue(password_verify('password', $user->password_hash));
+        $this->assertStringContainsString('Usuario inicial creado', implode("\n", self::$logs['fresh']));
+
+        $legacyEmails = $this->conn(self::LEGACY)->table('users')->orderBy('email')->pluck('role', 'email')->all();
+        $this->assertSame(['editor@legacy.test' => 'editor', 'owner@legacy.test' => 'root'], $legacyEmails, 'base con usuarios: no agrega; su admin pasa a root');
     }
 
     /** @test */
-    public function migrating_again_changes_nothing_and_does_not_rerun_upgrades(): void
+    public function never_overwrites_settings_nor_restores_permissions_removed_by_root(): void
     {
         $legacy = $this->conn(self::LEGACY);
-        $before = $this->schema($legacy);
+        $this->assertSame('Negocio viejo', $legacy->table('settings')->where('setting_key', 'site_name')->value('setting_value'));
+        $this->assertNotNull($legacy->table('settings')->where('setting_key', 'menu_payment_methods')->value('setting_value'), 'agrega las claves que faltan');
+
+        $editorId = $legacy->table('roles')->where('slug', 'editor')->value('id');
+        $legacy->table('role_permissions')->where('role_id', $editorId)->where('permission', 'links')->delete();
 
         $log = (new MigrationService())->migrate($legacy, 'master');
 
-        $this->assertSame(['Esquema site: al día', 'Esquema master: al día'], $log);
-        $this->assertSame($before, $this->schema($legacy));
+        $this->assertFalse($legacy->table('role_permissions')->where('role_id', $editorId)->where('permission', 'links')->exists());
+        $this->assertSame(1, count($log), 'segunda corrida: solo la línea del script');
     }
 
     /** @test */
-    public function seed_never_overwrites_existing_settings_nor_creates_users(): void
+    public function sites_created_from_the_manager_do_not_keep_the_generic_user(): void
     {
-        $fresh = $this->conn(self::FRESH);
-        $fresh->table('settings')->where('setting_key', 'site_name')->update(['setting_value' => 'Mi negocio']);
-        $fresh->table('settings')->where('setting_key', 'landing_subtitle')->delete();
+        $raw = $this->conn(self::RAW);
+        $raw->table('users')->delete();
 
-        (new MigrationService())->migrate($fresh, 'site', true);
+        (new MigrationService())->migrate($raw, 'site', true, false);
 
-        $this->assertSame('Mi negocio', $fresh->table('settings')->where('setting_key', 'site_name')->value('setting_value'));
-        $this->assertNotNull($fresh->table('settings')->where('setting_key', 'landing_subtitle')->value('setting_value'), 'el seed repone claves faltantes');
-        $this->assertSame(0, $fresh->table('users')->count());
+        $this->assertSame(0, $raw->table('users')->count());
     }
 }

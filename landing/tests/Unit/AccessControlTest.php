@@ -135,8 +135,26 @@ class AccessControlTest extends TestCase
         $this->assertTrue(AccessService::can('roles'));
         $this->assertFalse(AccessService::can('system'), 'herramientas de la master no existen en un sitio');
 
-        $this->as('root', 'site:5'); // un "root" en la DB de un sitio no vale
-        $this->assertFalse(AccessService::isRoot());
+        $this->as('root', 'site:5'); // root propio de un sitio (creado por install.sql en su base)
+        $this->assertTrue(AccessService::isRoot());
+        $this->assertFalse(AccessService::can('sites'), 'pero no ve las herramientas de la master');
+    }
+
+    /** @test */
+    public function master_admin_acts_as_root_only_while_the_database_has_no_root(): void
+    {
+        // Base master todavía sin migrar a roles: sin root, el admin puede entrar a Sistema
+        Capsule::table('users')->where('role', 'root')->update(['role' => 'admin']);
+        $this->as('admin');
+        $this->assertTrue(AccessService::isRoot());
+        $this->assertTrue(AccessService::can('system'));
+
+        $this->as('admin', 'site:5');
+        $this->assertFalse(AccessService::isRoot(), 'en un sitio no aplica');
+
+        Capsule::table('users')->insert(['name' => 'R', 'email' => 'root-fallback@test.local', 'password_hash' => 'x', 'role' => 'root']);
+        $this->as('admin');
+        $this->assertFalse(AccessService::isRoot(), 'con un root existente, el admin vuelve a ser admin');
     }
 
     /** @test */

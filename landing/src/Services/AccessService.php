@@ -26,6 +26,7 @@ final class AccessService
     {
         self::$permissions = null;
         self::$modules = null;
+        self::$rootExists = null;
     }
 
     public static function isMasterContext(): bool
@@ -41,7 +42,27 @@ final class AccessService
         if (!empty($_SESSION['impersonated_by'])) {
             return true; // root de la master dentro de un sitio (SSO)
         }
-        return ($_SESSION['user_role'] ?? '') === self::ROOT && self::isMasterContext();
+        $role = $_SESSION['user_role'] ?? '';
+        if ($role === self::ROOT) {
+            return true; // en un sitio solo controla ese sitio: lo de la master sigue bloqueado por scope
+        }
+        // Base master sin migrar a roles (no hay ningún root todavía): el admin actúa
+        // como root para poder entrar a Sistema → Aplicar migraciones.
+        return $role === 'admin' && self::isMasterContext() && !self::rootExists();
+    }
+
+    private static ?bool $rootExists = null;
+
+    private static function rootExists(): bool
+    {
+        if (self::$rootExists === null) {
+            try {
+                self::$rootExists = Capsule::table('users')->where('role', self::ROOT)->exists();
+            } catch (\Throwable $e) {
+                self::$rootExists = false;
+            }
+        }
+        return self::$rootExists;
     }
 
     /** @return string[] claves de permiso del rol del usuario en la DB actual */

@@ -6,31 +6,20 @@ use App\Support\SqlSplitter;
 use Illuminate\Database\Connection;
 
 /**
- * Aplica el esquema de forma idempotente sobre cualquier conexión
- * (DB master o DB de un sitio). Reemplaza el "mysql -u ... < archivo.sql" manual.
+ * Aplica db/install.sql: el ÚNICO script de base de datos. Crea o actualiza
+ * todo (tablas, columnas nuevas, roles, settings y el usuario inicial) y se
+ * puede correr las veces que haga falta: cada cambio pregunta antes si ya
+ * existe. Es el mismo archivo que se puede importar a mano en phpMyAdmin.
  *
- * Dos "tracks" (la master usa los dos, un sitio solo "site"):
- *   - db/schema/<track>.sql      esquema COMPLETO en su estado final.
- *   - db/upgrades/<track>/*.sql  cambios incrementales para bases existentes.
- *
- * Base nueva (no existe la tabla centinela): se ejecuta el schema y todos los
- * upgrades quedan registrados como incluidos, sin ejecutarlos.
- * Base existente: se ejecutan solo los upgrades no registrados en
- * schema_migrations (cada uno una única vez).
- *
- * Errores "ya existe" (tabla/columna/índice) se toman como aplicados: MySQL 8
- * no soporta ADD COLUMN IF NOT EXISTS y las bases viejas pueden tener parte
- * de un upgrade aplicado a mano.
+ * Errores "ya existe" (tabla/columna/índice) igual se toleran por si una base
+ * tiene cambios aplicados a mano con otro nombre de índice.
  */
 class MigrationService
 {
-    public const TRACKS = [
-        'site'   => ['schema' => 'schema/site.sql',   'upgrades' => 'upgrades/site',   'sentinel' => 'users'],
-        'master' => ['schema' => 'schema/master.sql', 'upgrades' => 'upgrades/master', 'sentinel' => 'sites'],
-    ];
+    public const INSTALL_FILE = 'install.sql';
 
-    /** Settings por defecto. Nunca pisa valores existentes ni crea usuarios. */
-    public const SEED_FILE = 'seed/settings.sql';
+    /** Usuario que crea install.sql en una base sin usuarios. */
+    public const DEFAULT_USER_EMAIL = 'admin@gotogo.com.ar';
 
     /** Tablas que deben existir según el scope. */
     public const SITE_TABLES = ['users', 'roles', 'role_permissions', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items'];
@@ -46,30 +35,10 @@ class MigrationService
         $this->dbDir = $dbDir ?? dirname(__DIR__, 2) . '/db';
     }
 
-    /** @return string[] tracks que aplica el scope ("site" o "master") */
-    public function tracksFor(string $scope): array
-    {
-        return $scope === 'master' ? ['site', 'master'] : ['site'];
-    }
-
-    /** @return string[] upgrades del track, en orden (rutas relativas a db/) */
-    public function upgradeFiles(string $track): array
-    {
-        $dir = self::TRACKS[$track]['upgrades'];
-        $files = glob($this->dbDir . '/' . $dir . '/*.sql') ?: [];
-        sort($files, SORT_STRING);
-        return array_map(fn ($f) => $dir . '/' . basename($f), $files);
-    }
-
-    /** @return string[] todos los archivos de esquema del scope (schema + upgrades) */
+    /** @return string[] archivos SQL que aplica (siempre install.sql) */
     public function filesFor(string $scope): array
     {
-        $files = [];
-        foreach ($this->tracksFor($scope) as $track) {
-            $files[] = self::TRACKS[$track]['schema'];
-            array_push($files, ...$this->upgradeFiles($track));
-        }
-        return $files;
+        return [self::INSTALL_FILE];
     }
 
     public function requiredTables(string $scope): array
@@ -85,73 +54,57 @@ class MigrationService
         return array_values(array_diff($this->requiredTables($scope), $this->existingTables($conn)));
     }
 
-    /** @return array{file:string,status:string,checksum:string}[] estado por archivo */
+    /**
+     * "applied" si la versión actual de install.sql ya corrió en esta base;
+     * "pending" si nunca corrió o el archivo cambió desde entonces.
+     * @return array{file:string,status:string,checksum:string}[]
+     */
     public function status(Connection $conn, string $scope): array
     {
-        $applied = $this->appliedChecksums($conn);
-        $tables = $this->existingTables($conn);
-
-        $out = [];
-        foreach ($this->tracksFor($scope) as $track) {
-            $cfg = self::TRACKS[$track];
-            $baseReady = in_array($cfg['sentinel'], $tables, true);
-
-            $out[] = $this->fileStatus($cfg['schema'], $baseReady ? 'applied' : 'pending');
-            foreach ($this->upgradeFiles($track) as $file) {
-                $entry = $this->fileStatus($file, 'pending');
-                if (isset($applied[$file])) {
-                    $entry['status'] = $applied[$file] === $entry['checksum'] ? 'applied' : 'changed';
-                }
-                $out[] = $entry;
-            }
+        $path = $this->path(self::INSTALL_FILE);
+        $checksum = is_file($path) ? hash_file('sha256', $path) : '';
+        if ($checksum === '') {
+            return [['file' => self::INSTALL_FILE, 'status' => 'missing_file', 'checksum' => '']];
         }
-        return $out;
+
+        $recorded = null;
+        try {
+            $recorded = $conn->table('schema_migrations')->where('filename', self::INSTALL_FILE)->value('checksum');
+        } catch (\Throwable $e) {
+            // tabla aún no creada
+        }
+        $applied = $recorded === $checksum && !$this->missingTables($conn, $scope);
+
+        return [['file' => self::INSTALL_FILE, 'status' => $applied ? 'applied' : 'pending', 'checksum' => $checksum]];
     }
 
     /**
-     * Crea o actualiza el esquema del scope (re-ejecutarlo es seguro).
+     * Corre install.sql completo (re-ejecutarlo es seguro).
+     *
+     * @param bool $withSeed        compatibilidad: los datos iniciales ya van siempre en install.sql
+     * @param bool $withDefaultUser false = no dejar el usuario inicial genérico (sitios creados
+     *                              desde el gestor, que cargan su propio admin)
      * @return string[] log legible
      */
-    public function migrate(Connection $conn, string $scope, bool $withSeed = false): array
+    public function migrate(Connection $conn, string $scope, bool $withSeed = false, bool $withDefaultUser = true): array
     {
         $this->ensureMigrationsTable($conn);
-        $log = [];
+        $hadUsers = in_array('users', $this->existingTables($conn), true) && $conn->table('users')->exists();
 
-        foreach ($this->tracksFor($scope) as $track) {
-            $cfg = self::TRACKS[$track];
-            $upgrades = $this->upgradeFiles($track);
+        [$run, $skipped] = $this->runFile($conn, self::INSTALL_FILE);
+        $this->record($conn, self::INSTALL_FILE, $scope);
+        $log = ['db/' . self::INSTALL_FILE . ": {$run} sentencias ejecutadas" . ($skipped ? ", {$skipped} ya estaban aplicadas" : '')];
 
-            if (!in_array($cfg['sentinel'], $this->existingTables($conn), true)) {
-                [$run] = $this->runFile($conn, $cfg['schema']);
-                $this->record($conn, $cfg['schema'], $scope);
-                foreach ($upgrades as $file) {
-                    $this->record($conn, $file, $scope);
-                }
-                $log[] = "db/{$cfg['schema']}: base nueva creada ({$run} sentencias); "
-                    . count($upgrades) . ' upgrades ya incluidos';
-                continue;
-            }
-
-            $applied = $this->appliedChecksums($conn);
-            $pending = array_values(array_filter($upgrades, fn ($f) => !isset($applied[$f])));
-            foreach ($pending as $file) {
-                [$run, $skipped] = $this->runFile($conn, $file);
-                $this->record($conn, $file, $scope);
-                $log[] = "db/{$file}: {$run} sentencias ejecutadas" . ($skipped ? ", {$skipped} ya estaban aplicadas" : '');
-            }
-            if (!$pending) {
-                $log[] = "Esquema {$track}: al día";
+        if (!$hadUsers && $conn->table('users')->where('email', self::DEFAULT_USER_EMAIL)->exists()) {
+            if ($withDefaultUser) {
+                $log[] = 'Usuario inicial creado: ' . self::DEFAULT_USER_EMAIL . ' / password  ← cambiá la contraseña al entrar';
+            } else {
+                $conn->table('users')->where('email', self::DEFAULT_USER_EMAIL)->delete();
             }
         }
 
         if ($scope === 'master' && ($promoted = $this->ensureRoot($conn)) > 0) {
             $log[] = "{$promoted} administrador(es) de la master pasaron a root";
-        }
-
-        if ($withSeed) {
-            [$run] = $this->runFile($conn, self::SEED_FILE);
-            $this->record($conn, self::SEED_FILE, $scope);
-            $log[] = 'db/' . self::SEED_FILE . ": {$run} sentencias (solo agrega claves faltantes)";
         }
 
         return $log;
@@ -163,10 +116,10 @@ class MigrationService
      */
     private function ensureRoot(Connection $conn): int
     {
-        if ($conn->table('users')->where('role', 'root')->exists()) {
+        if ($conn->table('users')->where('role', AccessService::ROOT)->exists()) {
             return 0;
         }
-        return $conn->table('users')->where('role', 'admin')->update(['role' => 'root']);
+        return $conn->table('users')->where('role', 'admin')->update(['role' => AccessService::ROOT]);
     }
 
     /** @return array{0:int,1:int} [ejecutadas, ya aplicadas] */
@@ -174,7 +127,7 @@ class MigrationService
     {
         $path = $this->path($file);
         if (!is_file($path)) {
-            throw new \RuntimeException("Archivo de esquema no encontrado: db/{$file}. ¿Se borró db/ en el servidor?");
+            throw new \RuntimeException("Archivo no encontrado: db/{$file}. ¿Se subió la carpeta db/ al servidor?");
         }
 
         $run = 0;
@@ -202,16 +155,6 @@ class MigrationService
         );
     }
 
-    /** @return array<string,string> filename => checksum */
-    private function appliedChecksums(Connection $conn): array
-    {
-        try {
-            return $conn->table('schema_migrations')->pluck('checksum', 'filename')->all();
-        } catch (\Throwable $e) {
-            return []; // tabla aún no creada: todo pendiente
-        }
-    }
-
     /** @return string[] */
     private function existingTables(Connection $conn): array
     {
@@ -219,13 +162,6 @@ class MigrationService
             fn ($row) => strtolower((string) array_values((array) $row)[0]),
             $conn->select('SHOW TABLES')
         );
-    }
-
-    private function fileStatus(string $file, string $status): array
-    {
-        $path = $this->path($file);
-        $checksum = is_file($path) ? hash_file('sha256', $path) : '';
-        return ['file' => $file, 'status' => $checksum === '' ? 'missing_file' : $status, 'checksum' => $checksum];
     }
 
     private function ensureMigrationsTable(Connection $conn): void

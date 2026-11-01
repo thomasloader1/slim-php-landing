@@ -111,9 +111,7 @@ template-2mez-landing/
     │   ├── helpers.php          # url(), request_is()
     │   └── routes.php           # Definición de todas las rutas
     ├── db/                      # Ver "Base de datos"
-    │   ├── schema/              # site.sql y master.sql: esquema completo (bases nuevas)
-    │   ├── upgrades/            # site/ y master/: cambios para bases existentes
-    │   ├── seed/settings.sql    # configuración por defecto (nunca pisa valores)
+    │   ├── install.sql          # ÚNICO script de base de datos (crea o actualiza todo)
     │   ├── scripts/             # cron_check_expiry.php, rotate_tenant_key.php
     ├── cleanup.php              # Script de limpieza para producción
     └── storage/
@@ -182,14 +180,14 @@ Conectate a tu instancia MySQL y ejecutá:
 CREATE DATABASE project_landing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5. Crear las tablas y el usuario root
+### 5. Crear las tablas y el usuario inicial
 
 ```bash
-docker compose exec landing php bin/console migrate --seed
-docker compose exec -it landing php bin/console admin:create tu@email.com --name="Tu nombre"
+docker compose exec landing php bin/console migrate
 ```
 
-El primer usuario de la master se crea como **root** (pide la contraseña por consola).
+Entrá a `/admin` con **`admin@gotogo.com.ar` / `password`** (queda como root) y cambiá la
+contraseña en Usuarios. Si preferís otro usuario: `php bin/console admin:create tu@email.com`.
 
 ### 6. Configurar `.env`
 
@@ -267,9 +265,11 @@ CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 Configurá el `.env` a mano (usá `.env.example` como base) y por SSH:
 
 ```bash
-php bin/console migrate --seed
-php bin/console admin:create tu@email.com --name="Tu nombre"
+php bin/console migrate
 ```
+
+Entrá a `/admin` con **`admin@gotogo.com.ar` / `password`** (queda como root) y cambiá la
+contraseña en Usuarios. Si preferís otro usuario: `php bin/console admin:create tu@email.com`.
 
 Si el hosting no tiene SSH, usá la Terminal de cPanel.
 
@@ -306,20 +306,26 @@ APP_BASE_PATH=
 
 ## Base de datos
 
-No hay que correr SQL a mano: `php bin/console migrate` crea o actualiza el esquema.
+Toda la base se crea o actualiza con **un solo script: `landing/db/install.sql`**.
 
-| Carpeta | Para qué |
-|---|---|
-| `db/schema/site.sql` | Esquema **completo** de un sitio (y de la master, que también es una landing) |
-| `db/schema/master.sql` | Tablas del gestor: `sites`, `servers` |
-| `db/upgrades/site/`, `db/upgrades/master/` | Cambios incrementales para bases que ya existían |
-| `db/seed/settings.sql` | Configuración por defecto. Solo agrega claves que faltan; **nunca pisa** valores ni crea usuarios |
+- Sirve para una base **vacía** o una **vieja**: antes de cada cambio pregunta si ya existe
+  (`CREATE TABLE IF NOT EXISTS`, y para columnas e índices consulta `information_schema`,
+  porque MySQL no tiene `ADD COLUMN IF NOT EXISTS`). Nunca falla por "ya existe" ni borra datos.
+- Se puede correr **las veces que quieras**: no duplica nada, no pisa configuración ni los
+  permisos que el root haya cambiado.
+- Si la base no tiene ningún usuario, crea **`admin@gotogo.com.ar` / `password`** (root).
+  Cambiá la contraseña al entrar; Sistema lo marca mientras siga siendo `password`. Los sitios
+  inicializados desde el gestor no lo reciben: ahí se carga el email y la contraseña de su admin.
 
-- **Base nueva** (sin tabla `users`): se ejecuta `schema/*.sql` y los upgrades quedan registrados como incluidos.
-- **Base existente**: se ejecutan solo los upgrades que no figuran en `schema_migrations`, una única vez.
-- Un sitio nuevo se inicializa desde **Sitios → Inicializar** (o `site:init`): schema + seed + su primer admin.
+Tres formas de correrlo (dan el mismo resultado):
 
-No hay usuario ni contraseña por defecto: el primero se crea con `php bin/console admin:create`.
+```bash
+php bin/console migrate                        # master + todos los sitios
+mysql -u USUARIO -p NOMBRE_DB < db/install.sql # una base puntual
+# phpMyAdmin → elegir la base → Importar → db/install.sql
+```
+
+O desde el panel: **Sistema → Aplicar migraciones**.
 
 ---
 
@@ -471,17 +477,16 @@ master y la de cada sitio cliente; si un sitio falla, el resto sigue y se muestr
 | `php bin/console migrate` | Master + todos los sitios inicializados |
 | `php bin/console migrate --only-master` | Solo la DB master |
 | `php bin/console site:migrate <dominio>` | Solo la DB de un sitio |
-| `php bin/console migrate --seed` | Además completa settings por defecto faltantes (instalación nueva) |
 
 ### Agregar una migración
 
-1. Crear `landing/db/upgrades/site/NNNN_descripcion.sql` (o `upgrades/master/`) con el
-   `ALTER`/`CREATE`. Se detecta solo (orden alfabético). Errores "ya existe" (1050, 1060,
-   1061, 1091) se toman como aplicados.
-2. Reflejar el **mismo cambio** en `db/schema/site.sql` (o `master.sql`) para las bases nuevas.
-3. Correr los tests: `MigrationDriftTest` compara una base nueva contra una vieja actualizada
-   con los upgrades y falla si los dos caminos no dan exactamente el mismo esquema.
-4. No editar un upgrade ya aplicado en producción: no se vuelve a ejecutar.
+Todo va en `landing/db/install.sql`:
+
+1. Tabla nueva: agregar su `CREATE TABLE IF NOT EXISTS` en la sección 1.
+2. Columna o índice nuevo en una tabla existente: agregarlo en su `CREATE TABLE` (sección 1)
+   **y** un bloque "si no existe, agregar" en la sección 2 (copiá uno de los que ya hay).
+3. Correr los tests: `MigrationDriftTest` arma una base vacía y una vieja, corre el script en
+   las dos y falla si no quedan exactamente iguales.
 
 ---
 

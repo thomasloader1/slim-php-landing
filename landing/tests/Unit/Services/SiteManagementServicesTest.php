@@ -41,17 +41,17 @@ class SiteManagementServicesTest extends TestCase
     public function splitter_parses_real_schema_files(): void
     {
         $root = dirname(__DIR__, 3) . '/db/';
-        foreach (array_merge((new MigrationService())->filesFor('master'), [MigrationService::SEED_FILE]) as $f) {
+        foreach ((new MigrationService())->filesFor('master') as $f) {
             $stmts = SqlSplitter::split(file_get_contents($root . $f));
             $this->assertNotEmpty($stmts, $f);
             foreach ($stmts as $s) {
-                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|UPDATE|DELETE|SET)\b/i', $s, "{$f}: sentencia inesperada");
+                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|UPDATE|DELETE|SET|PREPARE|EXECUTE|DEALLOCATE)\b/i', $s, "{$f}: sentencia inesperada");
             }
         }
     }
 
     /** @test */
-    public function migrate_is_idempotent_and_never_seeds_default_admin(): void
+    public function migrate_is_idempotent_and_never_adds_users_when_some_exist(): void
     {
         $conn = Capsule::connection('default');
         $svc = new MigrationService();

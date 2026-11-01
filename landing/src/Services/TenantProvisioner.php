@@ -109,7 +109,8 @@ class TenantProvisioner
         $conn = Capsule::connection($connName);
         $conn->getPdo(); // falla rápido con un error claro si la DB no responde
 
-        $log = $this->migrations->migrate($conn, 'site', true);
+        // Sin el usuario inicial genérico: el admin del sitio se crea abajo con los datos del formulario
+        $log = $this->migrations->migrate($conn, 'site', true, false);
 
         $conn->table('users')->updateOrInsert(
             ['email' => strtolower($adminEmail)],
