@@ -6,34 +6,34 @@ use App\Support\SqlSplitter;
 use Illuminate\Database\Connection;
 
 /**
- * Aplica el esquema de la landing de forma idempotente sobre cualquier conexión
+ * Aplica el esquema de forma idempotente sobre cualquier conexión
  * (DB master o DB de un sitio). Reemplaza el "mysql -u ... < archivo.sql" manual.
  *
- * - scope "site":   esquema de una landing (lo que necesita cada DB de cliente).
- * - scope "master": esquema de landing + tablas del gestor (sites, servers).
+ * Dos "tracks" (la master usa los dos, un sitio solo "site"):
+ *   - db/schema/<track>.sql      esquema COMPLETO en su estado final.
+ *   - db/upgrades/<track>/*.sql  cambios incrementales para bases existentes.
  *
- * Errores "ya existe" (tabla/columna/índice) se toman como aplicados, porque
- * MySQL 8 no soporta ADD COLUMN IF NOT EXISTS y 03_menu_enhance.sql usa ALTERs.
+ * Base nueva (no existe la tabla centinela): se ejecuta el schema y todos los
+ * upgrades quedan registrados como incluidos, sin ejecutarlos.
+ * Base existente: se ejecutan solo los upgrades no registrados en
+ * schema_migrations (cada uno una única vez).
+ *
+ * Errores "ya existe" (tabla/columna/índice) se toman como aplicados: MySQL 8
+ * no soporta ADD COLUMN IF NOT EXISTS y las bases viejas pueden tener parte
+ * de un upgrade aplicado a mano.
  */
 class MigrationService
 {
-    /** Archivos de esquema (sin datos de demo). Orden importa. */
-    public const SITE_FILES = [
-        'init/01_schema.sql',
-        'init/03_menu_enhance.sql',
-        'init/05_locations_whatsapp.sql',
+    public const TRACKS = [
+        'site'   => ['schema' => 'schema/site.sql',   'upgrades' => 'upgrades/site',   'sentinel' => 'users'],
+        'master' => ['schema' => 'schema/master.sql', 'upgrades' => 'upgrades/master', 'sentinel' => 'sites'],
     ];
 
-    public const MASTER_FILES = [
-        'master/01_sites.sql',
-        'master/02_servers.sql',
-    ];
-
-    /** Datos base (settings por defecto). El INSERT de usuarios se filtra. */
-    public const SEED_FILE = 'init/02_seed.sql';
+    /** Settings por defecto. Nunca pisa valores existentes ni crea usuarios. */
+    public const SEED_FILE = 'seed/settings.sql';
 
     /** Tablas que deben existir según el scope. */
-    public const SITE_TABLES = ['users', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items'];
+    public const SITE_TABLES = ['users', 'roles', 'role_permissions', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items'];
     public const MASTER_TABLES = ['sites', 'servers'];
 
     /** 1050 tabla existe, 1060 columna duplicada, 1061 índice duplicado, 1091 no se puede DROP (no existe) */
@@ -46,11 +46,30 @@ class MigrationService
         $this->dbDir = $dbDir ?? dirname(__DIR__, 2) . '/db';
     }
 
+    /** @return string[] tracks que aplica el scope ("site" o "master") */
+    public function tracksFor(string $scope): array
+    {
+        return $scope === 'master' ? ['site', 'master'] : ['site'];
+    }
+
+    /** @return string[] upgrades del track, en orden (rutas relativas a db/) */
+    public function upgradeFiles(string $track): array
+    {
+        $dir = self::TRACKS[$track]['upgrades'];
+        $files = glob($this->dbDir . '/' . $dir . '/*.sql') ?: [];
+        sort($files, SORT_STRING);
+        return array_map(fn ($f) => $dir . '/' . basename($f), $files);
+    }
+
+    /** @return string[] todos los archivos de esquema del scope (schema + upgrades) */
     public function filesFor(string $scope): array
     {
-        return $scope === 'master'
-            ? array_merge(self::SITE_FILES, self::MASTER_FILES)
-            : self::SITE_FILES;
+        $files = [];
+        foreach ($this->tracksFor($scope) as $track) {
+            $files[] = self::TRACKS[$track]['schema'];
+            array_push($files, ...$this->upgradeFiles($track));
+        }
+        return $files;
     }
 
     public function requiredTables(string $scope): array
@@ -63,81 +82,104 @@ class MigrationService
     /** @return string[] tablas faltantes en la conexión */
     public function missingTables(Connection $conn, string $scope): array
     {
-        $existing = array_map(
-            fn ($row) => strtolower((string) array_values((array) $row)[0]),
-            $conn->select('SHOW TABLES')
-        );
-        return array_values(array_diff($this->requiredTables($scope), $existing));
+        return array_values(array_diff($this->requiredTables($scope), $this->existingTables($conn)));
     }
 
     /** @return array{file:string,status:string,checksum:string}[] estado por archivo */
     public function status(Connection $conn, string $scope): array
     {
-        $applied = [];
-        try {
-            foreach ($conn->table('schema_migrations')->get() as $row) {
-                $applied[$row->filename] = $row->checksum;
-            }
-        } catch (\Throwable $e) {
-            // tabla aún no creada: todo pendiente
-        }
+        $applied = $this->appliedChecksums($conn);
+        $tables = $this->existingTables($conn);
 
         $out = [];
-        foreach ($this->filesFor($scope) as $file) {
-            $path = $this->path($file);
-            $checksum = is_file($path) ? hash_file('sha256', $path) : '';
-            $status = match (true) {
-                $checksum === '' => 'missing_file',
-                !isset($applied[$file]) => 'pending',
-                $applied[$file] !== $checksum => 'changed',
-                default => 'applied',
-            };
-            $out[] = ['file' => $file, 'status' => $status, 'checksum' => $checksum];
+        foreach ($this->tracksFor($scope) as $track) {
+            $cfg = self::TRACKS[$track];
+            $baseReady = in_array($cfg['sentinel'], $tables, true);
+
+            $out[] = $this->fileStatus($cfg['schema'], $baseReady ? 'applied' : 'pending');
+            foreach ($this->upgradeFiles($track) as $file) {
+                $entry = $this->fileStatus($file, 'pending');
+                if (isset($applied[$file])) {
+                    $entry['status'] = $applied[$file] === $entry['checksum'] ? 'applied' : 'changed';
+                }
+                $out[] = $entry;
+            }
         }
         return $out;
     }
 
     /**
-     * Aplica todos los archivos del scope (re-ejecutarlos es seguro).
+     * Crea o actualiza el esquema del scope (re-ejecutarlo es seguro).
      * @return string[] log legible
      */
     public function migrate(Connection $conn, string $scope, bool $withSeed = false): array
     {
-        $log = [];
         $this->ensureMigrationsTable($conn);
+        $log = [];
 
-        $files = $this->filesFor($scope);
-        if ($withSeed) {
-            $files[] = self::SEED_FILE;
+        foreach ($this->tracksFor($scope) as $track) {
+            $cfg = self::TRACKS[$track];
+            $upgrades = $this->upgradeFiles($track);
+
+            if (!in_array($cfg['sentinel'], $this->existingTables($conn), true)) {
+                [$run] = $this->runFile($conn, $cfg['schema']);
+                $this->record($conn, $cfg['schema'], $scope);
+                foreach ($upgrades as $file) {
+                    $this->record($conn, $file, $scope);
+                }
+                $log[] = "db/{$cfg['schema']}: base nueva creada ({$run} sentencias); "
+                    . count($upgrades) . ' upgrades ya incluidos';
+                continue;
+            }
+
+            $applied = $this->appliedChecksums($conn);
+            $pending = array_values(array_filter($upgrades, fn ($f) => !isset($applied[$f])));
+            foreach ($pending as $file) {
+                [$run, $skipped] = $this->runFile($conn, $file);
+                $this->record($conn, $file, $scope);
+                $log[] = "db/{$file}: {$run} sentencias ejecutadas" . ($skipped ? ", {$skipped} ya estaban aplicadas" : '');
+            }
+            if (!$pending) {
+                $log[] = "Esquema {$track}: al día";
+            }
         }
 
-        foreach ($files as $file) {
-            $path = $this->path($file);
-            if (!is_file($path)) {
-                throw new \RuntimeException("Archivo de esquema no encontrado: db/{$file}. ¿Se borró db/ en el servidor?");
-            }
-            [$run, $skipped] = $this->runFile($conn, $path, $file === self::SEED_FILE);
+        if ($scope === 'master' && ($promoted = $this->ensureRoot($conn)) > 0) {
+            $log[] = "{$promoted} administrador(es) de la master pasaron a root";
+        }
 
-            $conn->table('schema_migrations')->updateOrInsert(
-                ['filename' => $file],
-                ['checksum' => hash_file('sha256', $path), 'scope' => $scope, 'applied_at' => date('Y-m-d H:i:s')]
-            );
-            $log[] = "db/{$file}: {$run} sentencias ejecutadas" . ($skipped ? ", {$skipped} ya estaban aplicadas" : '');
+        if ($withSeed) {
+            [$run] = $this->runFile($conn, self::SEED_FILE);
+            $this->record($conn, self::SEED_FILE, $scope);
+            $log[] = 'db/' . self::SEED_FILE . ": {$run} sentencias (solo agrega claves faltantes)";
         }
 
         return $log;
     }
 
-    /** @return array{0:int,1:int} [ejecutadas, ya aplicadas] */
-    private function runFile(Connection $conn, string $path, bool $skipUserInserts): array
+    /**
+     * La master necesita al menos un root. Si no hay ninguno (bases anteriores
+     * a los roles), los admin de la master pasan a root. @return int promovidos
+     */
+    private function ensureRoot(Connection $conn): int
     {
+        if ($conn->table('users')->where('role', 'root')->exists()) {
+            return 0;
+        }
+        return $conn->table('users')->where('role', 'admin')->update(['role' => 'root']);
+    }
+
+    /** @return array{0:int,1:int} [ejecutadas, ya aplicadas] */
+    private function runFile(Connection $conn, string $file): array
+    {
+        $path = $this->path($file);
+        if (!is_file($path)) {
+            throw new \RuntimeException("Archivo de esquema no encontrado: db/{$file}. ¿Se borró db/ en el servidor?");
+        }
+
         $run = 0;
         $skipped = 0;
         foreach (SqlSplitter::split((string) file_get_contents($path)) as $stmt) {
-            // El seed trae un admin con clave por defecto: nunca lo copiamos a un sitio nuevo
-            if ($skipUserInserts && preg_match('/^INSERT\s+INTO\s+`?users`?/i', $stmt)) {
-                continue;
-            }
             try {
                 $conn->unprepared($stmt);
                 $run++;
@@ -150,6 +192,40 @@ class MigrationService
             }
         }
         return [$run, $skipped];
+    }
+
+    private function record(Connection $conn, string $file, string $scope): void
+    {
+        $conn->table('schema_migrations')->updateOrInsert(
+            ['filename' => $file],
+            ['checksum' => hash_file('sha256', $this->path($file)), 'scope' => $scope, 'applied_at' => date('Y-m-d H:i:s')]
+        );
+    }
+
+    /** @return array<string,string> filename => checksum */
+    private function appliedChecksums(Connection $conn): array
+    {
+        try {
+            return $conn->table('schema_migrations')->pluck('checksum', 'filename')->all();
+        } catch (\Throwable $e) {
+            return []; // tabla aún no creada: todo pendiente
+        }
+    }
+
+    /** @return string[] */
+    private function existingTables(Connection $conn): array
+    {
+        return array_map(
+            fn ($row) => strtolower((string) array_values((array) $row)[0]),
+            $conn->select('SHOW TABLES')
+        );
+    }
+
+    private function fileStatus(string $file, string $status): array
+    {
+        $path = $this->path($file);
+        $checksum = is_file($path) ? hash_file('sha256', $path) : '';
+        return ['file' => $file, 'status' => $checksum === '' ? 'missing_file' : $status, 'checksum' => $checksum];
     }
 
     private function ensureMigrationsTable(Connection $conn): void

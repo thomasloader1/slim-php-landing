@@ -2,12 +2,12 @@
 
 @section('title', 'Gestionar Usuarios')
 @section('header', 'Usuarios')
-@section('subheader', 'Administra los accesos al panel de control.')
+@section('subheader', 'Quién accede al panel y con qué rol. Los permisos de cada rol se definen en Roles y permisos.')
 
 @section('content')
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
-        <h3 class="text-lg font-bold text-white">Administradores</h3>
+        <h3 class="text-lg font-bold text-white">Usuarios</h3>
         <a href="{{ url('admin/users/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
         </a>
@@ -40,8 +40,8 @@
                         </td>
                         <td class="px-3 py-3 md:px-6 md:py-4 text-slate-400 text-sm hidden md:table-cell">{{ $user->email }}</td>
                         <td class="px-3 py-3 md:px-6 md:py-4 hidden sm:table-cell">
-                            <span class="px-2 py-0.5 bg-slate-800 text-slate-400 text-[10px] font-bold rounded-full uppercase border border-slate-700">
-                                {{ $user->role }}
+                            <span class="px-2 py-0.5 {{ $user->role === 'root' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-slate-800 text-slate-400 border-slate-700' }} text-[10px] font-bold rounded-full uppercase border">
+                                {{ $roleNames[$user->role] ?? $user->role }}
                             </span>
                         </td>
                         <td class="px-3 py-3 md:px-6 md:py-4">
@@ -52,19 +52,24 @@
                             @endif
                         </td>
                         <td class="px-3 py-3 md:px-6 md:py-4 text-right">
+                            @php $__self = (int) ($_SESSION['user_id'] ?? 0) === (int) $user->id && empty($_SESSION['impersonated_by']); @endphp
+                            @if($__self || \App\Services\AccessService::isRoot() || in_array($user->role, $manageable, true))
                             <div class="flex justify-end gap-2">
                                 <a href="{{ url('admin/users/edit/' . $user->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                     <i class="fa-solid fa-user-gear text-sm"></i>
                                 </a>
-                                @if($user->id != 1)
-                                <form action="{{ url('admin/users/delete/' . $user->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este administrador?')" data-no-loading>
+                                @unless($__self)
+                                <form action="{{ url('admin/users/delete/' . $user->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este usuario?')" data-no-loading>
                                     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                     <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                         <i class="fa-solid fa-trash-can text-sm"></i>
                                     </button>
                                 </form>
-                                @endif
+                                @endunless
                             </div>
+                            @else
+                                <span class="text-xs text-slate-600">Solo root</span>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

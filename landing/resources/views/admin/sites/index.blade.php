@@ -112,8 +112,15 @@
                                         @if($site->status === 'active')
                                             <form action="{{ url('admin/sites/' . $site->id . '/impersonate') }}" method="POST" class="inline" target="_blank" data-no-loading>
                                                 <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                                <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-amber-900 text-slate-400 hover:text-amber-400 transition-colors" title="Entrar como admin">
+                                                <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-amber-900 text-slate-400 hover:text-amber-400 transition-colors" title="Entrar como root" aria-label="Entrar como root a {{ $site->domain }}">
                                                     <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                                                </button>
+                                            </form>
+                                            <form action="{{ url('admin/sites/' . $site->id . '/impersonate') }}" method="POST" class="inline" target="_blank" data-no-loading>
+                                                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                <input type="hidden" name="next" value="admin/roles">
+                                                <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-blue-900 text-slate-400 hover:text-blue-300 transition-colors" title="Roles y permisos del sitio" aria-label="Roles y permisos de {{ $site->domain }}">
+                                                    <i class="fa-solid fa-user-shield text-xs"></i>
                                                 </button>
                                             </form>
                                         @endif

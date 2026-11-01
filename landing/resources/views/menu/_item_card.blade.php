@@ -5,7 +5,7 @@
     $hasPrice3     = $item->price_3 !== null;
 @endphp
 
-<article class="menu-card"
+<article class="menu-card{{ $item->is_out_of_stock ? ' is-out-of-stock' : '' }}"
          role="listitem"
          data-title="{{ strtolower($item->title) }}"
          data-desc="{{ strtolower($item->description ?? '') }} {{ strtolower($item->flavors ?? '') }}">
@@ -25,6 +25,9 @@
                 {{ $item->title }}
             </h3>
             <div class="flex flex-wrap gap-1 pt-0.5">
+                @if($item->is_out_of_stock)
+                    <span class="badge-out-of-stock">Sin stock</span>
+                @endif
                 @if($item->badge_type === 'premium')
                     <span class="badge-premium" aria-label="Producto Premium">Premium</span>
                 @elseif($item->badge_type === 'preorder')

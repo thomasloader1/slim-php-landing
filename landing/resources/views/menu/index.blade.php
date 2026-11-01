@@ -228,6 +228,15 @@
             font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
             text-transform: uppercase; padding: 0.12rem 0.45rem; border-radius: 99px;
         }
+        .badge-out-of-stock {
+            background: rgba(220,80,80,0.15);
+            color: #e07070;
+            border: 1px solid rgba(220,80,80,0.3);
+            font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; padding: 0.12rem 0.45rem; border-radius: 99px;
+        }
+        .menu-card.is-out-of-stock img { filter: grayscale(1); opacity: 0.6; }
+        .menu-card.is-out-of-stock .price-badge { opacity: 0.5; text-decoration: line-through; }
         .badge-gift {
             background: rgba(100,200,100,0.1);
             color: #7ec87e;

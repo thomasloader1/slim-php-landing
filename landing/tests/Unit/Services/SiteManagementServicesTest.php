@@ -41,11 +41,11 @@ class SiteManagementServicesTest extends TestCase
     public function splitter_parses_real_schema_files(): void
     {
         $root = dirname(__DIR__, 3) . '/db/';
-        foreach (array_merge(MigrationService::SITE_FILES, MigrationService::MASTER_FILES, [MigrationService::SEED_FILE]) as $f) {
+        foreach (array_merge((new MigrationService())->filesFor('master'), [MigrationService::SEED_FILE]) as $f) {
             $stmts = SqlSplitter::split(file_get_contents($root . $f));
             $this->assertNotEmpty($stmts, $f);
             foreach ($stmts as $s) {
-                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|SET)\b/i', $s, "{$f}: sentencia inesperada");
+                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|UPDATE|DELETE|SET)\b/i', $s, "{$f}: sentencia inesperada");
             }
         }
     }

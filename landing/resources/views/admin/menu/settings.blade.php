@@ -1,8 +1,8 @@
 @extends('admin/layout')
 
-@section('title', 'Configuración del Menú')
-@section('header', 'Configuración del Menú')
-@section('subheader', 'Activá, personalizá el diseño y configurá el módulo de carta.')
+@section('title', 'Configuración de Productos')
+@section('header', 'Configuración de Productos')
+@section('subheader', 'Activá y personalizá la página pública de productos.')
 
 @section('content')
 @php
@@ -16,12 +16,12 @@
     @if($menuEnabled)
         <a href="{{ url('menu') }}" target="_blank"
            class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Ver Menú
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Ver página
         </a>
     @endif
     <a href="{{ url('admin/menu/sections') }}"
        class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-layer-group"></i> Secciones
+        <i class="fa-solid fa-layer-group"></i> Categorías
     </a>
     <a href="{{ url('admin/menu/items') }}"
        class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">

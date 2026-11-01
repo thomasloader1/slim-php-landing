@@ -2,7 +2,7 @@
 
 @section('title', 'Editar Usuario')
 @section('header', 'Editar Usuario')
-@section('subheader', 'Modifica los datos del administrador.')
+@section('subheader', $isSelf ? 'Tu cuenta: tu rol y estado solo los cambia otro root/administrador.' : 'Modificá los datos y el rol del usuario.')
 
 @section('content')
 <div class="max-w-2xl">
@@ -23,22 +23,26 @@
 
             <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Nueva Contraseña</label>
-                <input type="password" name="password" placeholder="Dejar en blanco para no cambiar"
+                <input type="password" name="password" minlength="8" placeholder="Dejar en blanco para no cambiar"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
             </div>
 
             <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Rol de Usuario</label>
-                <select name="role" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-                    <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Administrador</option>
-                    <option value="editor" {{ $user->role == 'editor' ? 'selected' : '' }}>Editor</option>
+                <select name="role" {{ $isSelf ? 'disabled' : 'required' }} class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white disabled:opacity-60">
+                    @unless(array_key_exists($user->role, $roles))
+                        <option value="{{ $user->role }}" selected>{{ $user->role === 'root' ? 'Root' : $user->role }}</option>
+                    @endunless
+                    @foreach($roles as $slug => $name)
+                        <option value="{{ $slug }}" {{ $user->role === $slug ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
                 </select>
             </div>
 
             <div class="md:col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
-                        <input type="checkbox" name="active" {{ $user->active ? 'checked' : '' }} class="sr-only peer">
+                        <input type="checkbox" name="active" {{ $user->active ? 'checked' : '' }} {{ $isSelf ? 'disabled' : '' }} class="sr-only peer">
                         <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
                     </div>
                     <span class="text-sm font-medium text-slate-400">Usuario activo</span>

@@ -79,9 +79,21 @@ class AuthController
             return $this->render($response, 'admin/login', ['error' => 'El sitio no tiene administradores activos. Inicializalo desde el gestor de sitios.']);
         }
 
+        // Dentro del sitio actúa como root (AccessService::isRoot por impersonated_by)
         $this->auth->loginAs($user, $context, 'superadmin');
-        error_log("[AuthController][AUDIT] SSO superadmin -> sitio {$site->id} como {$user->email}");
-        return $response->withHeader('Location', url('admin'))->withStatus(302);
+        $next = self::safeNext((string) ($request->getQueryParams()['next'] ?? ''));
+        error_log("[AuthController][AUDIT] SSO root -> sitio {$site->id} como {$user->email} ({$next})");
+        return $response->withHeader('Location', url($next))->withStatus(302);
+    }
+
+    /**
+     * Destino interno tras el SSO: solo paths del admin ("admin/roles").
+     * Cualquier otra cosa (URLs externas, //host, ..) vuelve al dashboard.
+     */
+    public static function safeNext(string $next): string
+    {
+        $next = trim($next, '/');
+        return preg_match('#^admin(/[a-z0-9_-]+)*$#', $next) ? $next : 'admin';
     }
 
     public function logout(Request $request, Response $response): Response

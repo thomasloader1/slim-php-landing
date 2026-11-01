@@ -193,9 +193,9 @@ $paths = [
 
 // Tablas que deben existir en la BD para poder borrar db/
 $requiredTables = [
-    'users', 'links', 'settings', 'locations',
+    'users', 'roles', 'role_permissions', 'links', 'settings', 'locations',
     'menu_sections', 'menu_items', 'faq_items',
-    'sites',
+    'sites', 'servers',
 ];
 
 // ─── Ejecutar limpieza (sin validación de BD) ────────────────────────

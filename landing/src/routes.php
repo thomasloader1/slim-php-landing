@@ -37,11 +37,11 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('', DashboardController::class);
     $group->get('/', DashboardController::class);
     
-    // Módulos (admin only)
-    $group->group('/modules', function (RouteCollectorProxy $modGroup) {
-        $modGroup->get('', [\App\Controllers\Admin\ModuleAdminController::class, 'index']);
-        $modGroup->post('', [\App\Controllers\Admin\ModuleAdminController::class, 'update']);
-    })->add(\App\Middleware\RoleMiddleware::class);
+    // Permisos: cada sección se habilita por rol en App\Support\Permissions (PermissionMiddleware)
+
+    // Módulos
+    $group->get('/modules', [\App\Controllers\Admin\ModuleAdminController::class, 'index']);
+    $group->post('/modules', [\App\Controllers\Admin\ModuleAdminController::class, 'update']);
 
     // Links CRUD
     $group->get('/links', [\App\Controllers\Admin\LinkAdminController::class, 'index']);
@@ -50,6 +50,7 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('/links/edit/{id}', [\App\Controllers\Admin\LinkAdminController::class, 'edit']);
     $group->post('/links/edit/{id}', [\App\Controllers\Admin\LinkAdminController::class, 'update']);
     $group->post('/links/delete/{id}', [\App\Controllers\Admin\LinkAdminController::class, 'delete']);
+    $group->post('/links/reorder', [\App\Controllers\Admin\LinkAdminController::class, 'reorder']);
     
     // Locations CRUD
     $group->get('/locations', [\App\Controllers\Admin\LocationAdminController::class, 'index']);
@@ -74,7 +75,15 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $userGroup->get('/edit/{id}', [\App\Controllers\Admin\UserAdminController::class, 'edit']);
         $userGroup->post('/edit/{id}', [\App\Controllers\Admin\UserAdminController::class, 'update']);
         $userGroup->post('/delete/{id}', [\App\Controllers\Admin\UserAdminController::class, 'delete']);
-    })->add(\App\Middleware\RoleMiddleware::class);
+    });
+
+    // Roles y permisos (solo root; en un sitio, el root entra por SSO)
+    $group->get('/roles', [\App\Controllers\Admin\RoleAdminController::class, 'index']);
+    $group->get('/roles/create', [\App\Controllers\Admin\RoleAdminController::class, 'create']);
+    $group->post('/roles/create', [\App\Controllers\Admin\RoleAdminController::class, 'store']);
+    $group->get('/roles/edit/{id:[0-9]+}', [\App\Controllers\Admin\RoleAdminController::class, 'edit']);
+    $group->post('/roles/edit/{id:[0-9]+}', [\App\Controllers\Admin\RoleAdminController::class, 'update']);
+    $group->post('/roles/delete/{id:[0-9]+}', [\App\Controllers\Admin\RoleAdminController::class, 'delete']);
     
     // Settings
     $group->get('/settings', [\App\Controllers\Admin\SettingsAdminController::class, 'index']);
@@ -119,6 +128,14 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->post('/menu/items/edit/{id}',   [\App\Controllers\Admin\MenuItemAdminController::class, 'update']);
     $group->post('/menu/items/delete/{id}', [\App\Controllers\Admin\MenuItemAdminController::class, 'delete']);
     $group->post('/menu/items/reorder',     [\App\Controllers\Admin\MenuItemAdminController::class, 'reorder']);
+    $group->post('/menu/items/adjust-prices', [\App\Controllers\Admin\MenuItemAdminController::class, 'adjustPrices']);
+
+    // Productos – Importación / exportación CSV
+    $group->get('/menu/items/template',        [\App\Controllers\Admin\ProductImportAdminController::class, 'template']);
+    $group->get('/menu/items/export',          [\App\Controllers\Admin\ProductImportAdminController::class, 'export']);
+    $group->get('/menu/items/import',          [\App\Controllers\Admin\ProductImportAdminController::class, 'form']);
+    $group->post('/menu/items/import',         [\App\Controllers\Admin\ProductImportAdminController::class, 'preview']);
+    $group->post('/menu/items/import/confirm', [\App\Controllers\Admin\ProductImportAdminController::class, 'confirm']);
 
     // Sistema: diagnóstico y reparación (superadmin, solo dominio master)
     $group->group('/system', function (RouteCollectorProxy $sys) {
@@ -161,6 +178,7 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $siteGroup->post('/{id}/impersonate', [\App\Controllers\Admin\SiteAdminController::class, 'impersonate']);
     })->add(\App\Middleware\MasterOnlyMiddleware::class);
 })
+    ->add(\App\Middleware\PermissionMiddleware::class)
     ->add(\App\Middleware\CsrfMiddleware::class)
     ->add(ReadOnlyMiddleware::class)
     ->add(AuthMiddleware::class);
@@ -170,5 +188,6 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
 $app->group('/admin/demo', function (RouteCollectorProxy $group) {
     $group->post('/reset', [DemoAdminController::class, 'reset']);
 })
+    ->add(\App\Middleware\PermissionMiddleware::class)
     ->add(CsrfMiddleware::class)
     ->add(AuthMiddleware::class);

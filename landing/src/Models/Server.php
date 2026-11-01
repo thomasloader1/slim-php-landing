@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Servidor remoto (cPanel) administrado por SSH desde el panel local.
- * Ver db/master/02_servers.sql.
+ * Ver db/schema/master.sql.
  */
 class Server extends Model
 {

@@ -28,6 +28,13 @@ if (!function_exists('request_is')) {
     }
 }
 
+// ¿El usuario logueado puede usar esta sección del admin? (ver App\Support\Permissions)
+if (!function_exists('can')) {
+    function can(string $permission): bool {
+        return \App\Services\AccessService::can($permission);
+    }
+}
+
 if (!function_exists('overlay_opacity_percent')) {
     /**
      * Normaliza la opacidad del overlay de la landing a un entero 0-100.

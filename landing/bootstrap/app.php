@@ -71,10 +71,6 @@ $container->set(\App\Middleware\AuthMiddleware::class, function ($c) {
     return new \App\Middleware\AuthMiddleware($c->get(\App\Services\AuthService::class));
 });
 
-$container->set(\App\Middleware\RoleMiddleware::class, function () {
-    return new \App\Middleware\RoleMiddleware('admin');
-});
-
 // ─── Blade Setup ─────────────────────────────────────────────
 $container->set('view', function () {
     $viewPaths = [__DIR__ . '/../resources/views'];

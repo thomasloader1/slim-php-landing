@@ -69,14 +69,6 @@ template-2mez-landing/
 ├── docker/
 │   └── Dockerfile               # Imagen PHP 8.1-Apache
 ├── docker-compose.yml           # Stack Docker completo
-├── db/
-│   ├── init/
-│   │   ├── 01_schema.sql        # Tablas: users, links, settings
-│   │   └── 02_seed.sql          # Usuario admin + settings por defecto
-│   ├── modules/
-│   │   └── landing_base/
-│   │       ├── module.json      # Metadatos del módulo base
-│   │       └── install.sql      # SQL del módulo (click stats, etc.)
 └── landing/                     # Aplicación PHP
     ├── VERSION                  # Versión actual del código (ej: 1.1.0)
     ├── .env.example             # Plantilla de configuración
@@ -118,9 +110,11 @@ template-2mez-landing/
     │   │   └── DetailedErrorHandler.php  # Manejador de errores 500
     │   ├── helpers.php          # url(), request_is()
     │   └── routes.php           # Definición de todas las rutas
-    ├── db/                      # SQL schema + seed + migraciones
-    │   ├── init/                # 01_schema.sql, 02_seed.sql, etc.
-    │   ├── scripts/             # cron_check_expiry.php
+    ├── db/                      # Ver "Base de datos"
+    │   ├── schema/              # site.sql y master.sql: esquema completo (bases nuevas)
+    │   ├── upgrades/            # site/ y master/: cambios para bases existentes
+    │   ├── seed/settings.sql    # configuración por defecto (nunca pisa valores)
+    │   ├── scripts/             # cron_check_expiry.php, rotate_tenant_key.php
     ├── cleanup.php              # Script de limpieza para producción
     └── storage/
         ├── cache/               # Caché de Blade compilado
@@ -188,16 +182,14 @@ Conectate a tu instancia MySQL y ejecutá:
 CREATE DATABASE project_landing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5. Ejecutar schema y seed
-
-Conectate a MySQL y ejecutá los scripts SQL en orden:
+### 5. Crear las tablas y el usuario root
 
 ```bash
-mysql -u USER -p DATABASE < db/init/01_schema.sql
-mysql -u USER -p DATABASE < db/init/02_seed.sql
+docker compose exec landing php bin/console migrate --seed
+docker compose exec -it landing php bin/console admin:create tu@email.com --name="Tu nombre"
 ```
 
-> Si usás Docker: `docker compose exec -T mysql mysql -u USER -p DATABASE < db/init/01_schema.sql`
+El primer usuario de la master se crea como **root** (pide la contraseña por consola).
 
 ### 6. Configurar `.env`
 
@@ -270,16 +262,16 @@ Desde phpMyAdmin o la consola MySQL:
 CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 6. Ejecutar schema y seed
+### 6. Crear las tablas y el usuario root
 
-Conectate a MySQL y ejecutá los scripts SQL en orden:
+Configurá el `.env` a mano (usá `.env.example` como base) y por SSH:
 
 ```bash
-mysql -u USER -p DATABASE < db/init/01_schema.sql
-mysql -u USER -p DATABASE < db/init/02_seed.sql
+php bin/console migrate --seed
+php bin/console admin:create tu@email.com --name="Tu nombre"
 ```
 
-Luego configurá el `.env` a mano (usá `.env.example` como base).
+Si el hosting no tiene SSH, usá la Terminal de cPanel.
 
 ### 7. Verificar que el rewrite funciona
 
@@ -312,29 +304,22 @@ APP_BASE_PATH=
 
 ---
 
-## Ejecutar schema SQL
+## Base de datos
 
-Los scripts SQL están en `db/init/`. Ejecutalos en orden:
+No hay que correr SQL a mano: `php bin/console migrate` crea o actualiza el esquema.
 
-```bash
-# 1. Crear la base de datos
-mysql -u USER -p -e "CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 2. Schema (tablas)
-mysql -u USER -p mi_landing_db < db/init/01_schema.sql
-
-# 3. Seed (usuario admin + settings por defecto)
-mysql -u USER -p mi_landing_db < db/init/02_seed.sql
-```
-
-### Credenciales por defecto
-
-| Campo | Valor |
+| Carpeta | Para qué |
 |---|---|
-| Email | `admin@rufi.com.ar` |
-| Contraseña | `password` |
+| `db/schema/site.sql` | Esquema **completo** de un sitio (y de la master, que también es una landing) |
+| `db/schema/master.sql` | Tablas del gestor: `sites`, `servers` |
+| `db/upgrades/site/`, `db/upgrades/master/` | Cambios incrementales para bases que ya existían |
+| `db/seed/settings.sql` | Configuración por defecto. Solo agrega claves que faltan; **nunca pisa** valores ni crea usuarios |
 
-> **Cambiá la contraseña inmediatamente** desde el panel admin → Usuarios.
+- **Base nueva** (sin tabla `users`): se ejecuta `schema/*.sql` y los upgrades quedan registrados como incluidos.
+- **Base existente**: se ejecutan solo los upgrades que no figuran en `schema_migrations`, una única vez.
+- Un sitio nuevo se inicializa desde **Sitios → Inicializar** (o `site:init`): schema + seed + su primer admin.
+
+No hay usuario ni contraseña por defecto: el primero se crea con `php bin/console admin:create`.
 
 ---
 
@@ -490,13 +475,29 @@ master y la de cada sitio cliente; si un sitio falla, el resto sigue y se muestr
 
 ### Agregar una migración
 
-1. Crear `landing/db/init/NN_descripcion.sql` (siguiente número libre) con `ALTER`/`CREATE`.
-   Errores "ya existe" (1050, 1060, 1061, 1091) se toman como aplicados, así que un
-   `ALTER TABLE ... ADD COLUMN` simple ya es idempotente.
-2. Registrarlo en `MigrationService::SITE_FILES` (o `MASTER_FILES` si es solo del gestor).
-3. **No** modificar archivos ya aplicados en producción (`01_schema.sql`, etc.): las bases
-   existentes no vuelven a ejecutar un `CREATE TABLE` que ya existe, así que una columna nueva
-   agregada ahí nunca llegaría. Siempre un archivo nuevo con `ALTER`.
+1. Crear `landing/db/upgrades/site/NNNN_descripcion.sql` (o `upgrades/master/`) con el
+   `ALTER`/`CREATE`. Se detecta solo (orden alfabético). Errores "ya existe" (1050, 1060,
+   1061, 1091) se toman como aplicados.
+2. Reflejar el **mismo cambio** en `db/schema/site.sql` (o `master.sql`) para las bases nuevas.
+3. Correr los tests: `MigrationDriftTest` compara una base nueva contra una vieja actualizada
+   con los upgrades y falla si los dos caminos no dan exactamente el mismo esquema.
+4. No editar un upgrade ya aplicado en producción: no se vuelve a ejecutar.
+
+---
+
+## Roles y permisos
+
+- **Root**: vive en la DB master. Ve todo (incluidos Sitios, Servidores y Sistema) y es el
+  único que edita **Roles y permisos**. El primer usuario de la master es root.
+- **Roles** (`admin`, `editor` y los que cree el root): cada uno tiene tildadas las secciones
+  del panel que puede ver. Lo que no ve, desaparece del sidebar **y** su URL redirige al
+  Dashboard (o responde 403 a pedidos `fetch`).
+- **Usuarios de un sitio hijo** están en la DB de ese sitio. Para configurar qué ven, desde
+  **Sitios** usá el botón *Roles y permisos* (o *Entrar*): entrás al panel del sitio como root
+  por SSO y editás sus roles ahí.
+- Un **módulo apagado** (Módulos) se oculta y bloquea para todos, root incluido.
+- Las secciones se definen en `landing/src/Support/Permissions.php`. Una ruta nueva bajo
+  `/admin` tiene que tener su prefijo ahí; si no, se bloquea (`AccessControlTest` lo verifica).
 
 ---
 

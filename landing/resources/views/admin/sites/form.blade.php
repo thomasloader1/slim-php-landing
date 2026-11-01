@@ -250,12 +250,19 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
             <div>
                 <h3 class="text-white font-bold">4. Administrar el sitio</h3>
-                <p class="text-sm text-slate-400">Entrás a <code>{{ $site->domain }}/admin</code> como su primer administrador, sin conocer su contraseña (acceso de un solo uso, queda registrado).</p>
+                <p class="text-sm text-slate-400">Entrás a <code>{{ $site->domain }}/admin</code> como root, sin conocer ninguna contraseña (acceso de un solo uso, queda registrado). Desde ahí configurás qué ve cada rol del sitio.</p>
             </div>
             <form action="{{ url('admin/sites/' . $site->id . '/impersonate') }}" method="POST" target="_blank" data-no-loading>
                 <input type="hidden" name="_token" value="{{ $tok }}">
                 <button class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm" {{ $site->status !== 'active' ? 'disabled' : '' }}>
-                    <i class="fa-solid fa-right-to-bracket text-xs"></i> Entrar como admin
+                    <i class="fa-solid fa-right-to-bracket text-xs"></i> Entrar como root
+                </button>
+            </form>
+            <form action="{{ url('admin/sites/' . $site->id . '/impersonate') }}" method="POST" target="_blank" data-no-loading>
+                <input type="hidden" name="_token" value="{{ $tok }}">
+                <input type="hidden" name="next" value="admin/roles">
+                <button class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-6 py-2.5 rounded-xl font-bold text-sm" {{ $site->status !== 'active' ? 'disabled' : '' }}>
+                    <i class="fa-solid fa-user-shield text-xs"></i> Roles y permisos
                 </button>
             </form>
         </div>

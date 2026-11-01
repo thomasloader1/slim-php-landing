@@ -154,7 +154,7 @@ class SystemCheckService
             }
         }
 
-        $checks[] = is_dir($this->root . '/db/init')
+        $checks[] = is_file($this->root . '/db/schema/site.sql')
             ? $this->ok('Archivos', 'db/', 'Presente (necesaria para migraciones e inicializar sitios).')
             : $this->error('Archivos', 'db/', 'No existe.', 'Subí la carpeta db/ al servidor.');
     }

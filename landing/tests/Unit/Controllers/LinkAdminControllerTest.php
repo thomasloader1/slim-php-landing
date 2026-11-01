@@ -19,6 +19,18 @@ class LinkAdminControllerTest extends TestCase
     }
 
     /** @test */
+    public function it_supports_drag_and_drop_reorder_of_links()
+    {
+        $this->assertContains(\App\Traits\ReordersEntities::class, class_uses(LinkAdminController::class));
+
+        $controller = $this->createPartialMock(LinkAdminController::class, []);
+        $reflection = new \ReflectionMethod(LinkAdminController::class, 'getReorderModel');
+        $reflection->setAccessible(true);
+
+        $this->assertSame(\App\Models\Link::class, $reflection->invoke($controller));
+    }
+
+    /** @test */
     public function validate_link_data_rejects_empty_title()
     {
         $controller = $this->createPartialMock(LinkAdminController::class, []);

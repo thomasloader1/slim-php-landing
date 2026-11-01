@@ -54,6 +54,7 @@ class AuthMiddleware implements MiddlewareInterface
         }
         $_SESSION['user_name'] = $user->name;
         $_SESSION['user_role'] = $user->role;
+        \App\Services\AccessService::reset(); // un cambio de rol/permisos aplica en este mismo request
 
         return $handler->handle($request);
     }

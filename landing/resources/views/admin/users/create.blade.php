@@ -2,7 +2,7 @@
 
 @section('title', 'Nuevo Usuario')
 @section('header', 'Crear Usuario')
-@section('subheader', 'Agrega un nuevo administrador al panel.')
+@section('subheader', 'Agregá un usuario al panel. Su rol define qué secciones ve.')
 
 @section('content')
 <div class="max-w-2xl">
@@ -23,15 +23,16 @@
 
             <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Contraseña</label>
-                <input type="password" name="password" required
+                <input type="password" name="password" required minlength="8" placeholder="Mínimo 8 caracteres"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
             </div>
 
             <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Rol de Usuario</label>
-                <select name="role" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-                    <option value="editor" selected>Editor</option>
-                    <option value="admin">Administrador</option>
+                <select name="role" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
+                    @foreach($roles as $slug => $name)
+                        <option value="{{ $slug }}" {{ $slug === 'editor' ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -48,7 +49,7 @@
 
         <div class="pt-4 border-t border-slate-800 flex gap-4">
             <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
-                Crear Administrador
+                Crear Usuario
             </button>
             <a href="{{ url('admin/users') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-8 py-3 rounded-xl font-bold transition-all">
                 Cancelar

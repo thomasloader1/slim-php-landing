@@ -9,8 +9,8 @@ use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Psr7\Response as SlimResponse;
 
 /**
- * Rutas de superadmin (gestor de sitios, servidores, sistema):
- * solo en el contexto master y con rol admin. En un sitio cliente responden 404
+ * Rutas del root (gestor de sitios, servidores, sistema):
+ * solo en el contexto master y con rol root. En un sitio cliente responden 404
  * para no revelar que existen.
  */
 class MasterOnlyMiddleware implements MiddlewareInterface
@@ -21,7 +21,7 @@ class MasterOnlyMiddleware implements MiddlewareInterface
             return (new SlimResponse())->withStatus(404);
         }
 
-        if (($_SESSION['user_role'] ?? '') !== 'admin') {
+        if (!\App\Services\AccessService::isRoot()) {
             return (new SlimResponse())->withHeader('Location', url('admin'))->withStatus(302);
         }
 

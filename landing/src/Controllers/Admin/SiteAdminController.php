@@ -254,6 +254,10 @@ class SiteAdminController
         $base = rtrim(getenv('APP_BASE_PATH') ?: ($_ENV['APP_BASE_PATH'] ?? ''), '/');
         $scheme = (getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? 'production')) === 'production' ? 'https' : $uri->getScheme();
         $target = $scheme . '://' . $hostPort . $base . '/admin/sso?token=' . urlencode($token);
+        $next = AuthController::safeNext((string) (((array) $request->getParsedBody())['next'] ?? ''));
+        if ($next !== 'admin') {
+            $target .= '&next=' . urlencode($next);
+        }
 
         error_log("[SiteAdmin][AUDIT] {$_SESSION['user_name']} (master) entró como admin del sitio {$site->id} ({$site->domain})");
         return $response->withHeader('Location', $target)->withStatus(302);

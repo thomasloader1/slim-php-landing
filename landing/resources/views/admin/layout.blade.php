@@ -49,74 +49,29 @@
             </div>
 
             @php
-                $__modules = \Illuminate\Database\Capsule\Manager::table('settings')
-                    ->whereIn('setting_key', ['module_links_enabled','module_locations_enabled','module_menu_enabled','module_site_manager_enabled'])
-                    ->pluck('setting_value', 'setting_key')->toArray();
-                $__linksEnabled        = ($__modules['module_links_enabled'] ?? '1') === '1';
-                $__locationsEnabled    = ($__modules['module_locations_enabled'] ?? '1') === '1';
-                $__menuEnabled         = ($__modules['module_menu_enabled'] ?? '1') === '1';
-                $__siteManagerEnabled  = ($__modules['module_site_manager_enabled'] ?? '0') === '1';
-                $__menuConfigured   = \Illuminate\Database\Capsule\Manager::table('settings')
-                    ->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0';
+                // Secciones visibles según rol y módulos (App\Support\Permissions + AccessService)
+                $__sections = \App\Services\AccessService::visibleSections();
+                $__menuConfigured = isset($__sections['products'])
+                    ? (\Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0')
+                    : '0';
             @endphp
             <nav class="flex-1 px-4 space-y-1 mt-4">
                 <a href="{{ url('admin') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin') || request_is('admin/') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-chart-line w-5"></i> Dashboard
                 </a>
-                @if(($_SESSION['user_role'] ?? '') === 'admin')
-                    <a href="{{ url('admin/modules') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/modules*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                        <i class="fa-solid fa-puzzle-piece w-5"></i> Módulos
+                @foreach($__sections as $__key => $__s)
+                    @php
+                        $__url = $__key === 'products' && $__menuConfigured !== '1' ? 'admin/menu/settings' : $__s['url'];
+                        $__active = false;
+                        foreach ($__s['prefixes'] as $__prefix) { $__active = $__active || request_is(ltrim($__prefix, '/') . '*'); }
+                    @endphp
+                    <a href="{{ url($__url) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ $__active ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                        <i class="fa-solid {{ $__s['icon'] }} w-5"></i> {{ $__s['label'] }}
+                        @if($__key === 'products' && $__menuConfigured !== '1')
+                            <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
+                        @endif
                     </a>
-                @endif
-                <a href="{{ url('admin/builder') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/builder*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-wand-magic-sparkles w-5"></i> UX Builder
-                </a>
-                @if($__linksEnabled)
-                <a href="{{ url('admin/links') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/links*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-link w-5"></i> Enlaces
-                </a>
-                @endif
-                @if($__locationsEnabled)
-                <a href="{{ url('admin/locations') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/locations*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-map-location-dot w-5"></i> Ubicaciones
-                </a>
-                @endif
-                @if(($_SESSION['user_role'] ?? '') === 'admin')
-                    <a href="{{ url('admin/users') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/users*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                        <i class="fa-solid fa-users w-5"></i> Usuarios
-                    </a>
-                @endif
-                <a href="{{ url('admin/settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/settings*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-gears w-5"></i> Ajustes
-                </a>
-                <a href="{{ url('admin/seo') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/seo*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-magnifying-glass w-5"></i> SEO
-                </a>
-                <a href="{{ url('admin/favicon') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/favicon*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-icons w-5"></i> Favicons
-                </a>
-                @if($__menuEnabled)
-                <a href="{{ url($__menuConfigured === '1' ? 'admin/menu/items' : 'admin/menu/settings') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/menu*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-utensils w-5"></i> Menú
-                    @if($__menuConfigured !== '1')
-                        <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
-                    @endif
-                </a>
-                @endif
-                @if($__siteManagerEnabled && ($_SESSION['user_role'] ?? '') === 'admin' && ($_SESSION['context'] ?? 'master') === 'master')
-                <a href="{{ url('admin/sites') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/sites*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-server w-5"></i> Sitios
-                </a>
-                @endif
-                @if(($_SESSION['user_role'] ?? '') === 'admin' && ($_SESSION['context'] ?? 'master') === 'master')
-                <a href="{{ url('admin/system') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/system*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-stethoscope w-5"></i> Sistema
-                </a>
-                <a href="{{ url('admin/servers') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/servers*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                    <i class="fa-solid fa-terminal w-5"></i> Servidores
-                </a>
-                @endif
+                @endforeach
             </nav>
 
             <div class="p-4 mt-auto border-t border-slate-800">
@@ -126,7 +81,13 @@
                     </div>
                     <div class="flex-1 overflow-hidden">
                         <p class="text-sm font-bold text-white truncate">{{ $_SESSION['user_name'] ?? 'Admin' }}</p>
-                        <p class="text-xs text-slate-500 truncate capitalize">{{ $_SESSION['user_role'] ?? 'Editor' }}</p>
+                        <p class="text-xs text-slate-500 truncate">
+                            @if(\App\Services\AccessService::isRoot())
+                                <i class="fa-solid fa-crown text-amber-400 text-[10px]"></i> Root
+                            @else
+                                {{ \Illuminate\Database\Capsule\Manager::table('roles')->where('slug', $_SESSION['user_role'] ?? '')->value('name') ?? ($_SESSION['user_role'] ?? '') }}
+                            @endif
+                        </p>
                     </div>
                     <form action="{{ url('admin/logout') }}" method="POST" data-no-loading>
                         <input type="hidden" name="_token" value="{{ $_SESSION['csrf_token'] ?? '' }}">

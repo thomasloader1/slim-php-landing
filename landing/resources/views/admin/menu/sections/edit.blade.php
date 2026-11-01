@@ -1,7 +1,7 @@
 @extends('admin/layout')
 
-@section('title', 'Editar Sección')
-@section('header', 'Editar Sección')
+@section('title', 'Editar Categoría')
+@section('header', 'Editar Categoría')
 @section('subheader', 'Modificá los datos de esta categoría.')
 
 @section('content')
@@ -10,7 +10,7 @@
         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             <div class="p-6 border-b border-slate-800 bg-slate-900/50">
-                <h3 class="text-lg font-bold text-white">Datos de la Sección</h3>
+                <h3 class="text-lg font-bold text-white">Datos de la Categoría</h3>
             </div>
             <div class="p-6 space-y-5">
 
@@ -61,11 +61,11 @@
                 <hr class="border-slate-800">
 
                 <div>
-                    <label class="block text-sm font-bold text-slate-300 mb-2">Aviso de sección</label>
+                    <label class="block text-sm font-bold text-slate-300 mb-2">Aviso de categoría</label>
                     <input type="text" name="note" value="{{ $section->note ?? '' }}"
                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
                            placeholder="Ej: Entregas solo los viernes · Pedido con 72hs anticipación">
-                    <p class="text-xs text-slate-500 mt-1">Texto corto bajo el título de la sección. Opcional.</p>
+                    <p class="text-xs text-slate-500 mt-1">Texto corto bajo el título de la categoría. Opcional.</p>
                 </div>
 
                 <div>
@@ -83,7 +83,7 @@
                         <input type="checkbox" name="active" value="1" class="sr-only peer" {{ $section->active ? 'checked' : '' }}>
                         <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                     </label>
-                    <span class="text-sm text-slate-300">Sección activa</span>
+                    <span class="text-sm text-slate-300">Categoría activa</span>
                 </div>
 
             </div>

@@ -122,12 +122,23 @@ class AdminContextMiddlewareTest extends TestCase
     }
 
     /** @test */
-    public function master_only_allows_admin_in_master_context(): void
+    public function master_only_allows_root_in_master_context(): void
     {
-        $_SESSION = ['user_role' => 'admin'];
+        $_SESSION = ['user_id' => 1, 'user_role' => 'root', 'context' => 'master'];
         $handler = $this->handler();
         (new MasterOnlyMiddleware())->process($this->request('/admin/sites', 'master'), $handler);
         $this->assertTrue($handler->called);
+    }
+
+    /** @test */
+    public function master_only_redirects_master_admins_that_are_not_root(): void
+    {
+        $_SESSION = ['user_id' => 1, 'user_role' => 'admin', 'context' => 'master'];
+        $handler = $this->handler();
+        $response = (new MasterOnlyMiddleware())->process($this->request('/admin/sites', 'master'), $handler);
+
+        $this->assertFalse($handler->called);
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** @test */

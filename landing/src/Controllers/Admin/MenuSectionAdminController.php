@@ -26,12 +26,17 @@ class MenuSectionAdminController
 
     public function store(Request $request, Response $response): Response
     {
-        $data = $request->getParsedBody();
+        $data = (array) $request->getParsedBody();
+        $name = self::cleanName($data['name'] ?? '');
+
+        if ($error = $this->validateName($name, null)) {
+            return $this->fail($response, url('admin/menu/sections/create'), $error);
+        }
 
         $maxOrder = MenuSection::max('sort_order') ?? 0;
 
         MenuSection::create([
-            'name'       => trim($data['name'] ?? ''),
+            'name'       => $name,
             'icon'       => trim($data['icon'] ?? '') ?: null,
             'note'       => trim($data['note'] ?? '') ?: null,
             'note_type'  => in_array($data['note_type'] ?? '', ['none','info','preorder','time'])
@@ -52,10 +57,15 @@ class MenuSectionAdminController
     public function update(Request $request, Response $response, array $args): Response
     {
         $section = MenuSection::findOrFail($args['id']);
-        $data = $request->getParsedBody();
+        $data = (array) $request->getParsedBody();
+        $name = self::cleanName($data['name'] ?? '');
+
+        if ($error = $this->validateName($name, $section->id)) {
+            return $this->fail($response, url('admin/menu/sections/edit/' . $section->id), $error);
+        }
 
         $section->update([
-            'name'      => trim($data['name'] ?? ''),
+            'name'      => $name,
             'icon'      => trim($data['icon'] ?? '') ?: null,
             'note'      => trim($data['note'] ?? '') ?: null,
             'note_type' => in_array($data['note_type'] ?? '', ['none','info','preorder','time'])
@@ -70,6 +80,36 @@ class MenuSectionAdminController
     {
         MenuSection::destroy($args['id']);
         return $response->withHeader('Location', url('admin/menu/sections'))->withStatus(302);
+    }
+
+    /** Quita espacios de más: "  Pan   dulce " → "Pan dulce" */
+    private static function cleanName($value): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', (string) $value));
+    }
+
+    /**
+     * Nombre obligatorio y único. La comparación la hace MySQL (collation *_ci):
+     * "Panadería", "panaderia" y "PANADERÍA" cuentan como la misma categoría.
+     */
+    private function validateName(string $name, ?int $ignoreId): ?string
+    {
+        if ($name === '') {
+            return 'El nombre de la categoría es obligatorio.';
+        }
+        if (mb_strlen($name) > 150) {
+            return 'El nombre no puede superar 150 caracteres.';
+        }
+        $taken = MenuSection::where('name', $name)
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->value('name');
+        return $taken !== null ? "Ya existe una categoría llamada \"{$taken}\"." : null;
+    }
+
+    private function fail(Response $response, string $location, string $message): Response
+    {
+        $_SESSION['flash_error'] = $message;
+        return $response->withHeader('Location', $location)->withStatus(302);
     }
 
     protected function getReorderModel(): string

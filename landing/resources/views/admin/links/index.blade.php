@@ -7,7 +7,10 @@
 @section('content')
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
-        <h3 class="text-lg font-bold text-white">Lista de Enlaces</h3>
+        <div>
+            <h3 class="text-lg font-bold text-white">Lista de Enlaces</h3>
+            <p class="text-xs text-slate-500">Arrastrá <i class="fa-solid fa-grip-vertical"></i> para cambiar el orden en la landing.</p>
+        </div>
         <a href="{{ url('admin/links/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nuevo Enlace
         </a>
@@ -17,6 +20,7 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800 bg-slate-950/30">
+                    <th class="px-3 py-3 md:px-6 md:py-4 font-bold w-8"><i class="fa-solid fa-grip-vertical"></i></th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold">Icono</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold">Título</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold hidden md:table-cell">URL</th>
@@ -24,10 +28,13 @@
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800/50">
+            <tbody id="sortable-links" class="divide-y divide-slate-800/50">
                 @if(count($links) > 0)
                     @foreach($links as $link)
-                        <tr class="hover:bg-slate-800/20 transition-colors group">
+                        <tr class="hover:bg-slate-800/20 transition-colors group" data-id="{{ $link->id }}">
+                            <td class="px-3 py-3 md:px-6 md:py-4 cursor-grab drag-handle" title="Arrastrar para ordenar" aria-label="Arrastrar para ordenar">
+                                <i class="fa-solid fa-grip-vertical text-slate-600"></i>
+                            </td>
                             <td class="px-3 py-3 md:px-6 md:py-4">
                                 <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 border border-slate-700 text-lg" style="color: {{ $link->color }}">
                                     {!! $link->getIconHtml() !!}
@@ -66,7 +73,7 @@
                     @endforeach
                 @else
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 italic">
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">
                             No hay enlaces creados todavía. ¡Crea el primero!
                         </td>
                     </tr>
@@ -75,4 +82,34 @@
         </table>
     </div>
 </div>
+
+@push('scripts')
+<style>
+    #sortable-links tr.sortable-ghost { opacity: .3; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+(function () {
+    var el = document.getElementById('sortable-links');
+    if (!el || !el.querySelector('tr[data-id]')) return;
+    Sortable.create(el, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: function () {
+            var order = [];
+            el.querySelectorAll('tr[data-id]').forEach(function (row) {
+                order.push(parseInt(row.dataset.id, 10));
+            });
+            fetch('{{ url("admin/links/reorder") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': '{{ $_SESSION['csrf_token'] ?? '' }}' },
+                body: JSON.stringify({ order: order })
+            }).then(function (r) {
+                if (!r.ok) { alert('Error al guardar el orden. Recargá la página e intentá de nuevo.'); }
+            });
+        }
+    });
+})();
+</script>
+@endpush
 @endsection
