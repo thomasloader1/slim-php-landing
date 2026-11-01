@@ -185,9 +185,10 @@ $paths = [
     ],
 
     // Archivos de esquema BD (se borran solo si la BD está funcionando)
-    'db_dirs' => [
-        [$baseDir . '/db',               'db/ (directorio completo)'],
-    ],
+    // db/ ya NO se borra: el panel la usa para "Aplicar migraciones" e
+    // "Inicializar sitio", y bin/console para provisionar por SSH.
+    // No es accesible por web (el .htaccess raíz solo sirve public/).
+    'db_dirs' => [],
 ];
 
 // Tablas que deben existir en la BD para poder borrar db/

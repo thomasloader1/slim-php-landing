@@ -34,14 +34,54 @@ class AuthController
     public function login(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        $email = $data['email'] ?? '';
-        $password = $data['password'] ?? '';
+        $email = is_string($data['email'] ?? null) ? trim($data['email']) : '';
+        $password = is_string($data['password'] ?? null) ? $data['password'] : '';
 
-        if ($this->auth->login($email, $password)) {
+        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? '';
+
+        $context = (string) ($request->getAttribute('context') ?? 'master');
+
+        if ($this->auth->login($email, $password, $ip, $context)) {
             return $response->withHeader('Location', url('admin'))->withStatus(302);
         }
 
         return $this->render($response, 'admin/login', ['error' => 'Credenciales inválidas']);
+    }
+
+    /**
+     * GET /admin/sso?token=... en el dominio de un sitio: el superadmin llega desde
+     * el gestor de sitios (master) con un token HMAC de un solo uso.
+     */
+    public function sso(Request $request, Response $response): Response
+    {
+        $context = (string) $request->getAttribute('context');
+        $site = $request->getAttribute('resolved_site');
+        if (!str_starts_with($context, 'site:') || !$site) {
+            return $response->withStatus(404);
+        }
+
+        $token = (string) ($request->getQueryParams()['token'] ?? '');
+        try {
+            $siteId = (new \App\Services\SsoTokenService())
+                ->consume($token, (int) $site->id, \Illuminate\Database\Capsule\Manager::connection('default'));
+        } catch (\Throwable $e) {
+            error_log('[AuthController][SSO] ' . $e->getMessage());
+            $siteId = null;
+        }
+        if ($siteId === null) {
+            error_log("[AuthController][SECURITY] Token SSO inválido/vencido/reusado para sitio {$site->id}");
+            return $this->render($response->withStatus(403), 'admin/login', ['error' => 'Acceso expirado o inválido. Volvé a intentarlo desde el panel master.']);
+        }
+
+        // La conexión default ya es la DB del sitio
+        $user = \App\Models\User::where('role', 'admin')->where('active', 1)->orderBy('id')->first();
+        if (!$user) {
+            return $this->render($response, 'admin/login', ['error' => 'El sitio no tiene administradores activos. Inicializalo desde el gestor de sitios.']);
+        }
+
+        $this->auth->loginAs($user, $context, 'superadmin');
+        error_log("[AuthController][AUDIT] SSO superadmin -> sitio {$site->id} como {$user->email}");
+        return $response->withHeader('Location', url('admin'))->withStatus(302);
     }
 
     public function logout(Request $request, Response $response): Response

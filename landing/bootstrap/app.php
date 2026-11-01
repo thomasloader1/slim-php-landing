@@ -47,10 +47,11 @@ if ($basePath !== '') {
 // ─── Eloquent ORM Setup ─────────────────────────────────────
 $dbConfig = [
     'driver'    => 'mysql',
-    'host'      => $_SERVER['DB_HOST'] ?? $_ENV['DB_HOST'] ?? 'localhost',
-    'database'  => $_SERVER['DB_NAME'] ?? $_ENV['DB_NAME'] ?? '',
-    'username'  => $_SERVER['DB_USER'] ?? $_ENV['DB_USER'] ?? 'root',
-    'password'  => $_SERVER['DB_PASS'] ?? $_ENV['DB_PASS'] ?? '',
+    'host'      => getenv('DB_HOST') ?: ($_SERVER['DB_HOST'] ?? $_ENV['DB_HOST'] ?? 'localhost'),
+    'port'      => getenv('DB_PORT') ?: ($_SERVER['DB_PORT'] ?? $_ENV['DB_PORT'] ?? '3306'),
+    'database'  => getenv('DB_NAME') ?: ($_SERVER['DB_NAME'] ?? $_ENV['DB_NAME'] ?? ''),
+    'username'  => getenv('DB_USER') ?: ($_SERVER['DB_USER'] ?? $_ENV['DB_USER'] ?? 'root'),
+    'password'  => getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_SERVER['DB_PASS'] ?? $_ENV['DB_PASS'] ?? ''),
     'charset'   => 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
     'prefix'    => '',
@@ -96,12 +97,17 @@ $container->set('view', function () {
 });
 
 // Middleware
+// Slim ejecuta los middlewares en orden inverso al add() (LIFO):
+// SecurityHeaders -> TenantResolver -> SiteStatus -> rutas.
+// SiteStatus debe correr DESPUÉS de resolver el tenant para leer los settings de su DB.
 $app->add(new \App\Middleware\SiteStatusMiddleware());
+$app->add(new \App\Middleware\TenantResolverMiddleware());
+$app->add(new \App\Middleware\SecurityHeadersMiddleware());
 $app->addRoutingMiddleware();
 
 // Error handling: pantalla técnica en dev, amigable en prod,
 // logs ultra detallados SIEMPRE
-$_isDev = ($_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') === 'development';
+$_isDev = (getenv('APP_ENV') ?: ($_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production')) === 'development';
 $errorMiddleware = $app->addErrorMiddleware($_isDev, true, true);
 $errorMiddleware->setDefaultErrorHandler(
     new \App\Handlers\DetailedErrorHandler(

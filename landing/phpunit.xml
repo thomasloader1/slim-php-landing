@@ -16,7 +16,8 @@
         <env name="APP_ENV" value="testing"/>
         <env name="DB_HOST" value="mysql-server"/>
         <env name="DB_PORT" value="3306"/>
-        <env name="DB_NAME" value="project_landing_test"/>
+        <!-- force: el contenedor define DB_NAME de la DB real; los tests nunca deben usarla -->
+        <env name="DB_NAME" value="project_landing_test" force="true"/>
         <env name="DB_USER" value="main_user"/>
         <env name="DB_PASS" value="password"/>
         <const name="PHPUNIT_RUNNING" value="true"/>

@@ -27,6 +27,5 @@ CREATE TABLE IF NOT EXISTS `sites` (
 
 INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_site_manager_enabled', '0'),
-    ('site_manager_encryption_key', ''),
     ('site_manager_default_redirect_url', '')
 ON DUPLICATE KEY UPDATE `setting_value` = `setting_value`;

@@ -5,7 +5,10 @@ use App\Controllers\Front\SitemapController;
 use App\Controllers\Api\LinkApiController;
 use App\Controllers\Admin\AuthController;
 use App\Controllers\Admin\DashboardController;
+use App\Controllers\Admin\DemoAdminController;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ReadOnlyMiddleware;
+use App\Middleware\CsrfMiddleware;
 use Slim\Routing\RouteCollectorProxy;
 
 /** @var \Slim\App $app */
@@ -15,6 +18,7 @@ $app->get('/', LandingController::class);
 $app->get('/menu', \App\Controllers\Front\MenuController::class);
 $app->get('/sitemap.xml', [SitemapController::class, 'sitemap']);
 $app->get('/robots.txt',  [SitemapController::class, 'robots']);
+$app->get('/healthz', \App\Controllers\Front\HealthController::class);
 
 // API Routes
 $app->group('/api', function (RouteCollectorProxy $group) {
@@ -28,6 +32,7 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('/login', [AuthController::class, 'showLogin']);
     $group->post('/login', [AuthController::class, 'login']);
     $group->post('/logout', [AuthController::class, 'logout']);
+    $group->get('/sso', [AuthController::class, 'sso']); // SSO superadmin -> sitio (token de un solo uso)
 
     $group->get('', DashboardController::class);
     $group->get('/', DashboardController::class);
@@ -55,6 +60,11 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->post('/locations/delete/{id}', [\App\Controllers\Admin\LocationAdminController::class, 'delete']);
     $group->post('/locations/reorder',  [\App\Controllers\Admin\LocationAdminController::class, 'reorder']);
     $group->post('/locations/display',  [\App\Controllers\Admin\LocationAdminController::class, 'updateDisplay']);
+    $group->post('/locations/{id:[0-9]+}/toggle-mode', [\App\Controllers\Admin\LocationAdminController::class, 'toggleMode']);
+
+    // UX Builder: orden de bloques, textos, componentes y botón de WhatsApp
+    $group->get('/builder',  [\App\Controllers\Admin\BuilderAdminController::class, 'index']);
+    $group->post('/builder', [\App\Controllers\Admin\BuilderAdminController::class, 'update']);
 
     // Users CRUD
     $group->group('/users', function (RouteCollectorProxy $userGroup) {
@@ -110,6 +120,30 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->post('/menu/items/delete/{id}', [\App\Controllers\Admin\MenuItemAdminController::class, 'delete']);
     $group->post('/menu/items/reorder',     [\App\Controllers\Admin\MenuItemAdminController::class, 'reorder']);
 
+    // Sistema: diagnóstico y reparación (superadmin, solo dominio master)
+    $group->group('/system', function (RouteCollectorProxy $sys) {
+        $sys->get('', [\App\Controllers\Admin\SystemAdminController::class, 'index']);
+        $sys->post('/migrate', [\App\Controllers\Admin\SystemAdminController::class, 'migrate']);
+        $sys->post('/rotate-keys', [\App\Controllers\Admin\SystemAdminController::class, 'rotateKeys']);
+    })->add(\App\Middleware\MasterOnlyMiddleware::class);
+
+    // Servidores remotos por SSH (superadmin, solo dominio master)
+    $group->group('/servers', function (RouteCollectorProxy $srv) {
+        $c = \App\Controllers\Admin\ServerAdminController::class;
+        $srv->get('', [$c, 'index']);
+        $srv->get('/create', [$c, 'create']);
+        $srv->post('/create', [$c, 'store']);
+        $srv->get('/edit/{id:[0-9]+}', [$c, 'edit']);
+        $srv->post('/edit/{id:[0-9]+}', [$c, 'update']);
+        $srv->post('/delete/{id:[0-9]+}', [$c, 'delete']);
+        $srv->get('/{id:[0-9]+}', [$c, 'show']);
+        $srv->post('/{id:[0-9]+}/fingerprint', [$c, 'fingerprint']);
+        $srv->post('/{id:[0-9]+}/pin', [$c, 'pin']);
+        $srv->post('/{id:[0-9]+}/health', [$c, 'health']);
+        $srv->post('/{id:[0-9]+}/logs', [$c, 'logs']);
+        $srv->post('/{id:[0-9]+}/provision', [$c, 'provision']);
+    })->add(\App\Middleware\MasterOnlyMiddleware::class);
+
     // Gestor de Sitios (admin only)
     $group->group('/sites', function (RouteCollectorProxy $siteGroup) {
         $siteGroup->get('', [\App\Controllers\Admin\SiteAdminController::class, 'index']);
@@ -121,7 +155,20 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $siteGroup->post('/{id}/suspend', [\App\Controllers\Admin\SiteAdminController::class, 'suspend']);
         $siteGroup->post('/{id}/activate', [\App\Controllers\Admin\SiteAdminController::class, 'activate']);
         $siteGroup->post('/{id}/test', [\App\Controllers\Admin\SiteAdminController::class, 'testConnection']);
-    })->add(\App\Middleware\RoleMiddleware::class);
+        $siteGroup->post('/{id}/create-db', [\App\Controllers\Admin\SiteAdminController::class, 'createDatabase']);
+        $siteGroup->post('/{id}/initialize', [\App\Controllers\Admin\SiteAdminController::class, 'initialize']);
+        $siteGroup->post('/{id}/verify-domain', [\App\Controllers\Admin\SiteAdminController::class, 'verifyDomain']);
+        $siteGroup->post('/{id}/impersonate', [\App\Controllers\Admin\SiteAdminController::class, 'impersonate']);
+    })->add(\App\Middleware\MasterOnlyMiddleware::class);
 })
     ->add(\App\Middleware\CsrfMiddleware::class)
+    ->add(ReadOnlyMiddleware::class)
+    ->add(AuthMiddleware::class);
+
+// Demo reset — requires auth but bypasses ReadOnlyMiddleware so
+// the POST /admin/demo/reset works even when demo mode is ON.
+$app->group('/admin/demo', function (RouteCollectorProxy $group) {
+    $group->post('/reset', [DemoAdminController::class, 'reset']);
+})
+    ->add(CsrfMiddleware::class)
     ->add(AuthMiddleware::class);

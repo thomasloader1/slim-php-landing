@@ -1,0 +1,110 @@
+<?php
+
+namespace Tests\Unit\Services;
+
+use App\Services\EncryptionService;
+use App\Services\MigrationService;
+use App\Services\SsoTokenService;
+use App\Support\SqlSplitter;
+use Illuminate\Database\Capsule\Manager as Capsule;
+use Tests\TestCase;
+
+class SiteManagementServicesTest extends TestCase
+{
+    private const KEY = 'test-encryption-key-32chars-long!';
+
+    protected function tearDown(): void
+    {
+        Capsule::table('settings')->where('setting_key', 'like', 'sso_nonce:%')->delete();
+        parent::tearDown();
+    }
+
+    /** @test */
+    public function splitter_respects_quotes_and_comments(): void
+    {
+        $sql = "-- comentario; con punto y coma\n"
+            . "INSERT INTO t VALUES ('a;b', \"c;d\", 'it''s; ok', 'esc\\'; x');\n"
+            . "/* bloque; */ CREATE TABLE `x;y` (id INT);\n"
+            . "# otro; comentario\n"
+            . "SELECT 1";
+
+        $out = SqlSplitter::split($sql);
+
+        $this->assertCount(3, $out);
+        $this->assertStringContainsString("'a;b'", $out[0]);
+        $this->assertStringContainsString("'it''s; ok'", $out[0]);
+        $this->assertStringContainsString('`x;y`', $out[1]);
+        $this->assertSame('SELECT 1', $out[2]);
+    }
+
+    /** @test */
+    public function splitter_parses_real_schema_files(): void
+    {
+        $root = dirname(__DIR__, 3) . '/db/';
+        foreach (array_merge(MigrationService::SITE_FILES, MigrationService::MASTER_FILES, [MigrationService::SEED_FILE]) as $f) {
+            $stmts = SqlSplitter::split(file_get_contents($root . $f));
+            $this->assertNotEmpty($stmts, $f);
+            foreach ($stmts as $s) {
+                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|SET)\b/i', $s, "{$f}: sentencia inesperada");
+            }
+        }
+    }
+
+    /** @test */
+    public function migrate_is_idempotent_and_never_seeds_default_admin(): void
+    {
+        $conn = Capsule::connection('default');
+        $svc = new MigrationService();
+        $usersBefore = $conn->table('users')->count();
+
+        $svc->migrate($conn, 'master', true);
+        $log = $svc->migrate($conn, 'master', true); // segunda vez: no debe fallar
+
+        $this->assertNotEmpty($log);
+        $this->assertSame([], $svc->missingTables($conn, 'master'));
+        $this->assertSame($usersBefore, $conn->table('users')->count());
+        foreach ($svc->status($conn, 'master') as $m) {
+            $this->assertSame('applied', $m['status'], $m['file']);
+        }
+    }
+
+    /** @test */
+    public function sso_token_is_single_use_and_bound_to_site(): void
+    {
+        $master = Capsule::connection('default');
+        $sso = new SsoTokenService(self::KEY);
+
+        $token = $sso->issue(7, $master);
+        $this->assertNull($sso->consume($token, 8, $master), 'otro sitio');
+        $this->assertSame(7, $sso->consume($token, 7, $master));
+        $this->assertNull($sso->consume($token, 7, $master), 'reuso');
+    }
+
+    /** @test */
+    public function sso_rejects_tampered_or_foreign_tokens(): void
+    {
+        $master = Capsule::connection('default');
+        $token = (new SsoTokenService(self::KEY))->issue(3, $master);
+
+        [$payload, $sig] = explode('.', $token);
+        $forged = rtrim(strtr(base64_encode(json_encode(['s' => 4, 'e' => time() + 60, 'n' => str_repeat('a', 32)])), '+/', '-_'), '=');
+
+        $sso = new SsoTokenService(self::KEY);
+        $this->assertNull($sso->consume($forged . '.' . $sig, 4, $master));
+        $this->assertNull((new SsoTokenService('otra-clave-distinta-de-32-bytes!!'))->consume($token, 3, $master));
+        $this->assertNull($sso->consume('basura', 3, $master));
+    }
+
+    /** @test */
+    public function explicit_active_key_version_wins_over_env(): void
+    {
+        putenv('TENANT_ENCRYPTION_KEY_ACTIVE=v1');
+        $v2 = new EncryptionService(self::KEY, 'otra-clave-de-al-menos-32-bytes!!', 'v2');
+
+        $cipher = $v2->encrypt('secreto');
+
+        $this->assertStringStartsWith('v2:', $cipher);
+        $this->assertSame('secreto', $v2->decrypt($cipher));
+        putenv('TENANT_ENCRYPTION_KEY_ACTIVE');
+    }
+}

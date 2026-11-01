@@ -202,13 +202,3 @@ class MenuItemAdminController
         return MenuItem::class;
     }
 }
-
-        foreach ($data['order'] as $index => $id) {
-            MenuItem::where('id', (int) $id)->update(['sort_order' => $index]);
-        }
-
-        $response->getBody()->write(json_encode(['ok' => true]));
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-
-}

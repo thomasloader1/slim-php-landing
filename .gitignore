@@ -4,3 +4,8 @@ composer.lock
 composer.phar
 vendor
 .phpunit.cache
+secrets/
+.atl/
+docs/
+bin/
+public/.htaccess

@@ -646,5 +646,6 @@
     })();
     </script>
 
+    @include('partials/demo-badge')
 </body>
 </html>

@@ -1,0 +1,31 @@
+-- =============================================================
+--  MASTER: servidores remotos (cPanel) administrados por SSH
+--  desde el panel local.
+--  - La clave privada NUNCA se guarda acá: solo la ruta al archivo,
+--    que debe estar dentro de SSH_KEYS_DIR (montado read-only).
+--  - La passphrase se guarda cifrada con TENANT_ENCRYPTION_KEY.
+--  - host_key_fingerprint: huella SHA256 confirmada por el usuario
+--    (si el servidor cambia de clave, la conexión se rechaza).
+--  - Las credenciales de la DB master de producción NO se guardan:
+--    las operaciones corren `php bin/console` en el servidor, que
+--    usa su propio .env.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS `servers` (
+    `id`                        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name`                      VARCHAR(150) NOT NULL,
+    `host`                      VARCHAR(255) NOT NULL,
+    `port`                      INT UNSIGNED NOT NULL DEFAULT 22,
+    `username`                  VARCHAR(100) NOT NULL,
+    `key_path`                  VARCHAR(500) NOT NULL,
+    `key_passphrase_encrypted`  TEXT NULL,
+    `host_key_fingerprint`      VARCHAR(255) NULL,
+    `cpanel_user`               VARCHAR(100) NULL,
+    `remote_app_path`           VARCHAR(500) NOT NULL DEFAULT 'landing',
+    `php_bin`                   VARCHAR(200) NOT NULL DEFAULT 'php',
+    `mysql_host`                VARCHAR(255) NOT NULL DEFAULT 'localhost',
+    `last_check_at`             TIMESTAMP NULL,
+    `last_check_ok`             TINYINT(1) NULL,
+    `created_at`                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`                TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

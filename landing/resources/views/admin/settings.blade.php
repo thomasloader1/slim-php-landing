@@ -27,19 +27,18 @@
                         <input type="text" name="landing_title" value="{{ $settings['landing_title'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Subtítulo / Profesión</label>
                         <input type="text" name="landing_subtitle" value="{{ $settings['landing_subtitle'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
                     </div>
-                    <div class="col-span-2 mb-16">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Biografía / Descripción</label>
-                        <div id="bio-editor" class="bg-slate-950 border border-slate-800 rounded-xl text-white min-h-[120px]" style="font-size:1rem; line-height:1.5;">{!! $settings['landing_bio'] ?? '' !!}</div>
-                        <textarea name="landing_bio" id="bio-hidden" class="hidden">{{ $settings['landing_bio'] ?? '' }}</textarea>
+                        @include('admin/partials/bio-editor', ['value' => $settings['landing_bio'] ?? ''])
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Favicon (Subir Imagen)</label>
-                        <input type="file" name="favicon_file" accept="image/png,image/x-icon,image/svg+xml"
+                        <input type="file" name="favicon_file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,image/gif,image/jpeg"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
                         @if(!empty($settings['landing_favicon_url']))
                             <div class="mt-3 flex items-center gap-3 flex-wrap">
@@ -51,15 +50,15 @@
                                 </label>
                             </div>
                         @endif
-                        <p class="text-[10px] text-slate-500 mt-2 italic">Formatos: .png, .ico, .svg — Tamaño recomendado: 32x32 o 64x64 px.</p>
+                        <p class="text-[10px] text-slate-500 mt-2 italic">Formatos: .png, .ico, .webp, .jpg — Tamaño recomendado: 32x32 o 64x64 px.</p>
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL de favicon externa</label>
                         <input type="text" name="landing_favicon_url" value="{{ $settings['landing_favicon_url'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
                                placeholder="https://...">
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Avatar (Subir Imagen)</label>
                         <input type="file" name="avatar_file" accept="image/*"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
@@ -74,7 +73,7 @@
                             </div>
                         @endif
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">O usar URL externa</label>
                         <input type="text" name="landing_avatar_url" value="{{ $settings['landing_avatar_url'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"
@@ -142,7 +141,7 @@
 
                     <div class="col-span-1">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Opacidad Overlay (0-100)</label>
-                        <input type="number" name="landing_bg_overlay_opacity" value="{{ $settings['landing_bg_overlay_opacity'] ?? '50' }}" min="0" max="100"
+                        <input type="number" name="landing_bg_overlay_opacity" value="{{ overlay_opacity_percent($settings['landing_bg_overlay_opacity'] ?? null) }}" min="0" max="100" step="1"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
                     </div>
 
@@ -256,38 +255,4 @@
         </div>
     </form>
 </div>
-@push('scripts')
-<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-<style>
-    /* Adaptar Quill al tema oscuro */
-    #bio-editor .ql-editor { min-height: 120px; color: #fff; }
-    .ql-toolbar.ql-snow { border-color: #1e293b; background: #0f172a; border-radius: 0.75rem 0.75rem 0 0; }
-    .ql-container.ql-snow { border-color: #1e293b; border-radius: 0 0 0.75rem 0.75rem; }
-    .ql-snow .ql-stroke { stroke: #94a3b8; }
-    .ql-snow .ql-fill { fill: #94a3b8; }
-    .ql-snow .ql-picker { color: #94a3b8; }
-    #bio-editor { border-radius: 0.75rem; overflow: hidden; border: 1px solid #1e293b; }
-    #bio-editor .ql-toolbar { border-bottom: 1px solid #1e293b; }
-</style>
-<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-<script>
-    var quill = new Quill('#bio-editor', {
-        theme: 'snow',
-        formats: ['bold', 'italic', 'list', 'link'],
-        modules: {
-            toolbar: [
-                ['bold', 'italic'],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                ['link'],
-                ['clean']
-            ]
-        }
-    });
-    // Al enviar, copiar HTML al textarea oculto
-    document.getElementById('settings-form').addEventListener('submit', function() {
-        document.getElementById('bio-hidden').value = quill.root.innerHTML;
-    });
-</script>
-
-@endpush
 @endsection

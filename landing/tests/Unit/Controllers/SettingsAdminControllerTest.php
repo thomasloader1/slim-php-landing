@@ -23,11 +23,11 @@ class SettingsAdminControllerTest extends TestCase
 
     private array $imageMimes = [
         'image/png', 'image/jpeg', 'image/gif', 'image/webp',
-        'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon',
+        'image/x-icon', 'image/vnd.microsoft.icon',
     ];
 
     private array $allowedExtensions = [
-        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico',
+        'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico',
     ];
 
     /** @test */

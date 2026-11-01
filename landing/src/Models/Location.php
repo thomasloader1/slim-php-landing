@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\MapEmbed;
+use App\Support\WhatsApp;
 use App\Traits\HasActiveScope;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,33 +19,46 @@ class Location extends Model
         'sort_order', 'active',
     ];
 
-    /** Extrae la URL src del iframe embed_code, o devuelve null. */
+    /**
+     * URL para el <iframe> del mapa.
+     * 1) src del código "Insertar mapa" pegado (solo hosts de Google permitidos por CSP)
+     * 2) si no hay código, se deriva del link de Google Maps o de la dirección
+     */
     public function getEmbedSrc(): ?string
     {
-        if ($this->embed_code && preg_match('/src=["\']([^"\']+)["\']/i', $this->embed_code, $m)) {
-            return $m[1];
+        return MapEmbed::srcFromIframe($this->embed_code)
+            ?? MapEmbed::fromUrlOrAddress($this->url, $this->address);
+    }
+
+    /** URL para abrir la ubicación en Google Maps (botón / "Cómo llegar"). */
+    public function getMapsLinkAttribute(): ?string
+    {
+        if (!empty($this->url)) {
+            return $this->url;
+        }
+        if (!empty($this->address)) {
+            return 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($this->address);
         }
         return null;
     }
 
     /**
-     * URL de WhatsApp lista para usar en href.
-     * Acepta número con o sin prefijo +/00, limpia espacios y guiones.
-     */
-    /**
-     * URL de WhatsApp lista para usar en href.
-     * Incluye mensaje pre-cargado si está configurado (WhatsApp API).
+     * URL de WhatsApp (wa.me) con mensaje pre-cargado.
+     * En escritorio la landing la reemplaza por WhatsApp Web (whatsapp_web_url).
      */
     public function getWhatsappUrlAttribute(): ?string
     {
         if (empty($this->whatsapp)) {
             return null;
         }
-        $number = preg_replace('/[^0-9]/', '', $this->whatsapp);
-        $url    = 'https://wa.me/' . $number;
-        if (!empty($this->whatsapp_message)) {
-            $url .= '?text=' . rawurlencode($this->whatsapp_message);
+        return WhatsApp::appUrl($this->whatsapp, $this->whatsapp_message);
+    }
+
+    public function getWhatsappWebUrlAttribute(): ?string
+    {
+        if (empty($this->whatsapp)) {
+            return null;
         }
-        return $url;
+        return WhatsApp::webUrl($this->whatsapp, $this->whatsapp_message);
     }
 }

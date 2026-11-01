@@ -6,6 +6,13 @@
 
 @section('content')
 <div class="space-y-6">
+    @if(!($moduleEnabled ?? true))
+        <div class="bg-yellow-950/40 border border-yellow-800 rounded-2xl p-4 text-sm text-yellow-200 flex items-center gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-yellow-400"></i>
+            <span>El módulo <strong>Gestor de sitios</strong> está desactivado: los dominios de estos sitios muestran la landing master.
+            Activalo en <a href="{{ url('admin/modules') }}" class="underline">Módulos</a>.</span>
+        </div>
+    @endif
     <div class="flex justify-end">
         <a href="{{ url('admin/sites/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus text-sm"></i> Nuevo Sitio
@@ -48,6 +55,9 @@
                             <tr class="{{ $rowClass }} hover:bg-slate-800/50 transition-colors">
                                 <td class="px-6 py-4">
                                     <span class="font-bold text-white">{{ $site->name }}</span>
+                                    @if(!$site->initialized_at)
+                                        <span class="ml-1 text-[10px] uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">Sin inicializar</span>
+                                    @endif
                                     <span class="block sm:hidden text-xs text-slate-500 mt-0.5">{{ $site->domain }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-slate-400 hidden sm:table-cell">{{ $site->domain }}</td>
@@ -98,6 +108,15 @@
                                                 title="Probar conexión">
                                             <i class="fa-solid fa-plug text-xs"></i>
                                         </button>
+                                        <!-- Entrar como admin -->
+                                        @if($site->status === 'active')
+                                            <form action="{{ url('admin/sites/' . $site->id . '/impersonate') }}" method="POST" class="inline" target="_blank" data-no-loading>
+                                                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-amber-900 text-slate-400 hover:text-amber-400 transition-colors" title="Entrar como admin">
+                                                    <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                         <!-- Editar -->
                                         <a href="{{ url('admin/sites/edit/' . $site->id) }}"
                                            class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
@@ -152,7 +171,7 @@ function testConnection(siteId, btn) {
 
     fetch('{{ url("admin/sites") }}/' + siteId + '/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '{{ $_SESSION['csrf_token'] ?? '' }}' }
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {

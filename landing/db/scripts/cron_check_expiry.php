@@ -44,10 +44,8 @@ if ($moduleEnabled !== '1') {
     exit(0);
 }
 
-// Obtener clave de encriptación
-$encryptionKey = Capsule::table('settings')
-    ->where('setting_key', 'site_manager_encryption_key')
-    ->value('setting_value') ?? '';
+// Obtener clave de encriptación desde el entorno
+$encryptionKey = getenv('TENANT_ENCRYPTION_KEY') ?: $_ENV['TENANT_ENCRYPTION_KEY'] ?? '';
 
 if (empty($encryptionKey)) {
     echo "[" . date('Y-m-d H:i:s') . "] Clave de encriptación no configurada. Saliendo.\n";
@@ -74,7 +72,7 @@ foreach ($expiredSites as $site) {
     $site->update(['status' => 'suspended']);
 
     try {
-        $connectionService->syncStatus($site, $encryptionKey);
+        $connectionService->syncStatus($site);
         echo "  -> Sync remoto OK\n";
     } catch (\Exception $e) {
         echo "  -> Error sync remoto: " . $e->getMessage() . "\n";

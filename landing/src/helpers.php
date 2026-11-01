@@ -27,3 +27,23 @@ if (!function_exists('request_is')) {
         return $uri === $path;
     }
 }
+
+if (!function_exists('overlay_opacity_percent')) {
+    /**
+     * Normaliza la opacidad del overlay de la landing a un entero 0-100.
+     * Históricamente el seed/demo guardaban fracciones ("0.5") mientras el admin
+     * y la landing esperan porcentaje ("50"): un "0.5" bloqueaba el form de Ajustes
+     * (input step=1) y dejaba el overlay casi invisible (0.5/100).
+     */
+    function overlay_opacity_percent($value, int $default = 50): int
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return $default;
+        }
+        $n = (float) $value;
+        if ($n > 0 && $n <= 1 && str_contains((string) $value, '.')) {
+            $n *= 100; // fracción heredada
+        }
+        return (int) max(0, min(100, round($n)));
+    }
+}

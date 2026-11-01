@@ -38,7 +38,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_logo_url',            ''),
     ('landing_bg_image_url',        ''),
     ('landing_bg_overlay',          '0'),
-    ('landing_bg_overlay_opacity',  '0.5'),
+    ('landing_bg_overlay_opacity',  '50'),
     ('seo_description',             ''),
     ('seo_keywords',                ''),
     ('seo_author',                  ''),
@@ -64,5 +64,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_links_display',       'list'),
     ('landing_logo_size',           'sm'),
     ('favicon_version',             '')
+-- Solo completa claves faltantes: NUNCA pisar la configuración existente
+-- (re-inicializar un sitio reseteaba título, colores, bio, etc.)
 ON DUPLICATE KEY UPDATE
-    `setting_value` = VALUES(`setting_value`);
+    `setting_key` = `setting_key`;

@@ -13,7 +13,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {{-- Nombre --}}
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
                     Nombre de la ubicación <span class="text-red-400">*</span>
                 </label>
@@ -22,14 +22,14 @@
             </div>
 
             {{-- Dirección --}}
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Dirección</label>
                 <input type="text" name="address" placeholder="Ej: Av. Corrientes 1234, CABA"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
             </div>
 
             {{-- WhatsApp --}}
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
                     Número de WhatsApp
                     <span class="text-slate-600 font-normal ml-1">(opcional)</span>
@@ -49,7 +49,7 @@
             </div>
 
             {{-- Mensaje de WhatsApp --}}
-            <div class="col-span-2" id="whatsapp-message-group" style="display:none">
+            <div class="md:col-span-2" id="whatsapp-message-group" style="display:none">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
                     Mensaje pre-cargado
                     <span class="text-slate-600 font-normal ml-1">(WhatsApp API)</span>
@@ -65,7 +65,7 @@
             </div>
 
             {{-- Modo --}}
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Modo de visualización del mapa</label>
                 <select name="mode" id="location-mode"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
@@ -75,16 +75,18 @@
             </div>
 
             {{-- URL (botón) --}}
-            <div class="col-span-2" id="url-group">
-                <label class="block text-sm font-medium text-slate-400 mb-2">URL de Google Maps (para botón)</label>
+            <div class="md:col-span-2" id="url-group">
+                <label class="block text-sm font-medium text-slate-400 mb-2">Link de Google Maps
+                    <span class="text-slate-600 font-normal ml-1">(se usa para el botón y para generar el mapa)</span>
+                </label>
                 <input type="text" name="url" placeholder="https://maps.google.com/..."
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
             </div>
 
             {{-- Embed code --}}
-            <div class="col-span-2" id="embed-group">
+            <div class="md:col-span-2" id="embed-group">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
-                    Código de Mapa Embebido
+                    Código de Mapa Embebido <span class="text-slate-600 font-normal">(opcional)</span>
                     <span class="ml-2 text-xs font-normal text-slate-500">
                         (Google Maps &rarr; Compartir &rarr; Insertar mapa &rarr; copiar el &lt;iframe&gt;)
                     </span>
@@ -92,13 +94,14 @@
                 <textarea name="embed_code" rows="4"
                           class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white resize-none font-mono text-xs"
                           placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." ...></iframe>'></textarea>
+                <p class="text-xs text-slate-500 mt-1.5"><i class="fa-solid fa-wand-magic-sparkles text-slate-600 mr-1"></i>Si lo dejás vacío, el mapa se genera solo a partir del link de Google Maps o de la dirección.</p>
                 <p class="text-[10px] text-slate-500 mt-2 italic">
                     Pegá el código &lt;iframe&gt; completo. Se extraerá automáticamente la URL de embed.
                 </p>
             </div>
 
             {{-- Activo --}}
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer">
                     <div class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="active" checked class="sr-only peer">
@@ -133,7 +136,7 @@
     function toggle() {
         var isEmbed = modeSelect.value === 'embed';
         embedGroup.style.display = isEmbed ? '' : 'none';
-        urlGroup.style.display   = isEmbed ? 'none' : '';
+        urlGroup.style.display   = ''; // el link sirve en ambos modos
     }
     modeSelect.addEventListener('change', toggle);
     toggle();

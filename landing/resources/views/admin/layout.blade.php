@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>@yield('title') | {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? $_ENV['APP_NAME'] }}</title>
+    <title>@yield('title') | {{ \Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'site_name')->value('setting_value') ?? $_ENV['APP_NAME'] ?? '' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -68,6 +68,9 @@
                         <i class="fa-solid fa-puzzle-piece w-5"></i> Módulos
                     </a>
                 @endif
+                <a href="{{ url('admin/builder') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/builder*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-wand-magic-sparkles w-5"></i> UX Builder
+                </a>
                 @if($__linksEnabled)
                 <a href="{{ url('admin/links') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/links*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-link w-5"></i> Enlaces
@@ -101,9 +104,17 @@
                     @endif
                 </a>
                 @endif
-                @if($__siteManagerEnabled && ($_SESSION['user_role'] ?? '') === 'admin')
+                @if($__siteManagerEnabled && ($_SESSION['user_role'] ?? '') === 'admin' && ($_SESSION['context'] ?? 'master') === 'master')
                 <a href="{{ url('admin/sites') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/sites*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
                     <i class="fa-solid fa-server w-5"></i> Sitios
+                </a>
+                @endif
+                @if(($_SESSION['user_role'] ?? '') === 'admin' && ($_SESSION['context'] ?? 'master') === 'master')
+                <a href="{{ url('admin/system') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/system*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-stethoscope w-5"></i> Sistema
+                </a>
+                <a href="{{ url('admin/servers') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin/servers*') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+                    <i class="fa-solid fa-terminal w-5"></i> Servidores
                 </a>
                 @endif
             </nav>
@@ -118,6 +129,7 @@
                         <p class="text-xs text-slate-500 truncate capitalize">{{ $_SESSION['user_role'] ?? 'Editor' }}</p>
                     </div>
                     <form action="{{ url('admin/logout') }}" method="POST" data-no-loading>
+                        <input type="hidden" name="_token" value="{{ $_SESSION['csrf_token'] ?? '' }}">
                         <button type="submit" class="text-slate-500 hover:text-red-400 transition-colors">
                             <i class="fa-solid fa-power-off text-sm"></i>
                         </button>
@@ -163,10 +175,17 @@
             </div>
             @endif
 
+            @if(!empty($_SESSION['impersonated_by']))
+                <div class="bg-amber-950/50 border border-amber-700 rounded-2xl p-4 mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-user-secret text-amber-400"></i>
+                    <p class="text-sm text-amber-200">Estás en este sitio como <strong>superadmin</strong> (acceso desde el panel master). Los cambios afectan al sitio del cliente.</p>
+                </div>
+            @endif
             {{-- Flash messages desde query string --}}
             @php
-                $_flashError   = $_GET['error'] ?? null;
-                $_flashSuccess = $_GET['success'] ?? null;
+                $_flashError   = $_SESSION['flash_error'] ?? null;
+                $_flashSuccess = $_SESSION['flash_success'] ?? null;
+                unset($_SESSION['flash_error'], $_SESSION['flash_success']); // mostrar una sola vez
             @endphp
             @if($_flashError)
                 <div class="bg-red-950/50 border border-red-800 rounded-2xl p-4 mb-6 flex items-start gap-3">
@@ -184,6 +203,8 @@
             <div class="space-y-8">
                 @yield('content')
             </div>
+
+            @include('partials/demo-badge')
         </main>
     </div>
 
