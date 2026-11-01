@@ -16,8 +16,8 @@
         </a>
     @empty
         <div class="col-span-full glass p-12 rounded-3xl text-center border-dashed border-white/10">
-            <i class="fa-solid fa-link-slash text-white/20 text-4xl mb-4 block"></i>
-            <p class="text-white/40 text-base">No hay enlaces todavía.</p>
+            <i class="fa-solid fa-link-slash t-faint text-4xl mb-4 block"></i>
+            <p class="t-subtle text-base">No hay enlaces todavía.</p>
         </div>
     @endforelse
 </div>
@@ -35,12 +35,12 @@
                                          {!! $link->getIconHtml() !!}
             </div>
             <span class="flex-1 font-semibold text-lg ml-3" style="{{ $__hasBg ? 'color:' . $__contrast : '' }}">{{ $link->title }}</span>
-            <i class="fa-solid fa-arrow-up-right-from-square text-xs transition-all" style="{{ $__hasBg ? 'color:' . $__contrast . '; opacity:0.4;' : 'color: rgba(255,255,255,0.2);' }}"></i>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs transition-all" style="{{ $__hasBg ? 'color:' . $__contrast . '; opacity:0.4;' : 'color: var(--text-faint);' }}"></i>
         </a>
     @empty
         <div class="glass p-12 rounded-3xl text-center border-dashed border-white/10">
-            <i class="fa-solid fa-link-slash text-white/20 text-4xl mb-4 block"></i>
-            <p class="text-white/40 text-base">No hay enlaces todavía.</p>
+            <i class="fa-solid fa-link-slash t-faint text-4xl mb-4 block"></i>
+            <p class="t-subtle text-base">No hay enlaces todavía.</p>
         </div>
     @endforelse
 </div>

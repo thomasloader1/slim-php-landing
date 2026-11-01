@@ -27,6 +27,10 @@
             --accent: {{ $settings['landing_accent_color'] ?? '#fec771' }};
             --bg-base: {{ $settings['landing_bg_color'] ?? '#020617' }};
             --text: {{ $settings['landing_text_color'] ?? '#ffffff' }};
+            /* Tonos del color de texto elegido en Apariencia (todos los textos los usan) */
+            --text-muted: color-mix(in srgb, var(--text) 75%, transparent);
+            --text-subtle: color-mix(in srgb, var(--text) 45%, transparent);
+            --text-faint: color-mix(in srgb, var(--text) 25%, transparent);
             --overlay: {{ $settings['landing_bg_overlay'] ?? '#000000' }};
             --opacity: {{ overlay_opacity_percent($settings['landing_bg_overlay_opacity'] ?? null) / 100 }};
         }
@@ -46,7 +50,7 @@
             height: 100%;
             z-index: -1;
             @if(!empty($settings['landing_bg_image_url']))
-                background-image: url('{{ $settings['landing_bg_image_url'] }}');
+                background-image: url({!! json_encode((string) $settings['landing_bg_image_url'], JSON_UNESCAPED_UNICODE) !!});
                 background-size: cover;
                 background-position: center;
                 background-attachment: fixed;
@@ -77,6 +81,10 @@
         .accent-bg { background-color: var(--accent); }
         .accent-border { border-color: var(--accent); }
         /* Estilos para contenido rich text de la bio */
+        .t-muted  { color: var(--text-muted); }
+        .t-subtle { color: var(--text-subtle); }
+        .t-faint  { color: var(--text-faint); }
+        .hover-t-text:hover { color: var(--text); }
         .bio-content ul { list-style: disc; padding-left: 1.5rem; text-align: left; }
         .bio-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
         .bio-content strong { font-weight: 700; }

@@ -15,7 +15,7 @@
                 ['key' => 'module_links_enabled',     'label' => 'Enlaces',              'icon' => 'fa-link',             'desc' => 'Sección de enlaces estilo Linktree. Oculta también la gestión de enlaces en el sidebar y ajustes.'],
                 ['key' => 'module_bio_enabled',       'label' => 'Biografía',            'icon' => 'fa-align-left',       'desc' => 'Muestra la sección de biografía/descripción en la landing page.'],
                 ['key' => 'module_locations_enabled', 'label' => 'Ubicaciones',          'icon' => 'fa-map-location-dot', 'desc' => 'CRUD de sucursales/ubicaciones con mapa embebido o botón.'],
-                ['key' => 'module_menu_enabled',      'label' => 'Productos',            'icon' => 'fa-box-open',         'desc' => 'Catálogo de productos con categorías, precios, stock e importación desde Excel. Oculta la gestión de productos en el sidebar.'],
+                ['key' => 'module_menu_enabled',      'label' => 'Shop',                 'icon' => 'fa-store',            'desc' => 'Catálogo de productos y tienda simple: carrito, pedidos por WhatsApp con control de stock, importación desde Excel. Oculta Shop y Pedidos en el sidebar.'],
                 ['key' => 'module_site_manager_enabled', 'label' => 'Gestor de Sitios',  'icon' => 'fa-server',           'desc' => 'Panel central para gestionar N landings: plazos de contratación, vencimientos de dominio, suspensión automática.'],
             ];
         @endphp

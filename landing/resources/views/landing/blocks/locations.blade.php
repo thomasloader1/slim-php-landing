@@ -20,9 +20,9 @@
                 <div class="glass rounded-2xl overflow-hidden">
                     <div class="px-5 py-3 flex items-center justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="text-white text-sm font-semibold truncate">{{ $loc->name }}</p>
+                            <p class="text-sm font-semibold truncate">{{ $loc->name }}</p>
                             @if($loc->address)
-                                <p class="text-white/30 text-xs truncate">{{ $loc->address }}</p>
+                                <p class="t-subtle text-xs truncate">{{ $loc->address }}</p>
                             @endif
                         </div>
                         <div class="shrink-0 flex items-center gap-3">
@@ -35,7 +35,7 @@
                             @endif
                             @if($mapsLink)
                                 <a href="{{ $mapsLink }}" target="_blank" rel="noopener noreferrer" title="Abrir en Google Maps"
-                                   class="text-white/40 hover:text-white transition-colors text-sm">
+                                   class="t-subtle hover-t-text transition-colors text-sm">
                                     <i class="fa-solid fa-diamond-turn-right"></i>
                                 </a>
                             @endif
@@ -58,10 +58,10 @@
                         <div class="flex-1 min-w-0">
                             <span class="font-semibold text-base block truncate">{{ $loc->name }}</span>
                             @if($loc->address)
-                                <span class="text-white/40 text-sm truncate block">{{ $loc->address }}</span>
+                                <span class="t-subtle text-sm truncate block">{{ $loc->address }}</span>
                             @endif
                         </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-white/20 text-xs shrink-0 transition-all"></i>
+                        <i class="fa-solid fa-arrow-up-right-from-square t-faint text-xs shrink-0 transition-all"></i>
                     </a>
                     @if($loc->whatsapp_url)
                         <div class="border-t border-white/5 px-5 py-3">

@@ -134,6 +134,16 @@ class SettingsAdminController
         ];
         foreach ($clearMap as $flag => $settingKey) {
             if (!empty($data[$flag])) {
+                // Si en el mismo guardado se escribió una URL nueva, gana la URL (no se pierde)
+                $current = (string) (Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '');
+                $typed = trim((string) ($data[$settingKey] ?? ''));
+                if ($typed !== '' && $typed !== $current) {
+                    if ($current !== '') {
+                        $this->deleteUploadedFile($current);
+                    }
+                    continue;
+                }
+
                 // Borrar archivo físico antes de limpiar el registro en DB
                 $oldValue = Capsule::table('settings')->where('setting_key', $settingKey)->value('setting_value') ?? '';
                 if ($oldValue) {
@@ -145,6 +155,31 @@ class SettingsAdminController
                     ['setting_value' => '', 'updated_at' => date('Y-m-d H:i:s')]
                 );
                 unset($data[$settingKey]);
+            }
+        }
+
+        // Imágenes por URL: https (o archivo propio). Sin esquema se asume https; http se rechaza
+        // porque el navegador la bloquea (Content-Security-Policy: img-src https:).
+        $badUrls = [];
+        $urlLabels = ['landing_avatar_url' => 'avatar', 'landing_logo_url' => 'logo', 'landing_bg_image_url' => 'imagen de fondo', 'landing_favicon_url' => 'favicon'];
+        foreach ($urlLabels as $key => $label) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            [$clean, $ok] = self::normalizeImageUrl((string) $data[$key]);
+            if ($ok) {
+                $data[$key] = $clean;
+            } else {
+                unset($data[$key]);
+                $badUrls[] = $label;
+            }
+        }
+
+        // Un favicon por URL externa reemplaza a los favicons generados (que tenían prioridad)
+        if (isset($data['landing_favicon_url'])) {
+            $currentFav = (string) (Capsule::table('settings')->where('setting_key', 'landing_favicon_url')->value('setting_value') ?? '');
+            if ($data['landing_favicon_url'] !== $currentFav && preg_match('#^https://#i', $data['landing_favicon_url'])) {
+                Capsule::table('settings')->updateOrInsert(['setting_key' => 'favicon_version'], ['setting_value' => '', 'updated_at' => date('Y-m-d H:i:s')]);
             }
         }
 
@@ -168,6 +203,9 @@ class SettingsAdminController
 
         if ($rejected) {
             $_SESSION['flash_error'] = 'Se guardaron los cambios, pero no se subió: ' . implode(', ', $rejected) . '. Formatos: PNG, JPG, GIF, WEBP o ICO.';
+        } elseif ($badUrls) {
+            $_SESSION['flash_error'] = 'Se guardaron los cambios, salvo el link de: ' . implode(', ', $badUrls)
+                . '. Usá un link directo a la imagen que empiece con https:// (ej: https://sitio.com/foto.jpg).';
         } else {
             $_SESSION['flash_success'] = 'Cambios guardados.';
         }
@@ -175,4 +213,24 @@ class SettingsAdminController
         return $response->withHeader('Location', url('admin/settings'))->withStatus(302);
     }
 
+
+    /**
+     * Normaliza el link de una imagen. Acepta https://…, rutas propias (/uploads/…) y
+     * "sitio.com/img.jpg" (se le agrega https://). @return array{0:string,1:bool} [valor, válido]
+     */
+    public static function normalizeImageUrl(string $value): array
+    {
+        $v = trim($value);
+        if (str_starts_with($v, '//')) {
+            $v = 'https:' . $v; // link sin esquema: //cdn.com/img.png
+        } elseif ($v === '' || str_starts_with($v, '/')) {
+            return [$v, true]; // vacío o archivo propio (/uploads/…)
+        } elseif (!preg_match('#^[a-z][a-z0-9+.-]*:#i', $v) && preg_match('#^[\w-]+(\.[\w-]+)+(/|$)#', $v)) {
+            $v = 'https://' . $v;
+        }
+        $ok = filter_var($v, FILTER_VALIDATE_URL) !== false
+            && strtolower((string) parse_url($v, PHP_URL_SCHEME)) === 'https'
+            && mb_strlen($v) <= 1000;
+        return [$v, $ok];
+    }
 }

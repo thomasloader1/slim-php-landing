@@ -26,7 +26,10 @@ final class HtmlSanitizer
             return '';
         }
         if (!preg_match('/<[a-z!\/]/i', $html)) {
-            return nl2br(htmlspecialchars($html, ENT_QUOTES | ENT_HTML5, 'UTF-8'), false);
+            // Texto plano: se escapa. Se decodifica antes para que sanitizar dos veces
+            // (al guardar y al mostrar) no deje "&amp;quot;".
+            $plain = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            return nl2br(htmlspecialchars($plain, ENT_QUOTES | ENT_HTML5, 'UTF-8'), false);
         }
 
         $doc = new \DOMDocument();

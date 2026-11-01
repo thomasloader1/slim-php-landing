@@ -79,10 +79,17 @@ class MenuController
 
         // URL canónica
         $pageUrl = !empty($settings['seo_site_url'])
-            ? rtrim($settings['seo_site_url'], '/') . '/menu'
+            ? rtrim($settings['seo_site_url'], '/') . '/shop'
             : '';
 
-        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode'))->render();
+        // Modo tienda: carrito + pedidos por WhatsApp (necesita un número válido en UX Builder)
+        $shopOpen = ($settings['shop_enabled'] ?? '0') === '1'
+            && \App\Support\WhatsApp::isValidNumber($settings['whatsapp_number'] ?? '');
+        $waMode = in_array($settings['whatsapp_open_mode'] ?? 'auto', \App\Support\WhatsApp::OPEN_MODES, true)
+            ? $settings['whatsapp_open_mode'] ?? 'auto'
+            : 'auto';
+
+        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode', 'shopOpen', 'waMode'))->render();
         $response->getBody()->write($html);
         return $response;
     }

@@ -35,7 +35,7 @@ class PageLayoutService
     /** Campos permitidos por tipo custom: campo => longitud máxima */
     private const FIELDS = [
         'heading' => ['text' => 150, 'size' => 2, 'align' => 6],
-        'text'    => ['text' => 3000, 'align' => 6],
+        'text'    => ['text' => 8000, 'align' => 6],   // HTML del editor (se sanitiza)
         'button'  => ['label' => 100, 'url' => 500, 'icon' => 60, 'style' => 10],
         'map'     => ['title' => 150, 'query' => 500],
         'divider' => ['style' => 10],
@@ -152,6 +152,10 @@ class PageLayoutService
             $clean[$field] = mb_substr($value, 0, $max);
         }
 
+        if ($type === 'text') {
+            // Mismo editor y lista blanca que la bio: negrita, cursiva, listas y links seguros
+            $clean['text'] = \App\Support\HtmlSanitizer::bio($clean['text']);
+        }
         if (isset($clean['align']) && !in_array($clean['align'], self::ALIGNS, true)) {
             $clean['align'] = 'center';
         }

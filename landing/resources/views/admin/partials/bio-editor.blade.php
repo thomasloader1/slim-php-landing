@@ -1,12 +1,22 @@
 {{--
-    Editor rich text de la biografía (Quill 1.3.7, servido localmente desde public/assets).
-    Envía el HTML en el campo "landing_bio"; el servidor lo sanitiza (App\Support\HtmlSanitizer).
-    Variables: $value (HTML guardado)
+    Editor rich text (Quill 1.3.7, servido localmente desde public/assets): negrita, cursiva,
+    subrayado, listas y links. El servidor sanitiza el HTML (App\Support\HtmlSanitizer::bio).
+    Variables:
+      $value        HTML guardado
+      $field        (opcional) data-field para bloques del UX Builder; si no, se envía como $name
+      $name         (opcional) nombre del campo del formulario, default "landing_bio"
+      $placeholder  (opcional)
 --}}
-@php $bioHtml = \App\Support\HtmlSanitizer::bio($value ?? ''); @endphp
-<div class="bio-editor-wrap">
+@php
+    $bioHtml = \App\Support\HtmlSanitizer::bio($value ?? '');
+    $__field = $field ?? null;
+    $__name = $__field ? null : ($name ?? 'landing_bio');
+    $__placeholder = $placeholder ?? 'Contá quién sos o qué hace tu negocio...';
+@endphp
+<div class="bio-editor-wrap" data-placeholder="{{ $__placeholder }}">
     <div class="js-bio-editor">{!! $bioHtml !!}</div>
-    <textarea name="landing_bio" class="js-bio-input hidden" aria-hidden="true" tabindex="-1">{{ $bioHtml }}</textarea>
+    <textarea @if($__name) name="{{ $__name }}" @endif @if($__field) data-field="{{ $__field }}" @endif
+              class="js-bio-input hidden" aria-hidden="true" tabindex="-1">{{ $bioHtml }}</textarea>
 </div>
 
 @php
@@ -35,14 +45,21 @@
 <script src="{{ url('assets/quill-1.3.7/quill.min.js') }}"></script>
 <script>
 (function () {
-    document.querySelectorAll('.bio-editor-wrap').forEach(function (wrap) {
+    // Inicializa los editores de root que todavía no lo estén (también bloques agregados después)
+    function initRichEditors(root) {
+        (root || document).querySelectorAll('.bio-editor-wrap:not([data-ready])').forEach(initOne);
+    }
+    window.initRichEditors = initRichEditors;
+
+    function initOne(wrap) {
+        wrap.dataset.ready = '1';
         var el = wrap.querySelector('.js-bio-editor');
         var input = wrap.querySelector('.js-bio-input');
         var quill = new Quill(el, {
             theme: 'snow',
-            placeholder: 'Contá quién sos o qué hace tu negocio...',
-            formats: ['bold', 'italic', 'list', 'link'],
-            modules: { toolbar: [['bold', 'italic'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] }
+            placeholder: wrap.dataset.placeholder || '',
+            formats: ['bold', 'italic', 'underline', 'list', 'link'],
+            modules: { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] }
         });
         function sync() {
             input.value = quill.getText().trim() === '' ? '' : quill.root.innerHTML;
@@ -54,7 +71,9 @@
         });
         var form = wrap.closest('form');
         if (form) form.addEventListener('submit', sync);
-    });
+    }
+
+    initRichEditors(document);
 })();
 </script>
 @endpush

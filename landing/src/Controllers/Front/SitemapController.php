@@ -41,7 +41,7 @@ class SitemapController
         $menuEnabled = ($settings['menu_enabled'] ?? '0') === '1';
         if ($menuEnabled) {
             $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars($siteUrl . '/menu') . '</loc>' . "\n";
+            $xml .= '    <loc>' . htmlspecialchars($siteUrl . '/shop') . '</loc>' . "\n";
             $xml .= '    <lastmod>' . $lastmod . '</lastmod>' . "\n";
             $xml .= '    <changefreq>weekly</changefreq>' . "\n";
             $xml .= '    <priority>0.8</priority>' . "\n";

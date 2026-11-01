@@ -169,6 +169,53 @@ CREATE TABLE IF NOT EXISTS `menu_items` (                        -- productos
         FOREIGN KEY (`section_id`) REFERENCES `menu_sections` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ── Shop: pedidos (comandas) que llegan por WhatsApp ─────────
+
+CREATE TABLE IF NOT EXISTS `orders` (
+    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    `code`           VARCHAR(20)   NOT NULL,                        -- ej. P-000123
+    `customer_name`  VARCHAR(100)  NOT NULL,
+    `customer_phone` VARCHAR(30)   NOT NULL,
+    `status`         ENUM('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+    `total`          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `ip_hash`        CHAR(40)          NULL DEFAULT NULL,
+    `decided_at`     TIMESTAMP         NULL DEFAULT NULL,
+    `decided_by`     VARCHAR(100)      NULL DEFAULT NULL,
+    `created_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_orders_code` (`code`),
+    KEY `idx_orders_status_created` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `order_items` (
+    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    `order_id`       INT UNSIGNED  NOT NULL,
+    `menu_item_id`   INT UNSIGNED      NULL DEFAULT NULL,           -- NULL si borraron el producto
+    `title`          VARCHAR(200)  NOT NULL,                        -- copia al momento del pedido
+    `variant_label`  VARCHAR(30)       NULL DEFAULT NULL,
+    `unit_price`     DECIMAL(8,2)  NOT NULL,
+    `quantity`       INT UNSIGNED  NOT NULL,
+    `subtotal`       DECIMAL(10,2) NOT NULL,
+    `stock_reserved` TINYINT(1)    NOT NULL DEFAULT 0,              -- 1 = se descontó stock (se devuelve al rechazar)
+    PRIMARY KEY (`id`),
+    KEY `idx_order_items_order` (`order_id`),
+    KEY `idx_order_items_item` (`menu_item_id`),
+    CONSTRAINT `fk_order_items_order`
+        FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_order_items_item`
+        FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Límite de pedidos por IP del formulario público (filas vencidas se limpian solas)
+CREATE TABLE IF NOT EXISTS `rate_limits` (
+    `key`      VARCHAR(64) NOT NULL,
+    `hits`     INT UNSIGNED NOT NULL DEFAULT 0,
+    `reset_at` DATETIME    NOT NULL,
+    PRIMARY KEY (`key`),
+    KEY `idx_rate_limits_reset` (`reset_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── Gestor de sitios (master). En un sitio cliente quedan vacías. ──
 
 CREATE TABLE IF NOT EXISTS `sites` (
@@ -368,6 +415,16 @@ JOIN (
 WHERE r.`slug` = 'editor'
   AND NOT EXISTS (SELECT 1 FROM `role_permissions` x WHERE x.`role_id` = r.`id`);
 
+-- Permiso "Pedidos" (Shop) para el admin, UNA sola vez: el marcador en settings
+-- evita reponerlo si después el root se lo quita.
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission`)
+SELECT r.`id`, 'orders'
+FROM `roles` r
+WHERE r.`slug` = 'admin'
+  AND NOT EXISTS (SELECT 1 FROM `settings` s WHERE s.`setting_key` = 'seeded_perm_orders');
+
+INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES ('seeded_perm_orders', '1');
+
 -- ── Usuario inicial (solo si la base no tiene usuarios) ──────
 -- admin@gotogo.com.ar / password  → CAMBIALA al entrar (Usuarios).
 
@@ -420,8 +477,10 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_menu_enabled',        '1'),
     ('module_site_manager_enabled','0'),
     ('site_manager_default_redirect_url', ''),
-    -- Productos: página pública /menu (apagada hasta configurarla)
+    -- Shop: página pública /shop (apagada hasta configurarla)
     ('menu_enabled',               '0'),
+    ('shop_enabled',               '0'),                -- carrito + pedidos por WhatsApp
+    ('shop_max_items',             '30'),               -- unidades máximas por pedido
     ('menu_header_text',           'Nuestra Carta'),
     ('menu_footer_text',           ''),
     ('menu_accent_color',          '#fec771'),

@@ -22,7 +22,7 @@ class MigrationService
     public const DEFAULT_USER_EMAIL = 'admin@gotogo.com.ar';
 
     /** Tablas que deben existir según el scope. */
-    public const SITE_TABLES = ['users', 'roles', 'role_permissions', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items'];
+    public const SITE_TABLES = ['users', 'roles', 'role_permissions', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items', 'orders', 'order_items', 'rate_limits'];
     public const MASTER_TABLES = ['sites', 'servers'];
 
     /** 1050 tabla existe, 1060 columna duplicada, 1061 índice duplicado, 1091 no se puede DROP (no existe) */

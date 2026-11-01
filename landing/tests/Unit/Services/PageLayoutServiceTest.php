@@ -124,4 +124,33 @@ class PageLayoutServiceTest extends TestCase
         $layout = $this->svc->sanitize([['type' => 'text', 'id' => 'b_abcd', 'data' => ['text' => 'Ñandú "hola"', 'align' => 'left']]]);
         $this->assertSame($layout, $this->svc->decode($this->svc->encode($layout)));
     }
+
+    public function test_text_block_keeps_safe_formatting_and_drops_scripts(): void
+    {
+        $html = '<p><strong>Hola</strong> <a href="https://ej.com">link</a> <a href="javascript:alert(1)">x</a></p>'
+            . '<ul><li>uno</li></ul><script>alert(1)</script><img src=x onerror=alert(1)>';
+        $layout = $this->svc->sanitize([['type' => 'text', 'id' => 'b_rich1', 'data' => ['text' => $html]]]);
+        $text = $layout[array_key_last($layout)]['data']['text'] ?? '';
+        foreach ($layout as $b) { if (($b['id'] ?? '') === 'b_rich1') { $text = $b['data']['text']; } }
+
+        $this->assertStringContainsString('<strong>Hola</strong>', $text);
+        $this->assertStringContainsString('<a href="https://ej.com"', $text);
+        $this->assertStringContainsString('>link</a>', $text);
+        $this->assertStringContainsString('<ul><li>uno</li></ul>', $text);
+        $this->assertStringNotContainsString('script', $text);
+        $this->assertStringNotContainsString('javascript:', $text);
+        $this->assertStringNotContainsString('onerror', $text);
+        $this->assertSame($text, \App\Support\HtmlSanitizer::bio($text), 'sanitizar de nuevo no cambia nada');
+    }
+
+    public function test_plain_text_sanitizing_is_idempotent(): void
+    {
+        $once = \App\Support\HtmlSanitizer::bio("Ñandú \"hola\" & chau\nsegunda línea");
+        $twice = \App\Support\HtmlSanitizer::bio($once);
+        $this->assertStringContainsString('&amp; chau<br>', $once);
+        $this->assertStringNotContainsString('&amp;quot;', $twice, 'no se escapa dos veces');
+        $this->assertStringNotContainsString('&amp;amp;', $twice);
+        $this->assertSame($twice, \App\Support\HtmlSanitizer::bio($twice), 'estable desde la segunda pasada');
+        $this->assertSame(strip_tags($once), strip_tags(html_entity_decode($twice)) === strip_tags(html_entity_decode($once)) ? strip_tags($once) : 'distinto');
+    }
 }

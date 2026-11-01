@@ -5,6 +5,32 @@
 @section('subheader', 'Administrá tu catálogo: precios, fotos y stock. Arrastrá para reordenar.')
 
 @section('content')
+@php
+    $__shopSettings = \Illuminate\Database\Capsule\Manager::table('settings')
+        ->whereIn('setting_key', ['menu_enabled', 'shop_enabled', 'whatsapp_number'])->pluck('setting_value', 'setting_key')->all();
+    $__shopOn = ($__shopSettings['menu_enabled'] ?? '0') === '1' && ($__shopSettings['shop_enabled'] ?? '0') === '1'
+        && \App\Support\WhatsApp::isValidNumber($__shopSettings['whatsapp_number'] ?? '');
+@endphp
+@if($__shopOn)
+    <div class="mb-4 flex flex-wrap items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-2xl p-4">
+        <i class="fa-solid fa-store text-green-400"></i>
+        <p class="flex-1 text-sm text-green-300">La tienda está <strong>abierta</strong>: los clientes eligen productos en /shop y el pedido te llega por WhatsApp.</p>
+        <a href="{{ url('shop') }}" target="_blank" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Ver tienda
+        </a>
+    </div>
+@else
+    <div class="mb-4 flex flex-wrap items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+        <i class="fa-solid fa-store-slash text-amber-400"></i>
+        <p class="flex-1 text-sm text-amber-200">La tienda está <strong>cerrada</strong>: en /shop los clientes solo ven el catálogo, sin poder hacer pedidos.</p>
+        <form action="{{ url('admin/menu/settings/enable-shop') }}" method="POST">
+            <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                <i class="fa-solid fa-basket-shopping"></i> Habilitar tienda
+            </button>
+        </form>
+    </div>
+@endif
 <div class="flex flex-wrap justify-end mb-4 gap-3">
     <a href="{{ url('admin/menu/items/import') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
         <i class="fa-solid fa-file-import"></i> Importar Excel

@@ -70,6 +70,9 @@
                         @if($__key === 'products' && $__menuConfigured !== '1')
                             <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
                         @endif
+                        @if($__key === 'orders' && ($__pending = \App\Models\Order::pendingCount()) > 0)
+                            <span class="ml-auto text-[10px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-md" title="Pedidos pendientes">{{ $__pending }}</span>
+                        @endif
                     </a>
                 @endforeach
             </nav>

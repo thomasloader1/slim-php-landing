@@ -490,6 +490,21 @@ Todo va en `landing/db/install.sql`:
 
 ---
 
+## Shop (tienda y pedidos por WhatsApp)
+
+- **Catálogo** en `/shop` (`/menu` redirige). Se publica en *Shop → Configuración → Activar página pública*.
+- **Habilitar tienda** (misma pantalla) agrega carrito: el cliente elige productos/variantes, pone
+  nombre y teléfono y el pedido se abre en WhatsApp al número de la landing (*UX Builder →
+  Botón de WhatsApp*; sin número válido no se puede habilitar). Usá el número **con código de país**.
+- **El stock se reserva al pedir**: el pedido queda *Pendiente* en **Pedidos** (badge en el sidebar y
+  aviso en el Dashboard). *Aceptar* lo confirma; *Rechazar* devuelve el stock. Después, el botón
+  *Avisar por WhatsApp* abre un mensaje para el cliente.
+- Precios y stock se recalculan en el servidor; el formulario público tiene límite de 5 pedidos por IP
+  cada 15 minutos y máximo de unidades por pedido configurable.
+- Permiso **Pedidos** (`orders`) asignable por rol: por ejemplo, un rol que solo atiende pedidos.
+
+---
+
 ## Roles y permisos
 
 - **Root**: vive en la DB master. Ve todo (incluidos Sitios, Servidores y Sistema) y es el

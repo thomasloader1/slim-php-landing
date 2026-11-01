@@ -196,7 +196,11 @@
         var summary = item.querySelector('.block-summary');
         var first = item.querySelector('[data-field="text"], [data-field="label"], [data-field="title"]');
         if (first && summary) {
-            first.addEventListener('input', function () { summary.textContent = first.value; });
+            first.addEventListener('input', function () {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = first.value; // el bloque Texto guarda HTML: el resumen muestra solo el texto
+                summary.textContent = tmp.textContent;
+            });
         }
     }
     list.querySelectorAll('.block-item').forEach(bindBlock);
@@ -217,6 +221,7 @@
             var item = tpl.content.firstElementChild.cloneNode(true);
             item.dataset.id = newId();
             list.appendChild(item);
+            if (window.initRichEditors) window.initRichEditors(item);
             bindBlock(item);
             item.querySelector('.block-toggle').click();
             item.scrollIntoView({ behavior: 'smooth', block: 'center' });

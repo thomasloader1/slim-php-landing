@@ -5,7 +5,20 @@
 @section('subheader', 'Resumen general de tu actividad y contenido.')
 
 @section('content')
-@php $__cards = array_filter(['links', 'users', 'settings'], 'can'); @endphp
+@php
+    $__cards = array_filter(['links', 'users', 'settings'], 'can');
+    $__pendingOrders = can('orders') ? \App\Models\Order::pendingCount() : 0;
+@endphp
+@if($__pendingOrders > 0)
+<a href="{{ url('admin/shop/orders') }}" class="mb-6 flex items-center gap-4 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 rounded-3xl p-5 transition-colors">
+    <span class="w-12 h-12 shrink-0 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl"><i class="fa-solid fa-receipt"></i></span>
+    <span class="flex-1">
+        <span class="block text-white font-bold text-lg">{{ $__pendingOrders === 1 ? 'Tenés 1 pedido pendiente' : "Tenés {$__pendingOrders} pedidos pendientes" }}</span>
+        <span class="block text-sm text-amber-200/80">Aceptalos o rechazalos: el stock queda reservado mientras tanto.</span>
+    </span>
+    <i class="fa-solid fa-chevron-right text-amber-400"></i>
+</a>
+@endif
 @if(!$__cards)
 <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-sm mb-6">
     <h4 class="text-lg font-bold text-white mb-1">Tus secciones</h4>

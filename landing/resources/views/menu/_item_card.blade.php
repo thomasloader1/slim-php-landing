@@ -108,5 +108,31 @@
             </div>
         @endif
 
+        {{-- Shop: agregar al pedido --}}
+        @if(!empty($shopOpen) && $item->id)
+            @php
+                $variants = [['v' => 1, 'label' => $item->price_label_1 ?: '', 'price' => (float) $item->price]];
+                if ($item->price_2 !== null) { $variants[] = ['v' => 2, 'label' => $item->price_label_2 ?: 'Opción 2', 'price' => (float) $item->price_2]; }
+                if ($item->price_3 !== null) { $variants[] = ['v' => 3, 'label' => $item->price_label_3 ?: 'Opción 3', 'price' => (float) $item->price_3]; }
+            @endphp
+            <div class="shop-add mt-4 flex items-center gap-2"
+                 data-id="{{ $item->id }}" data-title="{{ $item->title }}"
+                 data-stock="{{ $item->stock === null ? '' : max(0, $item->stock) }}"
+                 data-variants='@json($variants)'>
+                @if(count($variants) > 1)
+                    <select class="shop-variant" aria-label="Opción de {{ $item->title }}">
+                        @foreach($variants as $v)
+                            <option value="{{ $v['v'] }}">{{ $v['label'] }} · {{ \App\Models\MenuItem::formatMoney($v['price']) }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                <button type="button" class="shop-add-btn" {{ $item->is_out_of_stock ? 'disabled' : '' }}
+                        aria-label="Agregar {{ $item->title }} al pedido">
+                    <i class="fa-solid {{ $item->is_out_of_stock ? 'fa-ban' : 'fa-plus' }} text-xs" aria-hidden="true"></i>
+                    {{ $item->is_out_of_stock ? 'Sin stock' : 'Agregar' }}
+                </button>
+            </div>
+        @endif
+
     </div>
 </article>

@@ -15,7 +15,12 @@ use Slim\Routing\RouteCollectorProxy;
 
 // Web Routes
 $app->get('/', LandingController::class);
-$app->get('/menu', \App\Controllers\Front\MenuController::class);
+// Shop: catálogo público + pedidos por WhatsApp (/menu queda como alias viejo)
+$app->get('/shop', \App\Controllers\Front\MenuController::class);
+$app->post('/shop/orders', [\App\Controllers\Front\ShopOrderController::class, 'store']);
+$app->get('/menu', function ($request, $response) {
+    return $response->withHeader('Location', url('shop'))->withStatus(301);
+});
 $app->get('/sitemap.xml', [SitemapController::class, 'sitemap']);
 $app->get('/robots.txt',  [SitemapController::class, 'robots']);
 $app->get('/healthz', \App\Controllers\Front\HealthController::class);
@@ -110,6 +115,7 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     // Menú – Configuración
     $group->get('/menu/settings',  [\App\Controllers\Admin\MenuSettingsAdminController::class, 'index']);
     $group->post('/menu/settings', [\App\Controllers\Admin\MenuSettingsAdminController::class, 'update']);
+    $group->post('/menu/settings/enable-shop', [\App\Controllers\Admin\MenuSettingsAdminController::class, 'enableShop']);
 
     // Menú – Secciones
     $group->get('/menu/sections',              [\App\Controllers\Admin\MenuSectionAdminController::class, 'index']);
@@ -136,6 +142,12 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     $group->get('/menu/items/import',          [\App\Controllers\Admin\ProductImportAdminController::class, 'form']);
     $group->post('/menu/items/import',         [\App\Controllers\Admin\ProductImportAdminController::class, 'preview']);
     $group->post('/menu/items/import/confirm', [\App\Controllers\Admin\ProductImportAdminController::class, 'confirm']);
+
+    // Shop – Pedidos
+    $group->get('/shop/orders', [\App\Controllers\Admin\OrderAdminController::class, 'index']);
+    $group->get('/shop/orders/{id:[0-9]+}', [\App\Controllers\Admin\OrderAdminController::class, 'show']);
+    $group->post('/shop/orders/{id:[0-9]+}/accept', [\App\Controllers\Admin\OrderAdminController::class, 'accept']);
+    $group->post('/shop/orders/{id:[0-9]+}/reject', [\App\Controllers\Admin\OrderAdminController::class, 'reject']);
 
     // Sistema: diagnóstico y reparación (superadmin, solo dominio master)
     $group->group('/system', function (RouteCollectorProxy $sys) {

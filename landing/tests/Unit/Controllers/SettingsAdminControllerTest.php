@@ -128,4 +128,18 @@ class SettingsAdminControllerTest extends TestCase
         $traits = class_uses(SettingsAdminController::class);
         $this->assertContains('App\Traits\ProcessesImages', $traits);
     }
+
+    /** @test */
+    public function image_urls_are_normalized_to_https_or_rejected(): void
+    {
+        $n = fn ($v) => \App\Controllers\Admin\SettingsAdminController::normalizeImageUrl($v);
+        $this->assertSame(['https://img.com/a.jpg?w=1&q=80', true], $n(' https://img.com/a.jpg?w=1&q=80 '));
+        $this->assertSame(['https://www.sitio.com/foto.png', true], $n('www.sitio.com/foto.png'));
+        $this->assertSame(['https://cdn.x.com/i.png', true], $n('//cdn.x.com/i.png'));
+        $this->assertSame(['/uploads/avatar.png', true], $n('/uploads/avatar.png'));
+        $this->assertSame(['', true], $n(''));
+        $this->assertFalse($n('http://inseguro.com/a.jpg')[1], 'http lo bloquea el navegador');
+        $this->assertFalse($n('javascript:alert(1)')[1]);
+        $this->assertFalse($n('foto de perfil')[1]);
+    }
 }

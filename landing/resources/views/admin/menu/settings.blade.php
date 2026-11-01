@@ -1,8 +1,8 @@
 @extends('admin/layout')
 
-@section('title', 'Configuración de Productos')
-@section('header', 'Configuración de Productos')
-@section('subheader', 'Activá y personalizá la página pública de productos.')
+@section('title', 'Configuración del Shop')
+@section('header', 'Configuración del Shop')
+@section('subheader', 'Publicá tu catálogo y, si querés, habilitá la tienda para recibir pedidos por WhatsApp.')
 
 @section('content')
 @php
@@ -10,11 +10,13 @@
     $bgOverlay    = ($settings['menu_bg_overlay'] ?? '0') === '1';
     $showPayment  = ($settings['menu_show_payment'] ?? '0') === '1';
     $hasBgImage   = !empty($settings['menu_bg_image_url']);
+    $shopEnabled  = ($settings['shop_enabled'] ?? '0') === '1';
+    $waReady      = \App\Support\WhatsApp::isValidNumber($settings['whatsapp_number'] ?? '');
 @endphp
 
 <div class="flex justify-end mb-4 gap-3 flex-wrap">
     @if($menuEnabled)
-        <a href="{{ url('menu') }}" target="_blank"
+        <a href="{{ url('shop') }}" target="_blank"
            class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
             <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Ver página
         </a>
@@ -25,7 +27,7 @@
     </a>
     <a href="{{ url('admin/menu/items') }}"
        class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-list"></i> Ítems
+        <i class="fa-solid fa-list"></i> Productos
     </a>
 </div>
 
@@ -33,7 +35,7 @@
 <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-6 flex items-start gap-3">
     <i class="fa-solid fa-circle-info text-amber-400 mt-0.5 flex-shrink-0"></i>
     <p class="text-amber-300 text-sm">
-        El menú está <strong>desactivado</strong>. La página <code class="bg-amber-500/20 px-1 rounded">/menu</code> retornará un 404 hasta que lo actives.
+        La página pública está <strong>desactivada</strong>. <code class="bg-amber-500/20 px-1 rounded">/shop</code> responde 404 hasta que la actives.
     </p>
 </div>
 @endif
@@ -53,12 +55,38 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white font-bold text-sm">Activar página pública</p>
-                    <p class="text-slate-500 text-xs mt-0.5">Hace visible la carta en <code class="bg-slate-800 px-1 rounded">/menu</code></p>
+                    <p class="text-slate-500 text-xs mt-0.5">Hace visible el catálogo en <code class="bg-slate-800 px-1 rounded">/shop</code></p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="menu_enabled" value="1" class="sr-only peer" {{ $menuEnabled ? 'checked' : '' }}>
                     <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                 </label>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-white font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-basket-shopping text-amber-400"></i> Habilitar tienda</p>
+                    <p class="text-slate-500 text-xs mt-0.5">Agrega carrito: el cliente arma su pedido y lo manda a tu WhatsApp. Los pedidos quedan en <a href="{{ url('admin/shop/orders') }}" class="text-blue-400 hover:underline">Pedidos</a> y reservan stock.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" name="shop_enabled" value="1" class="sr-only peer" {{ $shopEnabled ? 'checked' : '' }} {{ $waReady ? '' : 'disabled' }}>
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 peer-disabled:opacity-40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                </label>
+            </div>
+            @if(!$waReady)
+                <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 flex items-start gap-2">
+                    <i class="fa-brands fa-whatsapp mt-0.5"></i>
+                    <span>Para habilitar la tienda cargá el número de WhatsApp de la landing en <a href="{{ url('admin/builder') }}" class="underline font-bold">UX Builder → Botón de WhatsApp</a>. Ahí llegan los pedidos.</span>
+                </div>
+            @else
+                <p class="text-xs text-slate-500">Los pedidos llegan al WhatsApp <strong class="text-slate-300">{{ $settings['whatsapp_number'] }}</strong> (se cambia en UX Builder).</p>
+            @endif
+            <div class="flex items-center justify-between gap-4">
+                <label for="shop_max_items" class="text-sm text-slate-300">Máximo de unidades por pedido</label>
+                <input id="shop_max_items" type="number" name="shop_max_items" min="1" max="500" value="{{ $settings['shop_max_items'] ?? 30 }}"
+                       class="w-24 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500">
             </div>
 
             <hr class="border-slate-800">

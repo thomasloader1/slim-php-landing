@@ -25,7 +25,7 @@
                 @elseif($meta['core'])
                     Sección fija
                 @else
-                    {{ $d['text'] ?? $d['label'] ?? $d['title'] ?? $d['query'] ?? '' }}
+                    {{ html_entity_decode(strip_tags($d['text'] ?? $d['label'] ?? $d['title'] ?? $d['query'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}
                 @endif
             </span>
         </button>
@@ -97,7 +97,7 @@
             @case('text')
                 <div>
                     <label class="{{ $label }}">Contenido</label>
-                    <textarea data-field="text" rows="4" maxlength="3000" class="{{ $input }} resize-y" placeholder="Escribí un párrafo...">{{ $d['text'] ?? '' }}</textarea>
+                    @include('admin/partials/bio-editor', ['value' => $d['text'] ?? '', 'field' => 'text', 'placeholder' => 'Escribí un texto. Podés usar negrita, listas y links.'])
                 </div>
                 <div>
                     <label class="{{ $label }}">Alineación</label>

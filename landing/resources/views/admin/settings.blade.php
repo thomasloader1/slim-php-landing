@@ -169,14 +169,15 @@
                     </div>
 
                     <div class="col-span-1">
-                        <label class="block text-sm font-medium text-slate-400 mb-2">Tamaño del Logo</label>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Tamaño del avatar / logo</label>
                         <select name="landing_logo_size"
                                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-                            <option value="sm" {{ ($settings['landing_logo_size'] ?? 'sm') === 'sm' ? 'selected' : '' }}>Pequeño (64px)</option>
-                            <option value="md" {{ ($settings['landing_logo_size'] ?? '') === 'md' ? 'selected' : '' }}>Mediano (96px)</option>
-                            <option value="lg" {{ ($settings['landing_logo_size'] ?? '') === 'lg' ? 'selected' : '' }}>Grande (128px)</option>
-                            <option value="xl" {{ ($settings['landing_logo_size'] ?? '') === 'xl' ? 'selected' : '' }}>Extra grande (160px)</option>
+                            <option value="sm" {{ ($settings['landing_logo_size'] ?? 'sm') === 'sm' ? 'selected' : '' }}>Pequeño</option>
+                            <option value="md" {{ ($settings['landing_logo_size'] ?? '') === 'md' ? 'selected' : '' }}>Mediano</option>
+                            <option value="lg" {{ ($settings['landing_logo_size'] ?? '') === 'lg' ? 'selected' : '' }}>Grande</option>
+                            <option value="xl" {{ ($settings['landing_logo_size'] ?? '') === 'xl' ? 'selected' : '' }}>Extra grande</option>
                         </select>
+                        <p class="text-xs text-slate-500 mt-1">Cambia el tamaño del avatar (foto redonda) y del logo si cargaste uno.</p>
                     </div>
 
                     <div class="col-span-1">
