@@ -14,7 +14,7 @@
 INSERT INTO `users` (`name`, `email`, `password_hash`, `role`, `active`, `email_verified`)
 VALUES (
     'Admin',                                         -- ✏️ nombre del admin
-    'admin@rufi.com.ar',                                    -- ✏️ email de acceso
+    'admin@gotogo.com.ar',                                    -- ✏️ email de acceso
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',  -- password: "password"
     'admin',
     1,
@@ -38,7 +38,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_logo_url',            ''),
     ('landing_bg_image_url',        ''),
     ('landing_bg_overlay',          '0'),
-    ('landing_bg_overlay_opacity',  '50'),
+    ('landing_bg_overlay_opacity',  '0.5'),
     ('seo_description',             ''),
     ('seo_keywords',                ''),
     ('seo_author',                  ''),
@@ -64,7 +64,5 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('landing_links_display',       'list'),
     ('landing_logo_size',           'sm'),
     ('favicon_version',             '')
--- Solo completa claves faltantes: NUNCA pisar la configuración existente
--- (re-inicializar un sitio reseteaba título, colores, bio, etc.)
 ON DUPLICATE KEY UPDATE
-    `setting_key` = `setting_key`;
+    `setting_value` = VALUES(`setting_value`);
