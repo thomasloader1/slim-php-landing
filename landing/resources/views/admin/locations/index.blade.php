@@ -67,7 +67,7 @@
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold">Nombre</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold hidden md:table-cell">Dirección</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold hidden sm:table-cell">WhatsApp</th>
-                    <th class="px-3 py-3 md:px-6 md:py-4 font-bold hidden sm:table-cell">Modo</th>
+                    <th class="px-3 py-3 md:px-6 md:py-4 font-bold">Modo</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold hidden sm:table-cell">Estado</th>
                     <th class="px-3 py-3 md:px-6 md:py-4 font-bold text-right">Acciones</th>
                 </tr>
@@ -96,10 +96,24 @@
                                 <span class="text-slate-600 text-sm">—</span>
                             @endif
                         </td>
-                        <td class="px-3 py-3 md:px-6 md:py-4 hidden sm:table-cell">
-                            <span class="px-2 py-1 bg-slate-800 text-slate-400 text-[10px] font-bold rounded-full uppercase border border-slate-700">
-                                {{ $loc->mode === 'button' ? 'Botón' : 'Embed' }}
-                            </span>
+                        <td class="px-3 py-3 md:px-6 md:py-4">
+                            {{-- Alterna entre botón (link) y mapa embebido (iframe) --}}
+                            <form action="{{ url('admin/locations/' . $loc->id . '/toggle-mode') }}" method="POST" data-no-loading>
+                                <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                <button type="submit"
+                                        title="{{ $loc->mode === 'button' ? 'Mostrar como mapa embebido' : 'Mostrar como botón con enlace' }}"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border transition-all
+                                               {{ $loc->mode === 'embed'
+                                                   ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                                                   : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500' }}">
+                                    <i class="fa-solid {{ $loc->mode === 'embed' ? 'fa-map' : 'fa-link' }}"></i>
+                                    {{ $loc->mode === 'embed' ? 'Mapa' : 'Botón' }}
+                                    <i class="fa-solid fa-right-left opacity-50"></i>
+                                </button>
+                            </form>
+                            @if($loc->mode === 'embed' && !$loc->getEmbedSrc())
+                                <span class="block text-[10px] text-red-400 mt-1">Falta link o dirección</span>
+                            @endif
                         </td>
                         <td class="px-3 py-3 md:px-6 md:py-4 hidden sm:table-cell">
                             @if($loc->active)
@@ -155,8 +169,10 @@
                 });
                 fetch('{{ url("admin/locations/reorder") }}', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': '{{ $_SESSION['csrf_token'] ?? '' }}' },
                     body: JSON.stringify({ order: order })
+                }).then(function (r) {
+                    if (!r.ok) { alert('Error al guardar el orden. Recargá la página e intentá de nuevo.'); }
                 });
             }
         });

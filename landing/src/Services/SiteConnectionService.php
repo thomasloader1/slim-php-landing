@@ -18,13 +18,19 @@ class SiteConnectionService
      * Abre una conexión Eloquent nombrada hacia la DB del sitio remoto.
      * Retorna el nombre de la conexión.
      */
-    public function connect(Site $site, string $encryptionKey): string
+    public function connect(Site $site): string
     {
         $connectionName = 'site_' . $site->id;
 
-        $password = $this->encryption->decrypt($site->db_pass_encrypted, $encryptionKey);
+        $password = $this->encryption->decrypt($site->db_pass_encrypted);
 
-        Capsule::addConnection([
+        // Get global Capsule instance via reflection (addConnection is instance method)
+        $reflection = new \ReflectionClass(Capsule::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $capsule = $property->getValue(null);
+
+        $capsule->addConnection([
             'driver'    => 'mysql',
             'host'      => $site->db_host,
             'port'      => $site->db_port ?? 3306,
@@ -42,10 +48,10 @@ class SiteConnectionService
     /**
      * Prueba la conexión a la DB del sitio remoto.
      */
-    public function testConnection(Site $site, string $encryptionKey): bool
+    public function testConnection(Site $site): bool
     {
         try {
-            $connName = $this->connect($site, $encryptionKey);
+            $connName = $this->connect($site);
             Capsule::connection($connName)->getPdo();
             return true;
         } catch (\Exception $e) {
@@ -56,9 +62,9 @@ class SiteConnectionService
     /**
      * Escribe site_status y site_redirect_url en la DB del landing remoto.
      */
-    public function syncStatus(Site $site, string $encryptionKey): void
+    public function syncStatus(Site $site): void
     {
-        $connName = $this->connect($site, $encryptionKey);
+        $connName = $this->connect($site);
         $connection = Capsule::connection($connName);
 
         $connection->table('settings')->updateOrInsert(

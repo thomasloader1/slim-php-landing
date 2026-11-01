@@ -11,6 +11,17 @@ class ModuleAdminController
 {
     use AdminViewTrait;
 
+    public const MODULE_KEYS = [
+        'module_title_enabled',
+        'module_avatar_enabled',
+        'module_links_enabled',
+        'module_bio_enabled',
+        'module_locations_enabled',
+        'module_menu_enabled',
+        'module_site_manager_enabled',
+        'demo_mode',
+    ];
+
     public function index(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
@@ -21,15 +32,7 @@ class ModuleAdminController
     {
         $data = $request->getParsedBody();
 
-        $moduleKeys = [
-            'module_title_enabled',
-            'module_avatar_enabled',
-            'module_links_enabled',
-            'module_bio_enabled',
-            'module_locations_enabled',
-            'module_menu_enabled',
-            'module_site_manager_enabled',
-        ];
+        $moduleKeys = self::MODULE_KEYS;
 
         foreach ($moduleKeys as $key) {
             $value = isset($data[$key]) ? $data[$key] : '0';

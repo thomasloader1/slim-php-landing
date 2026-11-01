@@ -98,4 +98,45 @@ class LocationTest extends TestCase
         $this->assertEquals('button', $button->mode);
         $this->assertEquals('embed', $embed->mode);
     }
+
+    /** @test */
+    public function it_builds_embed_src_from_maps_url_when_no_embed_code()
+    {
+        $location = new Location(['url' => 'https://www.google.com/maps/place/X/@-34.6,-58.38,17z']);
+        $this->assertEquals('https://www.google.com/maps?q=-34.6%2C-58.38&output=embed', $location->getEmbedSrc());
+    }
+
+    /** @test */
+    public function it_builds_embed_src_from_address_when_link_is_short()
+    {
+        $location = new Location(['url' => 'https://maps.app.goo.gl/abc', 'address' => 'Calle Falsa 123']);
+        $this->assertEquals('https://www.google.com/maps?q=Calle%20Falsa%20123&output=embed', $location->getEmbedSrc());
+    }
+
+    /** @test */
+    public function it_ignores_embed_code_from_untrusted_hosts()
+    {
+        $location = new Location(['embed_code' => '<iframe src="https://evil.example/x"></iframe>', 'address' => 'Calle Falsa 123']);
+        $this->assertEquals('https://www.google.com/maps?q=Calle%20Falsa%20123&output=embed', $location->getEmbedSrc());
+    }
+
+    /** @test */
+    public function it_exposes_maps_link_falling_back_to_address_search()
+    {
+        $this->assertEquals('https://maps.app.goo.gl/abc', (new Location(['url' => 'https://maps.app.goo.gl/abc']))->maps_link);
+        $this->assertEquals(
+            'https://www.google.com/maps/search/?api=1&query=Calle%20Falsa%20123',
+            (new Location(['address' => 'Calle Falsa 123']))->maps_link
+        );
+        $this->assertNull((new Location())->maps_link);
+    }
+
+    /** @test */
+    public function it_generates_whatsapp_web_url()
+    {
+        $location = new Location(['whatsapp' => '+54 9 11 5555-1234', 'whatsapp_message' => 'Hola']);
+        $this->assertEquals('https://web.whatsapp.com/send?phone=5491155551234&text=Hola', $location->whatsapp_web_url);
+        $this->assertNull((new Location())->whatsapp_web_url);
+    }
 }
+

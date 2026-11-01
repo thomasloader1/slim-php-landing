@@ -69,7 +69,7 @@
             </div>
             <div class="p-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">
                             URL del sitio
                             <span class="ml-2 text-xs font-normal text-slate-500">(necesario para canonical tag y sitemap)</span>
@@ -79,7 +79,7 @@
                                placeholder="https://tusitio.com">
                     </div>
 
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-400 mb-2">
                             Imagen para redes sociales
                             <span class="ml-2 text-xs font-normal text-slate-500">(recomendado: 1200×630 px — si está vacío se usa el avatar)</span>
@@ -150,7 +150,7 @@
                         <p class="text-xs text-slate-500 mt-1">Usá el tipo en inglés de <a href="https://schema.org/LocalBusiness" target="_blank" class="text-blue-400 hover:underline">schema.org/LocalBusiness</a></p>
                     </div>
 
-                    <div id="address-group" class="col-span-2 {{ ($settings['seo_schema_type'] ?? 'Person') !== 'LocalBusiness' ? 'hidden' : '' }}">
+                    <div id="address-group" class="md:col-span-2 {{ ($settings['seo_schema_type'] ?? 'Person') !== 'LocalBusiness' ? 'hidden' : '' }}">
                         <label class="block text-sm font-medium text-slate-400 mb-2">Dirección del negocio</label>
                         <input type="text" name="seo_address" value="{{ $settings['seo_address'] ?? '' }}"
                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white"

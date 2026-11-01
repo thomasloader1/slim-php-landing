@@ -9,20 +9,20 @@
     <form action="{{ url('admin/locations/edit/' . $location->id) }}" method="POST" class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Nombre de la ubicación <span class="text-red-400">*</span></label>
                 <input type="text" name="name" value="{{ $location->name }}" required
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
             </div>
 
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Dirección</label>
                 <input type="text" name="address" value="{{ $location->address }}"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
             </div>
 
             {{-- WhatsApp --}}
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
                     Número de WhatsApp
                     <span class="text-slate-600 font-normal ml-1">(opcional)</span>
@@ -42,7 +42,7 @@
             </div>
 
             {{-- Mensaje de WhatsApp --}}
-            <div class="col-span-2" id="whatsapp-message-group" style="{{ $location->whatsapp ? '' : 'display:none' }}">
+            <div class="md:col-span-2" id="whatsapp-message-group" style="{{ $location->whatsapp ? '' : 'display:none' }}">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
                     Mensaje pre-cargado
                     <span class="text-slate-600 font-normal ml-1">(WhatsApp API)</span>
@@ -57,7 +57,7 @@
                 </p>
             </div>
 
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Modo de visualización</label>
                 <select name="mode" id="location-mode"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
@@ -66,22 +66,25 @@
                 </select>
             </div>
 
-            <div class="col-span-2" id="url-group">
-                <label class="block text-sm font-medium text-slate-400 mb-2">URL de Google Maps (para botón)</label>
+            <div class="md:col-span-2" id="url-group">
+                <label class="block text-sm font-medium text-slate-400 mb-2">Link de Google Maps
+                    <span class="text-slate-600 font-normal ml-1">(se usa para el botón y para generar el mapa)</span>
+                </label>
                 <input type="text" name="url" value="{{ $location->url }}"
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white">
             </div>
 
-            <div class="col-span-2" id="embed-group">
+            <div class="md:col-span-2" id="embed-group">
                 <label class="block text-sm font-medium text-slate-400 mb-2">
-                    Código de Mapa Embebido
+                    Código de Mapa Embebido <span class="text-slate-600 font-normal">(opcional)</span>
                     <span class="ml-2 text-xs font-normal text-slate-500">(Google Maps &rarr; Compartir &rarr; Insertar mapa &rarr; copiar el &lt;iframe&gt;)</span>
                 </label>
                 <textarea name="embed_code" rows="4"
                           class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-amber-500/50 outline-none transition-all text-white resize-none font-mono text-xs">{{ $location->embed_code }}</textarea>
+                <p class="text-xs text-slate-500 mt-1.5"><i class="fa-solid fa-wand-magic-sparkles text-slate-600 mr-1"></i>Si lo dejás vacío, el mapa se genera solo a partir del link de Google Maps o de la dirección.</p>
             </div>
 
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
                         <input type="checkbox" name="active" {{ $location->active ? 'checked' : '' }} class="sr-only peer">
@@ -111,7 +114,7 @@
     function toggle() {
         var isEmbed = modeSelect.value === 'embed';
         embedGroup.style.display = isEmbed ? '' : 'none';
-        urlGroup.style.display   = isEmbed ? 'none' : '';
+        urlGroup.style.display   = ''; // el link sirve en ambos modos
     }
     modeSelect.addEventListener('change', toggle);
     toggle();

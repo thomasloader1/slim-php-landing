@@ -94,8 +94,10 @@
             });
             fetch('{{ url("admin/seo/faq/reorder") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': '{{ $_SESSION['csrf_token'] ?? '' }}' },
                 body: JSON.stringify({ order: order })
+            }).then(function (r) {
+                if (!r.ok) { alert('Error al guardar el orden. Recargá la página e intentá de nuevo.'); }
             });
         }
     });

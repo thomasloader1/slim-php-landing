@@ -1,8 +1,8 @@
 @extends('admin/layout')
 
-@section('title', 'Nuevo Ítem')
-@section('header', 'Nuevo Ítem')
-@section('subheader', 'Agregá un plato o producto a la carta.')
+@section('title', 'Nuevo Producto')
+@section('header', 'Nuevo Producto')
+@section('subheader', 'Agregá un producto a tu catálogo.')
 
 @section('content')
 <div class="max-w-2xl">
@@ -13,22 +13,39 @@
             {{-- ── DATOS BÁSICOS ── --}}
             <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
                 <div class="p-6 border-b border-slate-800 bg-slate-900/50">
-                    <h3 class="text-lg font-bold text-white">Datos del Ítem</h3>
+                    <h3 class="text-lg font-bold text-white">Datos del Producto</h3>
                 </div>
                 <div class="p-6 space-y-5">
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">Título <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Nombre <span class="text-red-400">*</span></label>
                         <input type="text" name="title" required
                                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
                                placeholder="Ej: Focaccia Simple, Tarta Grande, Buñuelos de Acelga...">
                     </div>
 
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Código (SKU)</label>
+                            <input type="text" name="sku" maxlength="64"
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                                   placeholder="Ej: A-001">
+                            <p class="text-xs text-slate-500 mt-1">Opcional. Se usa para actualizar desde Excel.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Stock</label>
+                            <input type="number" name="stock" min="0" step="1"
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                                   placeholder="Sin control">
+                            <p class="text-xs text-slate-500 mt-1">Vacío = no se controla. 0 = "Sin stock".</p>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">Sección</label>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Categoría</label>
                         <select name="section_id"
                                 class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-colors">
-                            <option value="">Sin sección</option>
+                            <option value="">Sin categoría</option>
                             @foreach($sections as $section)
                                 <option value="{{ $section->id }}">{{ $section->name }}</option>
                             @endforeach
@@ -65,7 +82,7 @@
                             <input type="checkbox" name="active" value="1" class="sr-only peer" checked>
                             <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                         </label>
-                        <span class="text-sm text-slate-300">Ítem activo</span>
+                        <span class="text-sm text-slate-300">Producto activo</span>
                     </div>
 
                 </div>
@@ -176,10 +193,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">Imagen del plato</label>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Foto del producto</label>
                         <input type="file" name="image_file" accept="image/*" id="image_file_input"
                                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 focus:outline-none focus:border-amber-500 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500/10 file:text-amber-400">
-                        <p class="text-xs text-slate-500 mt-1">JPG, PNG o WebP. Máx 2 MB. Opcional.</p>
+                        <p class="text-xs text-slate-500 mt-1">Subí un archivo (JPG, PNG o WebP, máx 2 MB) o pegá un link. Opcional.</p>
+                        <input type="url" name="image_link" maxlength="500"
+                               class="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                               placeholder="https://… (link a la foto)">
                         <div id="image_preview" class="mt-3 hidden">
                             <img id="preview_img" src="" alt="Vista previa" class="w-32 h-24 object-cover rounded-xl border border-slate-700">
                         </div>
@@ -190,7 +210,7 @@
 
             <div class="flex gap-3">
                 <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition-all">
-                    Guardar Ítem
+                    Guardar Producto
                 </button>
                 <a href="{{ url('admin/menu/items') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-2.5 rounded-xl transition-all">
                     Cancelar

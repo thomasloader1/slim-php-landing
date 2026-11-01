@@ -39,8 +39,8 @@ class LocationAdminController
         Location::create([
             'name'             => trim($data['name'] ?? ''),
             'address'          => trim($data['address'] ?? '') ?: null,
-            'whatsapp'         => trim($data['whatsapp'] ?? '') ?: null,
-            'whatsapp_message' => trim($data['whatsapp_message'] ?? '') ?: null,
+            'whatsapp'         => mb_substr(trim($data['whatsapp'] ?? ''), 0, 30) ?: null,
+            'whatsapp_message' => mb_substr(trim($data['whatsapp_message'] ?? ''), 0, 500) ?: null,
             'embed_code'       => trim($data['embed_code'] ?? '') ?: null,
             'url'              => trim($data['url'] ?? '') ?: null,
             'mode'             => in_array($data['mode'] ?? '', ['embed', 'button']) ? $data['mode'] : 'embed',
@@ -65,13 +65,22 @@ class LocationAdminController
         $location->update([
             'name'             => trim($data['name'] ?? ''),
             'address'          => trim($data['address'] ?? '') ?: null,
-            'whatsapp'         => trim($data['whatsapp'] ?? '') ?: null,
-            'whatsapp_message' => trim($data['whatsapp_message'] ?? '') ?: null,
+            'whatsapp'         => mb_substr(trim($data['whatsapp'] ?? ''), 0, 30) ?: null,
+            'whatsapp_message' => mb_substr(trim($data['whatsapp_message'] ?? ''), 0, 500) ?: null,
             'embed_code'       => trim($data['embed_code'] ?? '') ?: null,
             'url'              => trim($data['url'] ?? '') ?: null,
             'mode'             => in_array($data['mode'] ?? '', ['embed', 'button']) ? $data['mode'] : 'embed',
             'active'           => isset($data['active']) ? 1 : 0,
         ]);
+
+        return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
+    }
+
+    /** Alterna la ubicación entre botón con enlace y mapa embebido (iframe). */
+    public function toggleMode(Request $request, Response $response, array $args): Response
+    {
+        $location = Location::findOrFail($args['id']);
+        $location->update(['mode' => $location->mode === 'embed' ? 'button' : 'embed']);
 
         return $response->withHeader('Location', url('admin/locations'))->withStatus(302);
     }

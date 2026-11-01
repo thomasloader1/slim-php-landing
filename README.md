@@ -14,9 +14,9 @@ Landing page tipo Linktree con panel de administración. Una sola URL que centra
 6. [Configuración `.env`](#configuración-env)
 7. [Ejecutar schema SQL](#ejecutar-schema-sql)
 8. [Panel de administración](#panel-de-administración)
+   - [Multisitio, servidores y recuperación](#multisitio-servidores-y-recuperación)
 9. [SEO y posicionamiento](#seo-y-posicionamiento)
 10. [Migraciones SQL](#migraciones-sql)
-11. [Agregar migraciones a un nuevo commit](#agregar-migraciones-a-un-nuevo-commit)
 12. [Checklist de producción](#checklist-de-producción)
 13. [Arquitectura técnica](#arquitectura-técnica)
 
@@ -69,16 +69,6 @@ template-2mez-landing/
 ├── docker/
 │   └── Dockerfile               # Imagen PHP 8.1-Apache
 ├── docker-compose.yml           # Stack Docker completo
-├── db/
-│   ├── init/
-│   │   ├── 01_schema.sql        # Tablas: users, links, settings
-│   │   └── 02_seed.sql          # Usuario admin + settings por defecto
-│   ├── modules/
-│   │   └── landing_base/
-│   │       ├── module.json      # Metadatos del módulo base
-│   │       └── install.sql      # SQL del módulo (click stats, etc.)
-│   └── updates/                 # Migraciones por commit/versión
-│       └── YYYYMMDD_HHMM_vX_X_X_descripcion.sql
 └── landing/                     # Aplicación PHP
     ├── VERSION                  # Versión actual del código (ej: 1.1.0)
     ├── .env.example             # Plantilla de configuración
@@ -120,14 +110,16 @@ template-2mez-landing/
     │   │   └── DetailedErrorHandler.php  # Manejador de errores 500
     │   ├── helpers.php          # url(), request_is()
     │   └── routes.php           # Definición de todas las rutas
-    ├── db/                      # SQL schema + seed + migraciones
-    │   ├── init/                # 01_schema.sql, 02_seed.sql, etc.
-    │   ├── scripts/             # cron_check_expiry.php
-    │   └── updates/             # Migraciones por commit/versión
+    ├── db/                      # Ver "Base de datos"
+    │   ├── schema/              # site.sql y master.sql: esquema completo (bases nuevas)
+    │   ├── upgrades/            # site/ y master/: cambios para bases existentes
+    │   ├── seed/settings.sql    # configuración por defecto (nunca pisa valores)
+    │   ├── scripts/             # cron_check_expiry.php, rotate_tenant_key.php
     ├── cleanup.php              # Script de limpieza para producción
     └── storage/
         ├── cache/               # Caché de Blade compilado
         └── logs/
+
 ```
 
 ---
@@ -151,30 +143,30 @@ cd template-2mez-landing
 
 ### 2. Ajustar `docker-compose.yml`
 
-El compose está pensado para conectarse a una red Docker externa donde ya corre MySQL. Editá las variables según tu entorno:
+El compose ya no define un servicio `mysql` propio. El servicio `landing` se conecta al contenedor MySQL compartido `phpmyadmin-mysql` (de otro proyecto compose) a través de la red externa `phpmyadmin_phpmyadminsql-network`. Editá las variables según tu entorno:
 
 ```yaml
 # docker-compose.yml
 services:
   landing:
     environment:
-      DB_HOST: mysql-server      # nombre del contenedor MySQL en la red
+      DB_HOST: phpmyadmin-mysql   # contenedor MySQL compartido (phpmyadmin-mysql)
       DB_PORT: "3306"
       DB_NAME: project_landing
-      DB_USER: root
-      DB_PASS: tu_password
-      APP_BASE_PATH: ""          # vacío si está en la raíz del dominio
+      DB_USER: landing_user
+      DB_PASS: landing_pass
+      APP_BASE_PATH: ""           # vacío si está en la raíz del dominio
     ports:
-      - "8001:80"                # acceder en localhost:8001
+      - "8001:80"                 # acceder en localhost:8001
     networks:
-      - phpmyadmin_phpmyadminsql-network  # red donde está tu MySQL
+      - phpmyadmin_phpmyadminsql-network
 
 networks:
   phpmyadmin_phpmyadminsql-network:
     external: true
 ```
 
-> Si no tenés una red Docker existente con MySQL, creá un servicio `mysql:` en el mismo compose o cambiá la red.
+Las credenciales `DB_NAME`, `DB_USER` y `DB_PASS` se toman de `.env` (valores por defecto `project_landing`, `landing_user`, `landing_pass`). Asegurate de que coincidan con las credenciales del contenedor `phpmyadmin-mysql` y de que el contenedor `landing` se una a la red externa `phpmyadmin_phpmyadminsql-network` donde reside `phpmyadmin-mysql`.
 
 ### 3. Levantar el contenedor
 
@@ -190,16 +182,14 @@ Conectate a tu instancia MySQL y ejecutá:
 CREATE DATABASE project_landing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 5. Ejecutar schema y seed
-
-Conectate a MySQL y ejecutá los scripts SQL en orden:
+### 5. Crear las tablas y el usuario root
 
 ```bash
-mysql -u USER -p DATABASE < db/init/01_schema.sql
-mysql -u USER -p DATABASE < db/init/02_seed.sql
+docker compose exec landing php bin/console migrate --seed
+docker compose exec -it landing php bin/console admin:create tu@email.com --name="Tu nombre"
 ```
 
-> Si usás Docker: `docker compose exec -T mysql mysql -u USER -p DATABASE < db/init/01_schema.sql`
+El primer usuario de la master se crea como **root** (pide la contraseña por consola).
 
 ### 6. Configurar `.env`
 
@@ -240,7 +230,7 @@ En el servidor, dentro de la carpeta `landing/`:
 php composer.phar install --no-dev --optimize-autoloader
 ```
 
-> Si no tenés Composer global, usá el `composer.phar` incluido en el repo.
+> Si no tenés Composer global, descargá `composer.phar` (https://getcomposer.org/download/) — no se versiona (está en `.gitignore`).
 
 ### 3. Limpiar archivos innecesarios
 
@@ -272,16 +262,16 @@ Desde phpMyAdmin o la consola MySQL:
 CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 6. Ejecutar schema y seed
+### 6. Crear las tablas y el usuario root
 
-Conectate a MySQL y ejecutá los scripts SQL en orden:
+Configurá el `.env` a mano (usá `.env.example` como base) y por SSH:
 
 ```bash
-mysql -u USER -p DATABASE < db/init/01_schema.sql
-mysql -u USER -p DATABASE < db/init/02_seed.sql
+php bin/console migrate --seed
+php bin/console admin:create tu@email.com --name="Tu nombre"
 ```
 
-Luego configurá el `.env` a mano (usá `.env.example` como base).
+Si el hosting no tiene SSH, usá la Terminal de cPanel.
 
 ### 7. Verificar que el rewrite funciona
 
@@ -314,29 +304,22 @@ APP_BASE_PATH=
 
 ---
 
-## Ejecutar schema SQL
+## Base de datos
 
-Los scripts SQL están en `db/init/`. Ejecutalos en orden:
+No hay que correr SQL a mano: `php bin/console migrate` crea o actualiza el esquema.
 
-```bash
-# 1. Crear la base de datos
-mysql -u USER -p -e "CREATE DATABASE mi_landing_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 2. Schema (tablas)
-mysql -u USER -p mi_landing_db < db/init/01_schema.sql
-
-# 3. Seed (usuario admin + settings por defecto)
-mysql -u USER -p mi_landing_db < db/init/02_seed.sql
-```
-
-### Credenciales por defecto
-
-| Campo | Valor |
+| Carpeta | Para qué |
 |---|---|
-| Email | `admin@rufi.com.ar` |
-| Contraseña | `password` |
+| `db/schema/site.sql` | Esquema **completo** de un sitio (y de la master, que también es una landing) |
+| `db/schema/master.sql` | Tablas del gestor: `sites`, `servers` |
+| `db/upgrades/site/`, `db/upgrades/master/` | Cambios incrementales para bases que ya existían |
+| `db/seed/settings.sql` | Configuración por defecto. Solo agrega claves que faltan; **nunca pisa** valores ni crea usuarios |
 
-> **Cambiá la contraseña inmediatamente** desde el panel admin → Usuarios.
+- **Base nueva** (sin tabla `users`): se ejecuta `schema/*.sql` y los upgrades quedan registrados como incluidos.
+- **Base existente**: se ejecutan solo los upgrades que no figuran en `schema_migrations`, una única vez.
+- Un sitio nuevo se inicializa desde **Sitios → Inicializar** (o `site:init`): schema + seed + su primer admin.
+
+No hay usuario ni contraseña por defecto: el primero se crea con `php bin/console admin:create`.
 
 ---
 
@@ -370,6 +353,22 @@ Accedé en `/admin/login` con tus credenciales.
 |---|---|
 | `admin` | Todo: settings, links, usuarios, actualizaciones |
 | `editor` | Solo links y dashboard |
+
+---
+
+## Multisitio, servidores y recuperación
+
+Una sola instalación sirve la landing principal (dominios en `MASTER_DOMAINS`) y las landings de clientes, cada una con **su propia base de datos y dominio**. Todo se administra desde el panel master:
+
+| Sección | Para qué |
+|---|---|
+| **Sitios** | Registrar sitios, inicializar su DB (tablas + admin), verificar dominio, entrar como su admin, suspender/activar |
+| **Servidores** | Desde el panel **local**: conectar por SSH con clave a producción (cPanel), ver estado y logs, provisionar sitios (DB + usuario + inicialización) |
+| **Sistema** | Diagnóstico de la instalación, aplicar migraciones, re-cifrar credenciales |
+
+Si no podés entrar al panel: `php bin/console help` (reset de contraseña, migraciones, diagnóstico).
+
+Guía completa: [docs/multisitio-y-servidores.md](docs/multisitio-y-servidores.md).
 
 ---
 
@@ -449,80 +448,56 @@ nombre de marca, [categoría] [diferenciador], comprar [producto]
 
 ## Migraciones SQL
 
-Cuando desplegás una nueva versión del código con cambios en la base de datos, ejecutá los archivos `.sql` en `db/updates/` manualmente en orden alfabético:
+El esquema se aplica con `MigrationService`, que es **idempotente**: re-ejecutarlo es seguro
+(tablas/columnas/índices que ya existen se toman como aplicados) y registra cada archivo en la
+tabla `schema_migrations`. Nunca ejecuta el seed sobre una base con datos sin que se lo pidas,
+y el seed solo completa settings faltantes: no pisa la configuración existente.
+
+### Deploy de una versión nueva
 
 ```bash
-for f in db/updates/*.sql; do
-  mysql -u USER -p DATABASE < "$f"
-done
+cd landing
+git pull
+php composer.phar install --no-dev --optimize-autoloader   # o `composer install ...`
+php bin/console migrate      # master + TODOS los sitios cliente inicializados
+php cleanup.php              # opcional, solo producción
 ```
 
-### Convención de nombres para migraciones
+También se puede hacer desde el panel master: **Sistema → Aplicar migraciones** (migra la DB
+master y la de cada sitio cliente; si un sitio falla, el resto sigue y se muestra el detalle).
 
-```
-YYYYMMDD_HHMM_{version}_{descripcion}.sql
+| Comando | Qué hace |
+|---|---|
+| `php bin/console migrate` | Master + todos los sitios inicializados |
+| `php bin/console migrate --only-master` | Solo la DB master |
+| `php bin/console site:migrate <dominio>` | Solo la DB de un sitio |
+| `php bin/console migrate --seed` | Además completa settings por defecto faltantes (instalación nueva) |
 
-Ejemplos:
-  20260316_1100_1_1_0_seo_settings.sql
-  20260401_0900_1_2_0_click_stats.sql
-  20260515_1430_2_0_0_new_link_types.sql
-```
+### Agregar una migración
 
-El orden de aplicación es **alfabético**, por eso el prefijo de fecha garantiza el orden correcto.
-
-### Versión instalada
-
-La versión actual se guarda en `settings` bajo la clave `app_installed_version`. Las migraciones aplicadas se rastrean en `app_applied_migrations`. Esto permite saber qué migraciones están pendientes.
+1. Crear `landing/db/upgrades/site/NNNN_descripcion.sql` (o `upgrades/master/`) con el
+   `ALTER`/`CREATE`. Se detecta solo (orden alfabético). Errores "ya existe" (1050, 1060,
+   1061, 1091) se toman como aplicados.
+2. Reflejar el **mismo cambio** en `db/schema/site.sql` (o `master.sql`) para las bases nuevas.
+3. Correr los tests: `MigrationDriftTest` compara una base nueva contra una vieja actualizada
+   con los upgrades y falla si los dos caminos no dan exactamente el mismo esquema.
+4. No editar un upgrade ya aplicado en producción: no se vuelve a ejecutar.
 
 ---
 
-## Agregar migraciones a un nuevo commit
+## Roles y permisos
 
-Cuando hacés cambios que requieren modificaciones en la base de datos:
-
-### Paso 1 — Crear el archivo SQL
-
-```bash
-# Nombre: YYYYMMDD_HHMM_{version}_{descripcion}.sql
-touch db/updates/20260401_0900_1_2_0_nueva_feature.sql
-```
-
-Contenido del archivo:
-
-```sql
--- =============================================================
---  Migración: 1.2.0 – Descripción de lo que hace
---  Fecha: 2026-04-01
---  Descripción: Agrega tal o cual columna/tabla/settings
---  Commit: abc1234
--- =============================================================
-
--- Tu SQL aquí. Usá siempre IF NOT EXISTS / ON DUPLICATE KEY
--- para que la migración sea idempotente.
-ALTER TABLE links ADD COLUMN IF NOT EXISTS `clicks` INT UNSIGNED NOT NULL DEFAULT 0;
-```
-
-> Escribí siempre SQL idempotente (`IF NOT EXISTS`, `ON DUPLICATE KEY UPDATE`) para que sea seguro re-ejecutar si algo falla.
-
-### Paso 2 — Actualizar `landing/VERSION`
-
-```
-1.2.0
-```
-
-### Paso 3 — Commitear y deployar
-
-```bash
-git add db/updates/20260401_0900_1_2_0_nueva_feature.sql landing/VERSION
-git commit -m "feat: nueva feature + migración DB v1.2.0"
-git push
-```
-
-### Paso 4 — Aplicar en producción
-
-```bash
-mysql -u USER -p DATABASE < db/updates/20260401_0900_1_2_0_nueva_feature.sql
-```
+- **Root**: vive en la DB master. Ve todo (incluidos Sitios, Servidores y Sistema) y es el
+  único que edita **Roles y permisos**. El primer usuario de la master es root.
+- **Roles** (`admin`, `editor` y los que cree el root): cada uno tiene tildadas las secciones
+  del panel que puede ver. Lo que no ve, desaparece del sidebar **y** su URL redirige al
+  Dashboard (o responde 403 a pedidos `fetch`).
+- **Usuarios de un sitio hijo** están en la DB de ese sitio. Para configurar qué ven, desde
+  **Sitios** usá el botón *Roles y permisos* (o *Entrar*): entrás al panel del sitio como root
+  por SSO y editás sus roles ahí.
+- Un **módulo apagado** (Módulos) se oculta y bloquea para todos, root incluido.
+- Las secciones se definen en `landing/src/Support/Permissions.php`. Una ruta nueva bajo
+  `/admin` tiene que tener su prefijo ahí; si no, se bloquea (`AccessControlTest` lo verifica).
 
 ---
 

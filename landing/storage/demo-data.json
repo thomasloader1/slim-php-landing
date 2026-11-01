@@ -1,0 +1,261 @@
+{
+    "links": [
+        {
+            "title": "Instagram",
+            "url": "https://instagram.com/tudemo",
+            "type": "url",
+            "icon": "fa-brands fa-instagram",
+            "color": "#ffffff",
+            "bg_color": "#E4405F",
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "title": "Facebook",
+            "url": "https://facebook.com/tudemo",
+            "type": "url",
+            "icon": "fa-brands fa-facebook",
+            "color": "#ffffff",
+            "bg_color": "#1877F2",
+            "sort_order": 1,
+            "active": 1
+        },
+        {
+            "title": "WhatsApp",
+            "url": "https://wa.me/541112345678",
+            "type": "url",
+            "icon": "fa-brands fa-whatsapp",
+            "color": "#ffffff",
+            "bg_color": "#25D366",
+            "sort_order": 2,
+            "active": 1
+        },
+        {
+            "title": "TikTok",
+            "url": "https://tiktok.com/@tudemo",
+            "type": "url",
+            "icon": "fa-brands fa-tiktok",
+            "color": "#ffffff",
+            "bg_color": "#000000",
+            "sort_order": 3,
+            "active": 1
+        }
+    ],
+    "locations": [
+        {
+            "name": "Local Centro",
+            "address": "Av. Corrientes 1234, CABA",
+            "whatsapp": "541112345678",
+            "whatsapp_message": "¡Hola! Quiero consultar por el menú",
+            "embed_code": null,
+            "url": null,
+            "mode": "address",
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "name": "Local Norte",
+            "address": "Av. Cabildo 5678, CABA",
+            "whatsapp": "541187654321",
+            "whatsapp_message": "¡Hola! Consulto por delivery",
+            "embed_code": null,
+            "url": null,
+            "mode": "address",
+            "sort_order": 1,
+            "active": 1
+        }
+    ],
+    "menu_sections": [
+        {
+            "id": 1,
+            "name": "Pizzas",
+            "icon": "fa-pizza",
+            "note": "Todas nuestras pizzas están horneadas en horno de barro",
+            "note_type": "info",
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "id": 2,
+            "name": "Bebidas",
+            "icon": "fa-wine-bottle",
+            "note": null,
+            "note_type": null,
+            "sort_order": 1,
+            "active": 1
+        },
+        {
+            "id": 3,
+            "name": "Promociones",
+            "icon": "fa-star",
+            "note": "Válido hasta fin de mes",
+            "note_type": "warning",
+            "sort_order": 2,
+            "active": 1
+        }
+    ],
+    "menu_items": [
+        {
+            "section_id": 1,
+            "title": "Muzzarella",
+            "price": "2500.00",
+            "price_label_1": null,
+            "price_2": null,
+            "price_label_2": null,
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": "Muzzarella clásica con salsa de tomate y aceitunas",
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": null,
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "section_id": 1,
+            "title": "Napolitana",
+            "price": "3000.00",
+            "price_label_1": null,
+            "price_2": null,
+            "price_label_2": null,
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": "Muzzarella, rodajas de tomate, ajo y perejil",
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": null,
+            "sort_order": 1,
+            "active": 1
+        },
+        {
+            "section_id": 1,
+            "title": "Fugazzeta",
+            "price": "3000.00",
+            "price_label_1": null,
+            "price_2": "3500.00",
+            "price_label_2": "Con jamón",
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": "Muzzarella y cebolla caramelizada",
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": "destacado",
+            "sort_order": 2,
+            "active": 1
+        },
+        {
+            "section_id": 2,
+            "title": "Coca Cola 500ml",
+            "price": "800.00",
+            "price_label_1": null,
+            "price_2": null,
+            "price_label_2": null,
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": null,
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": null,
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "section_id": 2,
+            "title": "Agua 500ml",
+            "price": "500.00",
+            "price_label_1": null,
+            "price_2": null,
+            "price_label_2": null,
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": "Agua mineral sin gas",
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": null,
+            "sort_order": 1,
+            "active": 1
+        },
+        {
+            "section_id": 3,
+            "title": "2 Muzzas + 1 Bebida",
+            "price": "5000.00",
+            "price_label_1": null,
+            "price_2": null,
+            "price_label_2": null,
+            "price_3": null,
+            "price_label_3": null,
+            "unit": null,
+            "description": "Dos pizzas muzzarella + una Coca Cola 500ml",
+            "image_url": null,
+            "flavors": null,
+            "gift_note": null,
+            "badge_type": "oferta",
+            "sort_order": 0,
+            "active": 1
+        }
+    ],
+    "faq": [
+        {
+            "question": "¿Cómo puedo hacer un pedido?",
+            "answer": "Podés pedir directamente por WhatsApp haciendo clic en el botón de contacto. También podés llamarnos al 11-1234-5678.",
+            "sort_order": 0,
+            "active": 1
+        },
+        {
+            "question": "¿Cuáles son los horarios?",
+            "answer": "Abrimos de lunes a sábados de 18:00 a 00:00. Domingos de 19:00 a 23:00.",
+            "sort_order": 1,
+            "active": 1
+        },
+        {
+            "question": "¿Hacen envíos a domicilio?",
+            "answer": "Sí, hacemos envíos en un radio de 5 km. El mínimo de pedido es de $2000.",
+            "sort_order": 2,
+            "active": 1
+        },
+        {
+            "question": "¿Aceptan tarjetas?",
+            "answer": "Aceptamos todas las tarjetas de crédito y débito, Mercado Pago y efectivo.",
+            "sort_order": 3,
+            "active": 1
+        }
+    ],
+    "settings": {
+        "site_name": "Mi Demo",
+        "landing_title": "Bienvenido a mi Demo",
+        "landing_subtitle": "Este es un perfil de demostración",
+        "landing_bio": "Este es un perfil de muestra para que puedas ver todas las funcionalidades de la plataforma. Podés personalizar cada sección desde el panel de administración.",
+        "landing_accent_color": "#fec771",
+        "landing_bg_color": "#020617",
+        "landing_text_color": "#f8fafc",
+        "landing_avatar_url": "",
+        "landing_logo_url": "",
+        "landing_bg_image_url": "",
+        "landing_bg_overlay": "dark",
+        "landing_bg_overlay_opacity": "70",
+        "landing_accent_force": "0",
+        "landing_favicon_url": "",
+        "landing_links_display": "card",
+        "landing_logo_size": "medium",
+        "locations_display": "card",
+        "locations_columns": "2",
+        "menu_bg_image_url": "",
+        "module_title_enabled": "1",
+        "module_avatar_enabled": "1",
+        "module_links_enabled": "1",
+        "module_bio_enabled": "1",
+        "module_locations_enabled": "1",
+        "module_menu_enabled": "1",
+        "module_site_manager_enabled": "1"
+    }
+}

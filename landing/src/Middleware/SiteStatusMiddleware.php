@@ -34,11 +34,67 @@ class SiteStatusMiddleware implements MiddlewareInterface
 
             // Todo tráfico público redirige
             if (!empty($redirectUrl)) {
-                $response = new SlimResponse();
-                return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+                if (!$this->isValidRedirectUrl($redirectUrl, $request)) {
+                    $response = new SlimResponse();
+                    return $response->withStatus(403);
+                } else {
+                    $response = new SlimResponse();
+                    return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+                }
             }
         }
 
         return $handler->handle($request);
+    }
+
+    /**
+     * Validate redirect URL to prevent open redirect attacks.
+     * Allows relative URLs (same-origin) and absolute URLs matching the current site's domain.
+     */
+    private function isValidRedirectUrl(string $redirectUrl, $request): bool
+    {
+        // Reject protocol-relative URLs (//evil.com) first
+        if (str_starts_with($redirectUrl, '//')) {
+            return false;
+        }
+
+        // Allow relative URLs (same-origin, starting with /)
+        if (str_starts_with($redirectUrl, '/')) {
+            return true;
+        }
+
+        // Parse absolute URL
+        $parsed = parse_url($redirectUrl);
+        if ($parsed === false) {
+            return false;
+        }
+
+        // Validate scheme
+        $scheme = $parsed['scheme'] ?? '';
+        if (!in_array(strtolower($scheme), ['http', 'https'], true)) {
+            return false;
+        }
+
+        // Validate host matches current site's domain
+        $host = $parsed['host'] ?? '';
+        if (empty($host)) {
+            return false;
+        }
+
+        // Get resolved site from request attributes
+        $resolvedSite = $request->getAttribute('resolved_site');
+        if ($resolvedSite && $resolvedSite->domain) {
+            $allowedDomain = strtolower($resolvedSite->domain);
+            $redirectDomain = strtolower($host);
+
+            // Remove www. prefix for comparison
+            $allowedDomain = preg_replace('/^www\./i', '', $allowedDomain);
+            $redirectDomain = preg_replace('/^www\./i', '', $redirectDomain);
+
+            return $redirectDomain === $allowedDomain;
+        }
+
+        // If no resolved site, reject absolute URLs for safety
+        return false;
     }
 }

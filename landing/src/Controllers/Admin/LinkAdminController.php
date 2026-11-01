@@ -4,16 +4,18 @@ namespace App\Controllers\Admin;
 
 use App\Models\Link;
 use App\Traits\AdminViewTrait;
+use App\Traits\ReordersEntities;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class LinkAdminController
 {
     use AdminViewTrait;
+    use ReordersEntities;
 
     public function index(Request $request, Response $response): Response
     {
-        $links = Link::orderBy('id', 'desc')->get();
+        $links = Link::orderBy('sort_order')->orderBy('id')->get();
         return $this->render($response, 'admin/links/index', ['links' => $links]);
     }
 
@@ -32,6 +34,8 @@ class LinkAdminController
             return $response->withHeader('Location', url('admin/links/create') . '?error=' . urlencode($error))->withStatus(302);
         }
 
+        $maxOrder = Link::max('sort_order') ?? 0;
+
         Link::create([
             'title'    => trim($data['title'] ?? ''),
             'url'      => trim($data['url'] ?? ''),
@@ -39,6 +43,7 @@ class LinkAdminController
             'icon'     => $data['icon'] ?? 'fa-link',
             'color'    => $data['color'] ?? '#ffffff',
             'bg_color' => !empty($data['bg_color_enabled']) ? ($data['bg_color'] ?? null) : null,
+            'sort_order' => $maxOrder + 1,
             'active'   => isset($data['active']) ? 1 : 0
         ]);
 
@@ -94,6 +99,11 @@ class LinkAdminController
         }
 
         return $response->withHeader('Location', url('admin/links'))->withStatus(302);
+    }
+
+    protected function getReorderModel(): string
+    {
+        return Link::class;
     }
 
     /**

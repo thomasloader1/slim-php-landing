@@ -3,16 +3,28 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
     restart: unless-stopped
     environment:
-      DB_HOST: DB_HOST
-      DB_PORT: DB_PORT
+      DB_HOST: phpmyadmin-mysql
+      DB_PORT: 3306
       DB_NAME: ${DB_NAME:-project_landing}
-      DB_USER: DB_USER
-      DB_PASS: ${DB_PASS:-password}
+      DB_USER: ${DB_USER:-landing_user}
+      DB_PASS: ${DB_PASS:-landing_pass}
       APP_BASE_PATH: ${APP_BASE_PATH:-}
+      APP_ENV: ${APP_ENV:-development}
+      MASTER_DOMAINS: ${MASTER_DOMAINS:-localhost}
+      SSH_KEYS_DIR: /run/secrets/ssh
+      TENANT_ENCRYPTION_KEY: ${TENANT_ENCRYPTION_KEY:-}
+      TENANT_ENCRYPTION_KEY_V2: ${TENANT_ENCRYPTION_KEY_V2:-}
+      TENANT_ENCRYPTION_KEY_ACTIVE: ${TENANT_ENCRYPTION_KEY_ACTIVE:-v1}
     volumes:
       - ./landing:/var/www/html
+      # Claves SSH para administrar producción (Admin → Servidores). Solo lectura.
+      # Generar: ssh-keygen -t ed25519 -f secrets/ssh/landing_deploy
+      - ./secrets/ssh:/run/secrets/ssh:ro
     ports:
       - "8001:80"
     networks:
@@ -21,3 +33,4 @@ services:
 networks:
   phpmyadmin_phpmyadminsql-network:
     external: true
+volumes: {}

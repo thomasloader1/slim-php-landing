@@ -1,8 +1,8 @@
 @extends('admin/layout')
 
-@section('title', 'Secciones del Menú')
-@section('header', 'Secciones del Menú')
-@section('subheader', 'Organiza las categorías de tu carta. Arrastrá para reordenar.')
+@section('title', 'Categorías')
+@section('header', 'Categorías')
+@section('subheader', 'Organizá las categorías de tus productos. Arrastrá para reordenar.')
 
 @section('content')
 <div class="flex justify-end mb-4 gap-3">
@@ -16,9 +16,9 @@
 
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
-        <h3 class="text-lg font-bold text-white">Lista de Secciones</h3>
+        <h3 class="text-lg font-bold text-white">Lista de Categorías</h3>
         <a href="{{ url('admin/menu/sections/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-plus"></i> Nueva Sección
+            <i class="fa-solid fa-plus"></i> Nueva Categoría
         </a>
     </div>
 
@@ -57,7 +57,7 @@
                                         <i class="fa-solid fa-pen-to-square text-sm"></i>
                                     </a>
                                     <form action="{{ url('admin/menu/sections/delete/' . $section->id) }}" method="POST"
-                                          onsubmit="return confirm('¿Eliminar esta sección? Los ítems quedarán sin sección asignada.')"
+                                          onsubmit="return confirm('¿Eliminar esta categoría? Sus productos quedarán sin categoría.')"
                                           data-no-loading>
                                         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
@@ -71,7 +71,7 @@
                 @else
                     <tr>
                         <td colspan="4" class="px-6 py-12 text-center text-slate-500 italic">
-                            No hay secciones creadas. ¡Creá la primera para organizar tu menú!
+                            No hay categorías creadas. Creá la primera para organizar tus productos.
                         </td>
                     </tr>
                 @endif
@@ -97,7 +97,7 @@
 
             fetch('{{ url('admin/menu/sections/reorder') }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': '{{ $_SESSION['csrf_token'] ?? '' }}' },
                 body: JSON.stringify({ order: order })
             }).then(function (r) {
                 if (!r.ok) { alert('Error al guardar el orden.'); }

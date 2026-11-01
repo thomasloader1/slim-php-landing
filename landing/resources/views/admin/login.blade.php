@@ -13,7 +13,7 @@
 <body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-6">
     <div class="max-w-md w-full">
         <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold">Backoffice {{ $_ENV['APP_NAME'] }}</h1>
+            <h1 class="text-3xl font-bold">Backoffice {{ $_ENV['APP_NAME'] ?? '' }}</h1>
             <p class="text-slate-400 mt-2">Ingresá tus credenciales para administrar</p>
         </div>
 

@@ -9,19 +9,19 @@
     <form action="{{ url('admin/links/edit/' . $link->id) }}" method="POST" class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Título del Enlace</label>
                 <input type="text" name="title" value="{{ $link->title }}" required
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
             </div>
             
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">URL / Destino</label>
                 <input type="url" name="url" value="{{ $link->url }}" required
                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
             </div>
 
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Icono</label>
                 <input type="hidden" name="icon" id="icon-value" value="{{ $link->icon }}">
                 <button type="button" id="icon-picker-btn"
@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            <div class="col-span-2 md:col-span-1">
+            <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-slate-400 mb-2">Color de Acento</label>
                 <div class="flex gap-2">
                     <input type="color" name="color" value="{{ $link->color }}"
@@ -50,7 +50,7 @@
                 </div>
             </div>
 
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700 shrink-0">
                         <input type="checkbox" name="bg_color_enabled" id="bg_color_enabled" {{ $link->bg_color ? 'checked' : '' }} class="sr-only peer">
@@ -68,7 +68,7 @@
                 </div>
             </div>
 
-            <div class="col-span-2">
+            <div class="md:col-span-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
                         <input type="checkbox" name="active" {{ $link->active ? 'checked' : '' }} class="sr-only peer">

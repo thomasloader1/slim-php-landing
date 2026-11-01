@@ -52,33 +52,44 @@ class SettingsAdminController
         ];
 
         // Extensiones de imagen permitidas
-        $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'];
+        $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico']; // SVG removido por seguridad: XSS almacenado
 
         // Asegurar que el directorio uploads/ existe
         $uploadDir = __DIR__ . '/../../../public/uploads';
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            mkdir($uploadDir, 0750, true);
         }
 
+        $uploadLabels = ['avatar_file' => 'avatar', 'logo_file' => 'logo', 'bg_file' => 'imagen de fondo', 'favicon_file' => 'favicon'];
+        $rejected = [];
+
         foreach ($uploadMap as $inputName => $settingKey) {
+            if (isset($files[$inputName]) && !in_array($files[$inputName]->getError(), [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
+                // Ej: supera upload_max_filesize de PHP
+                $rejected[] = $uploadLabels[$inputName] . ' (no se pudo subir)';
+                continue;
+            }
             if (isset($files[$inputName]) && $files[$inputName]->getError() === UPLOAD_ERR_OK) {
                 $file = $files[$inputName];
 
                 // Validar tamaño máximo (5MB)
                 if (!$this->validateImageSize($file, 5 * 1024 * 1024)) {
+                    $rejected[] = $uploadLabels[$inputName] . ' (supera 5 MB)';
                     continue;
                 }
 
                 // Validar extensión
                 $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
                 if (!in_array($extension, $allowedExtensions)) {
+                    $rejected[] = $uploadLabels[$inputName] . ' (formato .' . $extension . ' no permitido)';
                     continue;
                 }
 
                 // Validar MIME type real con finfo (no confiar en el cliente)
                 $realMime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $file->getStream());
-                $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
+                $allowedMimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon']; // image/svg+xml removido por seguridad: XSS almacenado
                 if (!in_array($realMime, $allowedMimes)) {
+                    $rejected[] = $uploadLabels[$inputName] . ' (el archivo no es una imagen válida)';
                     continue;
                 }
 
@@ -99,6 +110,7 @@ class SettingsAdminController
                     // Si GD no pudo procesar, eliminar el archivo subido y no actualizar
                     if (!$processed) {
                         @unlink($targetPath);
+                        $rejected[] = $uploadLabels[$inputName] . ' (no se pudo procesar la imagen)';
                         continue;
                     }
                 }
@@ -136,6 +148,15 @@ class SettingsAdminController
             }
         }
 
+        if (array_key_exists('landing_bg_overlay_opacity', $data)) {
+            $data['landing_bg_overlay_opacity'] = (string) overlay_opacity_percent($data['landing_bg_overlay_opacity']);
+        }
+
+        // La bio llega como HTML del editor: solo se guarda HTML de la lista blanca
+        if (array_key_exists('landing_bio', $data)) {
+            $data['landing_bio'] = \App\Support\HtmlSanitizer::bio((string) $data['landing_bio']);
+        }
+
         foreach ($data as $key => $value) {
             if (in_array($key, $allowedKeys)) {
                 Capsule::table('settings')->updateOrInsert(
@@ -143,6 +164,12 @@ class SettingsAdminController
                     ['setting_value' => $value, 'updated_at' => date('Y-m-d H:i:s')]
                 );
             }
+        }
+
+        if ($rejected) {
+            $_SESSION['flash_error'] = 'Se guardaron los cambios, pero no se subió: ' . implode(', ', $rejected) . '. Formatos: PNG, JPG, GIF, WEBP o ICO.';
+        } else {
+            $_SESSION['flash_success'] = 'Cambios guardados.';
         }
 
         return $response->withHeader('Location', url('admin/settings'))->withStatus(302);

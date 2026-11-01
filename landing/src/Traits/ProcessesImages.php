@@ -26,6 +26,11 @@ trait ProcessesImages
      */
     protected function processAndSaveImage(string $filePath, int $maxW, int $maxH, int $jpegQuality = 80): bool
     {
+        // Sin la extensión GD (ej. el Dockerfile actual) se guarda el original tal cual
+        if (!function_exists('imagecreatetruecolor')) {
+            return false;
+        }
+
         $imageInfo = @getimagesize($filePath);
         if ($imageInfo === false) {
             return false;
