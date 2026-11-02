@@ -136,6 +136,7 @@ class PageLayoutService
         ],
         'products' => [
             'columns'              => ['enum', ['2', '3', '4'], '3'],
+            'image_size'           => ['enum', ['lg', 'sm', 'none'], 'lg'],
             'card_ratio'           => ['enum', ['square', 'landscape', 'portrait'], 'square'],
             'show_search'          => ['bool', true],
             'show_filters'         => ['bool', true],

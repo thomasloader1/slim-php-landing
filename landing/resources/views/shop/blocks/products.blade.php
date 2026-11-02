@@ -24,7 +24,12 @@
     $showFilters = (bool) ($data['show_filters'] ?? true) && ($activeSections->count() + ($unsectioned->count() ? 1 : 0)) > 1;
     $isEmpty = $unsectioned->count() === 0 && $activeSections->count() === 0;
 
-    $card = ['ratio' => $ratio, 'showDesc' => $showDesc];
+    // Imagen de la card: grande (con la forma elegida), chica (franja baja) o sin imagen
+    $imageSize = $data['image_size'] ?? 'lg';
+    if ($imageSize === 'sm') {
+        $ratio = 'h-28 sm:h-36';
+    }
+    $card = ['ratio' => $ratio, 'showDesc' => $showDesc, 'showImage' => $imageSize !== 'none'];
     $grid = 'grid ' . $cols . ' gap-3 sm:gap-5 lg:gap-6';
     $noteIcons = [
         'info'     => 'fa-circle-info',

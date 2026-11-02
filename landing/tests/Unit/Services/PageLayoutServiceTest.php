@@ -184,6 +184,12 @@ class PageLayoutServiceTest extends TestCase
         $this->assertFalse($block['data']['show_search']);
         $this->assertFalse($block['data']['show_filters']);
         $this->assertTrue($block['data']['group_by_category'], 'valor inválido → default');
+        $this->assertSame('lg', $block['data']['image_size'], 'sin valor → imagen grande');
+
+        $size = fn ($v) => (new PageLayoutService('shop'))->sanitize([['type' => 'products', 'data' => ['image_size' => $v]]])[0]['data']['image_size'];
+        $this->assertSame('none', $size('none'));
+        $this->assertSame('sm', $size('sm'));
+        $this->assertSame('lg', $size('xl'));
     }
 
     public function test_banner_image_urls_and_options_are_sanitized(): void

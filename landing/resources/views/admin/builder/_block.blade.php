@@ -117,7 +117,16 @@
                         <p class="text-xs text-slate-500 mt-1">En celulares siempre se ven 2 por fila.</p>
                     </div>
                     <div>
-                        <label class="{{ $label }}">Forma de la imagen</label>
+                        <label class="{{ $label }}">Imagen en la card</label>
+                        <select data-field="image_size" class="{{ $select }}">
+                            @foreach(['lg' => 'Grande', 'sm' => 'Chica (franja baja)', 'none' => 'Sin imagen'] as $v => $l)
+                                <option value="{{ $v }}" {{ ($d['image_size'] ?? 'lg') === $v ? 'selected' : '' }}>{{ $l }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">"Sin imagen" arma cards compactas tipo lista de precios.</p>
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Forma de la imagen <span class="text-slate-600">(solo grande)</span></label>
                         <select data-field="card_ratio" class="{{ $select }}">
                             @foreach(['square' => 'Cuadrada (1:1)', 'landscape' => 'Horizontal (4:3)', 'portrait' => 'Vertical (3:4)'] as $v => $l)
                                 <option value="{{ $v }}" {{ ($d['card_ratio'] ?? 'square') === $v ? 'selected' : '' }}>{{ $l }}</option>

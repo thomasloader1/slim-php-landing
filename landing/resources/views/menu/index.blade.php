@@ -352,6 +352,7 @@
         'use strict';
         var ORDER_URL = @json(url('shop/orders'));
         var WA_MODE = @json($waMode);
+        var MAX_ITEMS = @json(max(1, (int) ($settings['shop_max_items'] ?? 30)));
         var KEY = 'shop-cart:' + location.host;
         var fab = document.getElementById('cart-fab'), panel = document.getElementById('cart-panel');
         var linesEl = document.getElementById('cart-lines'), form = document.getElementById('cart-form');
@@ -432,51 +433,125 @@
             if (inc || dec) { save(); render(); }
         });
 
-        function open() { panel.classList.add('open'); document.getElementById('cart-view').classList.remove('hidden'); document.getElementById('cart-done').classList.add('hidden'); }
-        function close() { panel.classList.remove('open'); }
+        function open() {
+            panel.classList.add('open');
+            document.getElementById('cart-view').classList.remove('hidden');
+            document.getElementById('cart-done').classList.add('hidden');
+            var c = panel.querySelector('.sheet [data-close]'); if (c) { c.focus(); }
+        }
+        function close() { if (!panel.classList.contains('open')) { return; } panel.classList.remove('open'); fab.focus(); }
         fab.addEventListener('click', open);
         panel.addEventListener('click', function (e) { if (e.target.closest('[data-close]')) { close(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
 
+        /* ── Checkout ──────────────────────────────────────────────
+         * 1) Valida en el navegador (mismas reglas que OrderService) y marca los campos.
+         * 2) Envía; NO abre pestañas antes de tener el pedido confirmado (antes se abría
+         *    una vacía y se cerraba ante cualquier error: parecía que "no pasaba nada").
+         * 3) Con el pedido creado intenta abrir WhatsApp; si el navegador lo bloquea,
+         *    queda el botón "Abrir WhatsApp" en el panel de confirmación.
+         */
+        var submitBtn = document.getElementById('cart-submit');
+        var submitHtml = submitBtn.innerHTML;
+        var generalErr = form.querySelector('[data-err="general"]');
+
         function showErrors(errs) {
             form.querySelectorAll('[data-err]').forEach(function (p) { p.textContent = errs[p.dataset.err] || ''; });
+            ['name', 'phone'].forEach(function (f) {
+                var input = form.elements[f];
+                if (errs[f]) { input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', 'err-' + f); }
+                else { input.removeAttribute('aria-invalid'); }
+            });
+            var first = ['name', 'phone'].filter(function (f) { return errs[f]; })[0];
+            if (first) { form.elements[first].focus(); }
+            else if (errs.general) { generalErr.scrollIntoView({ block: 'nearest' }); }
+        }
+        form.querySelector('[data-err="name"]').id = 'err-name';
+        form.querySelector('[data-err="phone"]').id = 'err-phone';
+        ['name', 'phone'].forEach(function (f) {
+            form.elements[f].addEventListener('input', function () {
+                this.removeAttribute('aria-invalid');
+                form.querySelector('[data-err="' + f + '"]').textContent = '';
+            });
+        });
+
+        function validate() {
+            var errs = {};
+            var name = form.elements['name'].value.trim().replace(/\s+/g, ' ');
+            var digits = form.elements['phone'].value.replace(/\D+/g, '').replace(/^00/, '');
+            if (name.length < 2) { errs.name = 'Ingresá tu nombre (al menos 2 letras).'; }
+            if (digits.length < 8 || digits.length > 15) { errs.phone = 'Ingresá un teléfono válido, con código de área (ej: +54 9 11 5555-1234).'; }
+            if (!cart.length) { errs.general = 'Tu carrito está vacío.'; }
+            else if (units() > MAX_ITEMS) { errs.general = 'Podés pedir hasta ' + MAX_ITEMS + ' unidades por pedido.'; }
+            return errs;
         }
 
+        function setBusy(busy) {
+            submitBtn.disabled = busy;
+            submitBtn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            submitBtn.innerHTML = busy ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Enviando pedido…' : submitHtml;
+        }
+
+        function showDone(code, url) {
+            document.getElementById('done-code').textContent = code;
+            document.getElementById('done-link').href = url;
+            document.getElementById('cart-view').classList.add('hidden');
+            document.getElementById('cart-done').classList.remove('hidden');
+            document.getElementById('done-link').focus();
+        }
+
+        var sending = false;
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-            var btn = document.getElementById('cart-submit');
+            if (sending) { return; }
+            var errs = validate();
+            if (Object.keys(errs).length) { showErrors(errs); return; }
+            showErrors({});
+
             var payload = {
-                name: form.elements['name'].value, phone: form.elements['phone'].value, website: form.elements['website'].value,
+                name: form.elements['name'].value.trim(), phone: form.elements['phone'].value.trim(), website: form.elements['website'].value,
                 items: cart.map(function (l) { return { id: l.id, variant: l.variant, qty: l.qty }; })
             };
-            // La ventana se abre YA (gesto del usuario) para que el navegador no la bloquee
-            var win = window.open('', '_blank');
-            btn.disabled = true; showErrors({});
-            fetch(ORDER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) })
-                .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+            var ctrl = 'AbortController' in window ? new AbortController() : null;
+            var timer = setTimeout(function () { if (ctrl) { ctrl.abort(); } }, 15000);
+            sending = true; setBusy(true);
+
+            fetch(ORDER_URL, {
+                method: 'POST', credentials: 'same-origin', signal: ctrl ? ctrl.signal : undefined,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(function (r) {
+                    // Un error del servidor puede venir en HTML: no romper el flujo por eso
+                    return r.text().then(function (t) {
+                        var body = {};
+                        try { body = JSON.parse(t); } catch (err) { body = {}; }
+                        return { status: r.status, body: body || {} };
+                    });
+                })
                 .then(function (res) {
-                    btn.disabled = false;
-                    if (res.status === 201) {
+                    if (res.status === 201 && res.body.code) {
                         var url = waUrl(res.body);
-                        if (win) { win.location.href = url; }
-                        document.getElementById('done-code').textContent = res.body.code;
-                        document.getElementById('done-link').href = url;
-                        document.getElementById('cart-view').classList.add('hidden');
-                        document.getElementById('cart-done').classList.remove('hidden');
                         cart = []; save(); render();
+                        showDone(res.body.code, url);
+                        var win = window.open(url, '_blank');
+                        if (win) { try { win.opener = null; } catch (err) {} }
                         return;
                     }
-                    if (win) { win.close(); }
-                    var errs = res.body.errors || {};
-                    var itemErrors = Object.keys(errs).some(function (k) { return k.indexOf(':') > -1; });
-                    showErrors({ name: errs.name, phone: errs.phone, general: errs.cart || res.body.error || (itemErrors ? 'Revisá los productos marcados.' : '') });
-                    render(errs);
+                    var e = res.body.errors || {};
+                    var itemErrors = Object.keys(e).some(function (k) { return k.indexOf(':') > -1; });
+                    var general = e.cart || res.body.error
+                        || (itemErrors ? 'Algunos productos cambiaron de stock o precio: revisá los marcados.' : '')
+                        || (e.name || e.phone ? '' : 'No pudimos registrar el pedido (error ' + res.status + '). Probá de nuevo en un momento.');
+                    render(e);
+                    showErrors({ name: e.name, phone: e.phone, general: general });
                 })
-                .catch(function () {
-                    btn.disabled = false;
-                    if (win) { win.close(); }
-                    showErrors({ general: 'No se pudo enviar el pedido. Revisá tu conexión e intentá de nuevo.' });
-                });
+                .catch(function (err) {
+                    showErrors({ general: err && err.name === 'AbortError'
+                        ? 'El servidor tardó demasiado en responder. Probá de nuevo.'
+                        : 'No se pudo enviar el pedido. Revisá tu conexión e intentá de nuevo.' });
+                })
+                .then(function () { clearTimeout(timer); sending = false; setBusy(false); });
         });
 
         // El carrito guardado puede tener precios/stock viejos: se actualiza con lo que muestra la página

@@ -2,7 +2,7 @@
     Card de producto (tienda). Layout e-commerce: imagen con proporción fija, badges
     sobre la imagen, título a 2 líneas, precio destacado y acción anclada abajo para
     que todas las cards de una fila queden alineadas.
-    Variables: $item, $cat (sec-N), $ratio (clase aspect-*), $showDesc, $catLabel?, $shopOpen
+    Variables: $item, $cat (sec-N), $ratio (clase aspect-* o alto fijo), $showImage, $showDesc, $catLabel?, $shopOpen
     El JS del carrito depende de: .menu-card, data-title/desc/cat, .shop-add (data-id,
     data-title, data-stock, data-variants), .shop-variant y .shop-add-btn.
 --}}
@@ -12,6 +12,7 @@
     $titleId   = 'p-' . ($item->id ?? substr(md5($item->title . ($item->sku ?? '')), 0, 8)) . '-title';
     $catLabel  = $catLabel ?? '';
     $ratio     = $ratio ?? 'aspect-square';
+    $showImage = $showImage ?? true;
     $showDesc  = $showDesc ?? true;
     $unit      = $item->unit ? ' ' . $item->unit : '';
     $extraPrices = [];
@@ -32,6 +33,7 @@
          data-title="{{ mb_strtolower($item->title) }}"
          data-desc="{{ mb_strtolower(($item->description ?? '') . ' ' . ($item->flavors ?? '')) }}">
 
+    @if($showImage)
     <div class="product-media {{ $ratio }}">
         @if($item->image_url)
             <img src="{{ $item->image_url }}" alt="{{ $item->title }}" loading="lazy" decoding="async">
@@ -47,7 +49,15 @@
         @endif
     </div>
 
+    @endif
+
     <div class="product-body">
+        @if(!$showImage && ($oos || $badge))
+            <div class="flex flex-wrap gap-1.5">
+                @if($oos)<span class="p-badge p-badge-oos">Sin stock</span>@endif
+                @if($badge)<span class="p-badge {{ $badge[1] }}">{{ $badge[0] }}</span>@endif
+            </div>
+        @endif
         @if($catLabel !== '')
             <p class="product-cat">{{ $catLabel }}</p>
         @endif
