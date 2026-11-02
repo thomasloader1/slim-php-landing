@@ -147,6 +147,24 @@ class OrderServiceTest extends TestCase
     }
 
     /** @test */
+    public function customer_notice_uses_editable_template_with_placeholders(): void
+    {
+        $p = $this->item(['title' => 'Pizza', 'price' => 10000]);
+        $order = $this->svc->create([['id' => $p->id, 'qty' => 2]], 'Juan', '1155551234')['order'];
+        $this->svc->decide($order, Order::ACCEPTED, 't');
+        $order = $order->fresh();
+
+        $msg = OrderService::customerNotice($order, [
+            'shop_notice_accepted' => "Listo {nombre}: {pedido} por {total}.\n{detalle}\nAlias: {alias} {desconocida}",
+            'menu_payment_alias'   => 'mi.alias',
+        ]);
+        $this->assertSame("Listo Juan: {$order->code} por \$20.000.\n• 2 x Pizza — \$20.000\nAlias: mi.alias {desconocida}", $msg);
+
+        // Plantilla vacía → texto de fábrica
+        $this->assertStringContainsString('fue aceptado', OrderService::customerNotice($order, ['shop_notice_accepted' => '  ']));
+    }
+
+    /** @test */
     public function rate_limiter_blocks_after_max_hits(): void
     {
         $key = 'test:' . uniqid();

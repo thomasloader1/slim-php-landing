@@ -84,7 +84,18 @@
                 @endif
                 <p class="text-xs text-slate-500">Rechazar devuelve el stock reservado por este pedido.</p>
             @elseif($notifyUrl)
-                <a href="{{ $notifyUrl }}" data-wa-web="{{ $notifyWeb }}" target="_blank" rel="noopener"
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <label for="notice-text" class="text-xs font-medium text-slate-400">Mensaje para {{ $order->customer_name }}</label>
+                        @if(can('products.settings'))
+                            <a href="{{ url('admin/menu/settings') }}" class="text-xs text-slate-500 hover:text-amber-400">Editar plantilla</a>
+                        @endif
+                    </div>
+                    <textarea id="notice-text" rows="6" maxlength="{{ \App\Services\OrderService::NOTICE_MAX_LENGTH }}" data-phone="{{ $notifyPhone }}"
+                              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500 resize-y">{{ $notice }}</textarea>
+                    <p class="text-xs text-slate-500 mt-1">Podés retocarlo para este pedido; la plantilla general no cambia.</p>
+                </div>
+                <a id="notice-send" href="{{ $notifyUrl }}" data-wa-web="{{ $notifyWeb }}" target="_blank" rel="noopener"
                    class="w-full bg-green-600 hover:bg-green-500 text-white font-bold px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-2">
                     <i class="fa-brands fa-whatsapp text-lg"></i> Avisar por WhatsApp
                 </a>
@@ -101,9 +112,19 @@
 // En escritorio, abrir WhatsApp Web en vez de la app
 (function () {
     var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+    // El mensaje editado arma el enlace (mismo formato que App\Support\WhatsApp)
+    var text = document.getElementById('notice-text'), send = document.getElementById('notice-send');
+    function sync() {
+        if (!text || !send) return;
+        var phone = text.dataset.phone, msg = text.value.trim();
+        send.dataset.waWeb = 'https://web.whatsapp.com/send?phone=' + phone + (msg ? '&text=' + encodeURIComponent(text.value) : '');
+        send.href = mobile ? 'https://wa.me/' + phone + (msg ? '?text=' + encodeURIComponent(text.value) : '') : send.dataset.waWeb;
+    }
+    if (text) { text.addEventListener('input', sync); }
     if (!mobile) {
         document.querySelectorAll('a[data-wa-web]').forEach(function (a) { a.href = a.dataset.waWeb; });
     }
+    sync();
 })();
 </script>
 @endpush

@@ -37,6 +37,14 @@ class MenuSettingsAdminController
         }
         $data['shop_max_items'] = (string) max(1, min(500, (int) ($data['shop_max_items'] ?? 30)));
 
+        // Avisos al cliente (aceptado / rechazado): texto plano, vacío = mensaje de fábrica
+        foreach (\App\Services\OrderService::NOTICE_TEMPLATES as $tpl) {
+            if (array_key_exists($tpl['key'], $data)) {
+                $text = str_replace("\r\n", "\n", trim((string) $data[$tpl['key']]));
+                $data[$tpl['key']] = mb_substr($text, 0, \App\Services\OrderService::NOTICE_MAX_LENGTH);
+            }
+        }
+
         $allowedKeys = [
             'menu_enabled',
             'menu_header_text',
@@ -48,6 +56,8 @@ class MenuSettingsAdminController
             'menu_payment_methods',
             'shop_enabled',
             'shop_max_items',
+            'shop_notice_accepted',
+            'shop_notice_rejected',
         ];
 
         foreach ($allowedKeys as $key) {

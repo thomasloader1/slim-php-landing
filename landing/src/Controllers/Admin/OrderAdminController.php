@@ -49,14 +49,16 @@ class OrderAdminController
             return $response->withHeader('Location', url('admin/shop/orders'))->withStatus(302);
         }
 
+        // Aviso al cliente: plantilla de Tienda → Configuración, editable antes de enviar
+        $notice = OrderService::customerNotice($order);
+        $validPhone = WhatsApp::isValidNumber($order->customer_phone);
+
         return $this->render($response, 'admin/shop/orders/show', [
-            'order'     => $order,
-            'notifyUrl' => WhatsApp::isValidNumber($order->customer_phone)
-                ? WhatsApp::appUrl($order->customer_phone, OrderService::customerNotice($order))
-                : null,
-            'notifyWeb' => WhatsApp::isValidNumber($order->customer_phone)
-                ? WhatsApp::webUrl($order->customer_phone, OrderService::customerNotice($order))
-                : null,
+            'order'       => $order,
+            'notice'      => $notice,
+            'notifyPhone' => $validPhone ? WhatsApp::normalizeNumber($order->customer_phone) : null,
+            'notifyUrl'   => $validPhone ? WhatsApp::appUrl($order->customer_phone, $notice) : null,
+            'notifyWeb'   => $validPhone ? WhatsApp::webUrl($order->customer_phone, $notice) : null,
         ]);
     }
 

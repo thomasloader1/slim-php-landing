@@ -180,16 +180,53 @@ class OrderService
         return implode("\n", $lines);
     }
 
-    /** Mensaje para avisarle al cliente cómo quedó su pedido. */
-    public static function customerNotice(Order $order): string
+    /** Plantillas editables (Tienda → Configuración) del aviso al cliente: estado => setting + texto por defecto */
+    public const NOTICE_TEMPLATES = [
+        Order::ACCEPTED => ['key' => 'shop_notice_accepted', 'default' => "¡Hola {nombre}! Tu pedido {pedido} fue aceptado. Total: {total}. ¡Gracias por tu compra!"],
+        Order::REJECTED => ['key' => 'shop_notice_rejected', 'default' => "Hola {nombre}, lamentablemente no podemos tomar tu pedido {pedido}. Si querés, respondé este mensaje y lo vemos."],
+    ];
+
+    public const NOTICE_MAX_LENGTH = 1000;
+
+    /** Variables disponibles en las plantillas: variable => descripción */
+    public const NOTICE_PLACEHOLDERS = [
+        '{nombre}'  => 'Nombre del cliente',
+        '{pedido}'  => 'Código del pedido (ej: P-000123)',
+        '{total}'   => 'Total del pedido',
+        '{detalle}' => 'Lista de productos',
+        '{alias}'   => 'Alias de transferencia',
+    ];
+
+    /**
+     * Mensaje para avisarle al cliente cómo quedó su pedido.
+     * Usa la plantilla guardada en settings (o la de fábrica si está vacía).
+     * @param array<string,string>|null $settings null = se leen de la DB
+     */
+    public static function customerNotice(Order $order, ?array $settings = null): string
     {
-        return match ($order->status) {
-            Order::ACCEPTED => "¡Hola {$order->customer_name}! Tu pedido {$order->code} fue aceptado. Total: "
-                . MenuItem::formatMoney($order->total) . '. ¡Gracias por tu compra!',
-            Order::REJECTED => "Hola {$order->customer_name}, lamentablemente no podemos tomar tu pedido {$order->code}. "
-                . 'Si querés, respondé este mensaje y lo vemos.',
-            default => "Hola {$order->customer_name}, recibimos tu pedido {$order->code}. En breve te confirmamos.",
-        };
+        $tpl = self::NOTICE_TEMPLATES[$order->status] ?? null;
+        if ($tpl === null) {
+            return "Hola {$order->customer_name}, recibimos tu pedido {$order->code}. En breve te confirmamos.";
+        }
+        if ($settings === null) {
+            $settings = Capsule::table('settings')
+                ->whereIn('setting_key', [$tpl['key'], 'menu_payment_alias'])
+                ->pluck('setting_value', 'setting_key')->all();
+        }
+        $template = trim((string) ($settings[$tpl['key']] ?? '')) ?: $tpl['default'];
+
+        $detail = [];
+        foreach ($order->items as $item) {
+            $detail[] = "• {$item->quantity} x {$item->display_name} — " . MenuItem::formatMoney($item->subtotal);
+        }
+
+        return strtr($template, [
+            '{nombre}'  => (string) $order->customer_name,
+            '{pedido}'  => (string) $order->code,
+            '{total}'   => MenuItem::formatMoney($order->total),
+            '{detalle}' => implode("\n", $detail),
+            '{alias}'   => (string) ($settings['menu_payment_alias'] ?? ''),
+        ]);
     }
 
     /** @return array{0: ?float, 1: ?string} [precio, etiqueta] de la variante 1/2/3 */

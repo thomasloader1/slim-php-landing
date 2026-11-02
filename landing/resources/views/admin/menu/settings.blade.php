@@ -171,6 +171,49 @@
 
                 </div>
             </div>
+            {{-- ── MENSAJES AL CLIENTE ─────────────────────────────────── --}}
+            @php
+                $__tpls = \App\Services\OrderService::NOTICE_TEMPLATES;
+                $__noticeFields = [
+                    \App\Models\Order::ACCEPTED => ['Pedido aceptado', 'fa-circle-check text-green-400'],
+                    \App\Models\Order::REJECTED => ['Pedido rechazado', 'fa-circle-xmark text-red-400'],
+                ];
+            @endphp
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+                <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-green-400"></i> Mensajes al cliente
+                    </h3>
+                    <p class="text-slate-500 text-xs mt-1">Es el texto que se abre en WhatsApp al tocar "Avisar por WhatsApp" en un pedido. Antes de enviarlo lo podés retocar.</p>
+                </div>
+                <div class="p-6 space-y-5">
+                    @foreach($__noticeFields as $__status => [$__label, $__icon])
+                        @php $__key = $__tpls[$__status]['key']; @endphp
+                        <div>
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <label for="{{ $__key }}" class="text-sm font-bold text-slate-300 flex items-center gap-2">
+                                    <i class="fa-solid {{ $__icon }}"></i> {{ $__label }}
+                                </label>
+                                <button type="button" class="text-xs text-slate-500 hover:text-amber-400" data-notice-reset="{{ $__key }}"
+                                        data-default="{{ $__tpls[$__status]['default'] }}">Restaurar texto original</button>
+                            </div>
+                            <textarea id="{{ $__key }}" name="{{ $__key }}" rows="4" maxlength="{{ \App\Services\OrderService::NOTICE_MAX_LENGTH }}"
+                                      class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors resize-y"
+                                      placeholder="{{ $__tpls[$__status]['default'] }}">{{ $settings[$__key] ?? '' }}</textarea>
+                        </div>
+                    @endforeach
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                        <p class="text-xs font-bold text-slate-400 mb-2">Variables (tocá para insertar en el último campo usado)</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach(\App\Services\OrderService::NOTICE_PLACEHOLDERS as $__ph => $__desc)
+                                <button type="button" data-notice-var="{{ $__ph }}" title="{{ $__desc }}"
+                                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono">{{ $__ph }}</button>
+                            @endforeach
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Si dejás un campo vacío se usa el texto original.</p>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="space-y-6 min-w-0">
             {{-- ── DISEÑO: vive en el UX Builder + Configuración (mismo design system que la landing) ── --}}
@@ -212,6 +255,28 @@
 @push('scripts')
 <script>
 (function () {
+    /* ── Mensajes al cliente: variables y restaurar ── */
+    var lastNotice = document.getElementById('shop_notice_accepted');
+    document.querySelectorAll('textarea[name^="shop_notice_"]').forEach(function (t) {
+        t.addEventListener('focus', function () { lastNotice = t; });
+    });
+    document.querySelectorAll('[data-notice-var]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            if (!lastNotice) return;
+            var v = b.dataset.noticeVar, s = lastNotice.selectionStart, e = lastNotice.selectionEnd;
+            if (!lastNotice.value) { lastNotice.value = lastNotice.placeholder; s = e = lastNotice.value.length; }
+            lastNotice.value = lastNotice.value.slice(0, s) + v + lastNotice.value.slice(e);
+            lastNotice.focus();
+            lastNotice.setSelectionRange(s + v.length, s + v.length);
+        });
+    });
+    document.querySelectorAll('[data-notice-reset]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var t = document.getElementById(b.dataset.noticeReset);
+            t.value = b.dataset.default; t.focus();
+        });
+    });
+
     /* ── Checkboxes de métodos de pago → campo oculto ── */
     var payCheckboxes = document.querySelectorAll('[name^="pay_method_"]');
     var payHidden     = document.getElementById('payment_methods_val');
