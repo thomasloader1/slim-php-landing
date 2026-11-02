@@ -23,6 +23,7 @@ use App\Services\SiteValidator;
 use App\Services\SystemCheckService;
 use App\Services\EncryptionService;
 use App\Services\TenantProvisioner;
+use App\Services\TenantDoctorService;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 [$command, $args, $opts] = parseArgs(array_slice($argv, 1));
@@ -110,6 +111,9 @@ function run(string $command, array $args, array $opts): int
             } else {
                 foreach ($checks as $c) {
                     out(sprintf('[%-5s] %-12s %-26s %s', strtoupper($c['status']), $c['group'], $c['label'], $c['detail']));
+                    if (!empty($c['fix']) && $c['status'] !== 'ok') {
+                        out(str_repeat(' ', 48) . '→ ' . $c['fix']);
+                    }
                 }
             }
             return $svc->hasErrors($checks) ? 2 : 0;
@@ -172,6 +176,45 @@ function run(string $command, array $args, array $opts): int
             }
             return 0;
 
+        case 'tenant:doctor':
+            // Diagnostica (y con --fix repara) el 503 "encryption key not configured" / 404 por dominio
+            $doctor = new TenantDoctorService();
+            $state = $doctor->state();
+            $domain = $args[0] ?? null;
+            out('Gestor de sitios : ' . ($state['module'] ? 'ACTIVO' : 'apagado') . " ({$state['sites']} sitio(s) registrados)");
+            out('Clave de cifrado : ' . ($state['has_key'] ? 'configurada' : 'NO configurada'));
+            out('MASTER_DOMAINS   : ' . (implode(', ', $state['master_domains']) ?: '(vacío)'));
+            out('APP_ENV          : ' . $state['app_env'] . ($state['app_env'] !== 'production' ? '  ← en un servidor público usá APP_ENV=production' : ''));
+            if ($domain !== null) {
+                out('');
+                out("Dominio {$domain}: " . TenantDoctorService::describe(TenantDoctorService::resolve($domain, $state)));
+            }
+            $actions = TenantDoctorService::plan($state, $domain);
+            out('');
+            if (!$actions) {
+                out($domain === null && $state['module'] && !$state['has_key']
+                    ? 'Indicá el dominio que falla: php bin/console tenant:doctor <dominio>'
+                    : 'Nada que reparar.');
+                return 0;
+            }
+            out(isset($opts['fix']) ? 'Aplicando:' : 'Arreglo sugerido (agregá --fix para aplicarlo):');
+            $manual = false;
+            foreach ($actions as $action) {
+                if (!isset($opts['fix']) || $action['type'] === 'manual') {
+                    out('  - ' . $action['detail']);
+                    $manual = $manual || $action['type'] === 'manual';
+                    continue;
+                }
+                foreach ($doctor->apply($action) as $line) {
+                    out('  ✓ ' . $line);
+                }
+            }
+            if (isset($opts['fix'])) {
+                out('');
+                out('Listo. Verificá abriendo el sitio o con: php bin/console system:check');
+            }
+            return $manual || !isset($opts['fix']) ? 2 : 0;
+
         case 'help':
         case '':
             out(<<<TXT
@@ -186,6 +229,8 @@ Recuperación
   site:migrate <dominio>                              Aplica el esquema solo a la DB de un sitio
   system:check [--json]                               Diagnóstico (exit 2 si hay errores)
   key:fingerprint                                     Huella de TENANT_ENCRYPTION_KEY
+  tenant:doctor [dominio] [--fix]                     Error "Tenant resolution unavailable" / "No active site":
+                                                      explica por qué falla el dominio y con --fix lo repara
 
 Sitios
   site:list [--json]

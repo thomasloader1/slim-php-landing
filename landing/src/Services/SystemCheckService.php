@@ -127,15 +127,38 @@ class SystemCheckService
     {
         $checks[] = $this->ok('Dominios', 'MASTER_DOMAINS', implode(', ', TenantResolverMiddleware::masterDomains()));
 
+        $env = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? 'production');
+        if ($env !== 'production') {
+            $checks[] = $this->warn('Dominios', 'APP_ENV', "\"{$env}\": localhost/127.0.0.1 cuentan como master y se muestran errores detallados.",
+                'En un servidor público poné APP_ENV=production en el .env');
+        }
+
         if (!$dbOk) {
             return;
         }
         try {
             $enabled = Capsule::table('settings')->where('setting_key', 'module_site_manager_enabled')->value('setting_value') === '1';
             $sites = Capsule::schema()->hasTable('sites') ? Capsule::table('sites')->count() : 0;
-            $checks[] = $enabled
-                ? $this->ok('Dominios', 'Gestor de sitios', "Activo. {$sites} sitio(s) registrados.")
-                : $this->warn('Dominios', 'Gestor de sitios', 'Desactivado: todos los dominios sirven la landing master.', 'Activalo en Módulos para servir sitios clientes.');
+            $enc = new EncryptionService();
+            $hasKey = $enc->hasKey('v1') || $enc->hasKey('v2');
+            if (!$enabled) {
+                $checks[] = $this->warn('Dominios', 'Gestor de sitios', 'Desactivado: todos los dominios sirven la landing master.', 'Activalo en Módulos para servir sitios clientes.');
+            } elseif (!$hasKey) {
+                // Configuración rota: todo dominio fuera de MASTER_DOMAINS responde 503
+                $checks[] = $this->error('Dominios', 'Gestor de sitios',
+                    "Activo SIN TENANT_ENCRYPTION_KEY ({$sites} sitio(s)): todo dominio fuera de MASTER_DOMAINS responde 503 \"Tenant resolution unavailable\".",
+                    'php bin/console tenant:doctor <tu-dominio> --fix');
+            } else {
+                $checks[] = $this->ok('Dominios', 'Gestor de sitios', "Activo. {$sites} sitio(s) registrados.");
+            }
+
+            // Con el gestor activo, el dominio público de la landing principal tiene que estar en MASTER_DOMAINS
+            $real = array_diff(TenantResolverMiddleware::masterDomains(), ['localhost', '127.0.0.1']);
+            if ($enabled && !$real) {
+                $checks[] = $this->warn('Dominios', 'Dominio principal',
+                    'MASTER_DOMAINS no tiene ningún dominio público: la landing principal se trata como sitio cliente.',
+                    'php bin/console tenant:doctor <tu-dominio> --fix');
+            }
         } catch (\Throwable $e) {
             $checks[] = $this->warn('Dominios', 'Gestor de sitios', $e->getMessage());
         }
