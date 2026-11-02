@@ -25,6 +25,10 @@ class Link extends Model
     public function getIconHtml(): string
     {
         $icon = $this->icon ?: 'fa-link';
+        // Backward compatibility: map legacy twitter icon to x-twitter
+        if ($icon === 'fa-brands fa-twitter') {
+            $icon = 'fa-brands fa-x-twitter';
+        }
         // Add fa-solid as default prefix if no style prefix is present
         if (!preg_match('/fa-(solid|brands|regular|light|thin)/', $icon)) {
             $icon = "fa-solid " . $icon;

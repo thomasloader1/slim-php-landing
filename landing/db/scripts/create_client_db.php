@@ -11,8 +11,8 @@
  *   1ª línea: contraseña de la DB del cliente
  *   2ª línea: contraseña del admin del sitio (usuario admin@<dominio>)
  *
- * En cPanel NO sirve (no hay CREATE USER): usá Admin → Servidores → Provisionar
- * desde el panel local, o creá la DB en cPanel y usá "Inicializar" en el panel.
+ * En cPanel NO sirve (no hay CREATE USER): creá la DB en cPanel y usá
+ * "Inicializar" en el panel.
  */
 
 require __DIR__ . '/../../bootstrap/app.php';

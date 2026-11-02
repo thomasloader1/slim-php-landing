@@ -5,6 +5,7 @@
 @section('subheader', 'Administrá tu catálogo: precios, fotos y stock. Arrastrá para reordenar.')
 
 @section('content')
+@include('admin/partials/section-tabs', ['group' => 'shop'])
 @php
     $__shopSettings = \Illuminate\Database\Capsule\Manager::table('settings')
         ->whereIn('setting_key', ['menu_enabled', 'shop_enabled', 'whatsapp_number'])->pluck('setting_value', 'setting_key')->all();
@@ -15,6 +16,11 @@
     <div class="mb-4 flex flex-wrap items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-2xl p-4">
         <i class="fa-solid fa-store text-green-400"></i>
         <p class="flex-1 text-sm text-green-300">La tienda está <strong>abierta</strong>: los clientes eligen productos en /shop y el pedido te llega por WhatsApp.</p>
+        @if(can('builder'))
+        <a href="{{ url('admin/builder/shop') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i> Diseñar tienda
+        </a>
+        @endif
         <a href="{{ url('shop') }}" target="_blank" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Ver tienda
         </a>
@@ -23,31 +29,32 @@
     <div class="mb-4 flex flex-wrap items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
         <i class="fa-solid fa-store-slash text-amber-400"></i>
         <p class="flex-1 text-sm text-amber-200">La tienda está <strong>cerrada</strong>: en /shop los clientes solo ven el catálogo, sin poder hacer pedidos.</p>
+        @if(can('products.settings'))
         <form action="{{ url('admin/menu/settings/enable-shop') }}" method="POST">
             <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
             <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                 <i class="fa-solid fa-basket-shopping"></i> Habilitar tienda
             </button>
         </form>
+        @endif
     </div>
 @endif
 <div class="flex flex-wrap justify-end mb-4 gap-3">
+    @if(can('products.import'))
     <a href="{{ url('admin/menu/items/import') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
         <i class="fa-solid fa-file-import"></i> Importar Excel
     </a>
+    @endif
+    @if(can('products.import'))
     <a href="{{ url('admin/menu/items/export') }}" data-no-loading class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
         <i class="fa-solid fa-file-export"></i> Exportar
     </a>
-    <a href="{{ url('admin/menu/sections') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-layer-group"></i> Categorías
-    </a>
-    <a href="{{ url('admin/menu/settings') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-gear"></i> Configuración
-    </a>
+    @endif
 </div>
 
 @if(count($items) > 0)
 {{-- ── Actualizar precios por porcentaje ── --}}
+@if(can('products.prices'))
 <form id="price-form" action="{{ url('admin/menu/items/adjust-prices') }}" method="POST" data-no-loading
       class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 mb-6">
     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -56,16 +63,16 @@
         <h3 class="text-white font-bold">Actualizar precios</h3>
         <span class="text-xs text-slate-500 hidden sm:inline">Positivo aumenta, negativo baja.</span>
     </div>
-    <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-        <div class="col-span-1 lg:col-span-2">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+        <div>
             <label for="pf-percent" class="block text-xs text-slate-400 mb-1">Porcentaje</label>
             <div class="relative">
-                <input id="pf-percent" type="number" name="percent" step="0.01" min="-90" max="1000" required placeholder="10"
+                <input id="pf-percent" type="number" name="percent" step="0.01" min="-90" max="1000" required data-not-zero placeholder="10"
                        class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
             </div>
         </div>
-        <div class="col-span-1 lg:col-span-3">
+        <div>
             <label for="pf-scope" class="block text-xs text-slate-400 mb-1">Aplicar a</label>
             <select id="pf-scope" name="scope" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
                 <option value="all">Todos los productos ({{ count($items) }})</option>
@@ -73,15 +80,15 @@
                 <option value="selected">Productos tildados (0)</option>
             </select>
         </div>
-        <div class="col-span-2 lg:col-span-3 hidden" id="pf-section-wrap">
+        <div class="md:col-span-2 hidden" id="pf-section-wrap">
             <label for="pf-section" class="block text-xs text-slate-400 mb-1">Categoría</label>
-            <select id="pf-section" name="section_id" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
+            <select id="pf-section" name="section_id" data-required-if="scope=section" data-error="Elegí la categoría a la que aplicar el ajuste." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
                 @foreach($sections as $section)
                     <option value="{{ $section->id }}">{{ $section->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div class="col-span-1 lg:col-span-2">
+        <div>
             <label for="pf-round" class="block text-xs text-slate-400 mb-1">Redondeo</label>
             <select id="pf-round" name="round_to" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
                 <option value="0">Sin redondeo</option>
@@ -90,11 +97,11 @@
                 <option value="100">A $100</option>
             </select>
         </div>
-        <label class="col-span-1 lg:col-span-2 flex items-center gap-2 text-xs text-slate-400 cursor-pointer pb-3">
+        <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer pb-3">
             <input type="checkbox" name="include_alt" value="1" checked class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-0">
             Incluir precios 2 y 3
         </label>
-        <div class="col-span-2 lg:col-span-12 flex justify-end">
+        <div class="md:col-span-2 flex justify-end">
             <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2">
                 <i class="fa-solid fa-check"></i> Aplicar
             </button>
@@ -102,13 +109,16 @@
     </div>
 </form>
 @endif
+@endif
 
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
         <h3 class="text-lg font-bold text-white">Lista de Productos</h3>
+        @if(can('products.edit'))
         <a href="{{ url('admin/menu/items/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nuevo Producto
         </a>
+        @endif
     </div>
 
     <div class="overflow-x-auto">
@@ -188,9 +198,12 @@
                             </td>
                             <td class="px-3 py-3 md:px-6 md:py-4 text-right">
                                 <div class="flex justify-end gap-2">
+                                    @if(can('products.edit'))
                                     <a href="{{ url('admin/menu/items/edit/' . $item->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                         <i class="fa-solid fa-pen-to-square text-sm"></i>
                                     </a>
+                                    @endif
+                                    @if(can('products.delete'))
                                     <form action="{{ url('admin/menu/items/delete/' . $item->id) }}" method="POST"
                                           onsubmit="return confirm('¿Eliminar este producto?')"
                                           data-no-loading>
@@ -199,6 +212,7 @@
                                             <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

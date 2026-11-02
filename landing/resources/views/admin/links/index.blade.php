@@ -11,9 +11,11 @@
             <h3 class="text-lg font-bold text-white">Lista de Enlaces</h3>
             <p class="text-xs text-slate-500">Arrastrá <i class="fa-solid fa-grip-vertical"></i> para cambiar el orden en la landing.</p>
         </div>
+        @if(can('links.edit'))
         <a href="{{ url('admin/links/create') }}" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nuevo Enlace
         </a>
+        @endif
     </div>
 
     <div class="overflow-x-auto">
@@ -58,15 +60,19 @@
                             </td>
                             <td class="px-3 py-3 md:px-6 md:py-4 text-right">
                                 <div class="flex justify-end gap-2">
+                                    @if(can('links.edit'))
                                     <a href="{{ url('admin/links/edit/' . $link->id) }}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                         <i class="fa-solid fa-pen-to-square text-sm"></i>
                                     </a>
+                                    @endif
+                                    @if(can('links.delete'))
                                     <form action="{{ url('admin/links/delete/' . $link->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este enlace?')" data-no-loading>
                                         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <button type="submit" class="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-500 rounded-lg transition-all">
                                             <i class="fa-solid fa-trash-can text-sm"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

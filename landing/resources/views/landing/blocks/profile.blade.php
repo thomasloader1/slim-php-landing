@@ -25,3 +25,11 @@
         </div>
     </div>
 @endif
+@if(shop_is_public($settings))
+    {{-- Tienda publicada: acceso directo debajo del avatar --}}
+    <a href="{{ url('shop') }}"
+       class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass border border-white/10 text-sm font-semibold transition-all hover:scale-105 hover:border-white/25"
+       style="color: var(--accent);">
+        <i class="fa-solid fa-store"></i> ¡Visitá nuestra Tienda!
+    </a>
+@endif

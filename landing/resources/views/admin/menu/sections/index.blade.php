@@ -5,15 +5,7 @@
 @section('subheader', 'Organizá las categorías de tus productos. Arrastrá para reordenar.')
 
 @section('content')
-<div class="flex justify-end mb-4 gap-3">
-    <a href="{{ url('admin/menu/items') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-list"></i> Ítems
-    </a>
-    <a href="{{ url('admin/menu/settings') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-slate-700">
-        <i class="fa-solid fa-gear"></i> Configuración
-    </a>
-</div>
-
+@include('admin/partials/section-tabs', ['group' => 'shop'])
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
         <h3 class="text-lg font-bold text-white">Lista de Categorías</h3>

@@ -5,6 +5,8 @@ namespace App\Controllers\Front;
 use App\Models\MenuSection;
 use App\Models\MenuItem;
 use App\Services\DemoDataService;
+use App\Services\PageLayoutService;
+use App\Services\StructuredDataService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -29,8 +31,8 @@ class MenuController
 
         $settings = Capsule::table('settings')->pluck('setting_value', 'setting_key')->toArray();
 
-        // Si el módulo está desactivado retornar 404
-        if (($settings['menu_enabled'] ?? '0') !== '1') {
+        // Página sin publicar o módulo Catálogo apagado en Módulos → 404
+        if (!shop_is_public($settings)) {
             $response->getBody()->write('Página no disponible.');
             return $response->withStatus(404);
         }
@@ -77,19 +79,39 @@ class MenuController
             );
         }
 
-        // URL canónica
-        $pageUrl = !empty($settings['seo_site_url'])
-            ? rtrim($settings['seo_site_url'], '/') . '/shop'
-            : '';
+        // Contenido demo nunca se indexa (datos ficticios)
+        if ($demoMode) {
+            $settings['seo_noindex'] = '1';
+        }
+
+        // URL canónica absoluta + JSON-LD (CollectionPage, BreadcrumbList, ItemList de Product)
+        $pageUrl = site_base_url($settings) . '/shop';
+        $seo = new StructuredDataService($settings);
+        $jsonLd = [$seo->shopGraph(
+            $sections,
+            $unsectioned,
+            array_map(fn ($l) => new \App\Entities\LinkEntity($l), \App\Models\Link::active()->orderBy('sort_order')->get()->toArray()),
+            \App\Models\Location::active()->orderBy('sort_order')->get()
+        )];
+        $pageDescription = $seo->shopDescription($sections, $unsectioned);
+        $shopTitle = $seo->shopTitle();
 
         // Modo tienda: carrito + pedidos por WhatsApp (necesita un número válido en UX Builder)
         $shopOpen = ($settings['shop_enabled'] ?? '0') === '1'
+            && ($settings['module_orders_enabled'] ?? '1') === '1' // Módulos → Pedidos apagado: solo catálogo
             && \App\Support\WhatsApp::isValidNumber($settings['whatsapp_number'] ?? '');
         $waMode = in_array($settings['whatsapp_open_mode'] ?? 'auto', \App\Support\WhatsApp::OPEN_MODES, true)
             ? $settings['whatsapp_open_mode'] ?? 'auto'
             : 'auto';
 
-        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode', 'shopOpen', 'waMode'))->render();
+        // Bloques en el orden del UX Builder → Tienda (default: encabezado, productos, pagos)
+        $layoutService = new PageLayoutService('shop');
+        $blocks = array_values(array_filter(
+            $layoutService->decode($settings[$layoutService->settingKey()] ?? null),
+            fn (array $block) => $layoutService->isRenderable($block, $settings)
+        ));
+
+        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode', 'shopOpen', 'waMode', 'blocks', 'jsonLd', 'pageDescription', 'shopTitle'))->render();
         $response->getBody()->write($html);
         return $response;
     }

@@ -94,11 +94,13 @@ $container->set('view', function () {
 
 // Middleware
 // Slim ejecuta los middlewares en orden inverso al add() (LIFO):
-// SecurityHeaders -> TenantResolver -> SiteStatus -> rutas.
+// RobotsHeader -> SecurityHeaders -> TenantResolver -> SiteStatus -> rutas.
 // SiteStatus debe correr DESPUÉS de resolver el tenant para leer los settings de su DB.
 $app->add(new \App\Middleware\SiteStatusMiddleware());
 $app->add(new \App\Middleware\TenantResolverMiddleware());
 $app->add(new \App\Middleware\SecurityHeadersMiddleware());
+// Más externo: marca noindex todo lo que no sea / o /shop (incluye 404 del tenant resolver)
+$app->add(new \App\Middleware\RobotsHeaderMiddleware());
 $app->addRoutingMiddleware();
 
 // Error handling: pantalla técnica en dev, amigable en prod,

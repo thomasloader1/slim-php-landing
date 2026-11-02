@@ -97,7 +97,8 @@ class MigrationDriftTest extends TestCase
         $out = [];
         foreach ($c->select('SHOW TABLES') as $row) {
             $table = (string) array_values((array) $row)[0];
-            if ($table === 'schema_migrations') {
+            // servers: tabla de la vieja sección Servidores (SSH); install.sql ya no la crea pero no la borra
+            if (in_array($table, ['schema_migrations', 'servers'], true)) {
                 continue;
             }
             $ddl = (array) $c->select("SHOW CREATE TABLE `{$table}`")[0];

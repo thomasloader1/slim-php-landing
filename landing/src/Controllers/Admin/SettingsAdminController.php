@@ -65,8 +65,10 @@ class SettingsAdminController
 
         foreach ($uploadMap as $inputName => $settingKey) {
             if (isset($files[$inputName]) && !in_array($files[$inputName]->getError(), [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
-                // Ej: supera upload_max_filesize de PHP
-                $rejected[] = $uploadLabels[$inputName] . ' (no se pudo subir)';
+                $err = $files[$inputName]->getError();
+                $rejected[] = $uploadLabels[$inputName] . (in_array($err, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+                    ? ' (supera el máximo que acepta el servidor: ' . ini_get('upload_max_filesize') . ')'
+                    : ' (no se pudo subir, código ' . $err . ')');
                 continue;
             }
             if (isset($files[$inputName]) && $files[$inputName]->getError() === UPLOAD_ERR_OK) {
@@ -100,6 +102,8 @@ class SettingsAdminController
                 try {
                     $file->moveTo($targetPath);
                 } catch (\Exception $e) {
+                    error_log('[SettingsAdmin] No se pudo mover la subida a ' . $targetPath . ': ' . $e->getMessage());
+                    $rejected[] = $uploadLabels[$inputName] . ' (no se pudo guardar en el servidor: revisá permisos de public/uploads)';
                     continue;
                 }
 
@@ -220,17 +224,6 @@ class SettingsAdminController
      */
     public static function normalizeImageUrl(string $value): array
     {
-        $v = trim($value);
-        if (str_starts_with($v, '//')) {
-            $v = 'https:' . $v; // link sin esquema: //cdn.com/img.png
-        } elseif ($v === '' || str_starts_with($v, '/')) {
-            return [$v, true]; // vacío o archivo propio (/uploads/…)
-        } elseif (!preg_match('#^[a-z][a-z0-9+.-]*:#i', $v) && preg_match('#^[\w-]+(\.[\w-]+)+(/|$)#', $v)) {
-            $v = 'https://' . $v;
-        }
-        $ok = filter_var($v, FILTER_VALIDATE_URL) !== false
-            && strtolower((string) parse_url($v, PHP_URL_SCHEME)) === 'https'
-            && mb_strlen($v) <= 1000;
-        return [$v, $ok];
+        return \App\Support\ImageUrl::normalize($value);
     }
 }

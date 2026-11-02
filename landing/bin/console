@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * Consola de administración (recuperación sin SQL manual + operaciones remotas por SSH).
+ * Consola de administración (recuperación sin SQL manual).
  *
  *   php bin/console help
  *

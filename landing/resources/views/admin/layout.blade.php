@@ -49,31 +49,63 @@
             </div>
 
             @php
-                // Secciones visibles según rol y módulos (App\Support\Permissions + AccessService)
-                $__sections = \App\Services\AccessService::visibleSections();
-                $__menuConfigured = isset($__sections['products'])
-                    ? (\Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0')
-                    : '0';
+                // Sidebar agrupado según rol y módulos (App\Support\Permissions::GROUPS + AccessService)
+                $__nav = \App\Services\AccessService::visibleNav(\App\Services\AccessService::currentPath());
+                // Página pública /shop sin publicar (no es lo mismo que el módulo apagado)
+                $__shopUnpublished = isset($__nav['shop']) && !$__nav['shop']['off']
+                    && (\Illuminate\Database\Capsule\Manager::table('settings')->where('setting_key', 'menu_enabled')->value('setting_value') ?? '0') !== '1';
+                $__offBadge = '<span class="ml-auto text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wide" title="Apagado en Módulos: solo lo ves vos (root)">Off</span>';
+                $__pending = 0;
+                if (isset($__nav['shop']) && in_array('orders', array_column($__nav['shop']['items'], 'key'), true)) {
+                    $__pending = \App\Models\Order::pendingCount();
+                }
+                $__linkCls = fn ($active) => 'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ' . ($active ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400');
             @endphp
-            <nav class="flex-1 px-4 space-y-1 mt-4">
-                <a href="{{ url('admin') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ request_is('admin') || request_is('admin/') ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
+            <nav class="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
+                <a href="{{ url('admin') }}" class="{{ $__linkCls(request_is('admin') || request_is('admin/')) }}">
                     <i class="fa-solid fa-chart-line w-5"></i> Dashboard
                 </a>
-                @foreach($__sections as $__key => $__s)
-                    @php
-                        $__url = $__key === 'products' && $__menuConfigured !== '1' ? 'admin/menu/settings' : $__s['url'];
-                        $__active = false;
-                        foreach ($__s['prefixes'] as $__prefix) { $__active = $__active || request_is(ltrim($__prefix, '/') . '*'); }
-                    @endphp
-                    <a href="{{ url($__url) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ $__active ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 text-slate-400' }}">
-                        <i class="fa-solid {{ $__s['icon'] }} w-5"></i> {{ $__s['label'] }}
-                        @if($__key === 'products' && $__menuConfigured !== '1')
-                            <span class="ml-auto text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Off</span>
-                        @endif
-                        @if($__key === 'orders' && ($__pending = \App\Models\Order::pendingCount()) > 0)
-                            <span class="ml-auto text-[10px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-md" title="Pedidos pendientes">{{ $__pending }}</span>
-                        @endif
-                    </a>
+                @foreach($__nav as $__gKey => $__g)
+                    @if($__gKey === 'root')
+                        {{-- Herramientas del root, separadas del contenido del sitio --}}
+                        <p class="!mt-6 pt-4 border-t border-slate-800 px-4 pb-1 text-[10px] uppercase tracking-widest font-bold text-amber-400/70 flex items-center gap-1.5">
+                            <i class="fa-solid fa-crown text-[9px]"></i> Root
+                        </p>
+                    @endif
+                    @if(count($__g['items']) === 1)
+                        @php $__it = $__g['items'][0]; @endphp
+                        <a href="{{ url($__it['url']) }}" class="{{ $__linkCls($__it['active']) }} {{ $__it['off'] ? 'opacity-60' : '' }}">
+                            <i class="fa-solid {{ $__it['icon'] }} w-5"></i> {{ $__it['label'] }}
+                            @if($__it['off']){!! $__offBadge !!}@endif
+                        </a>
+                    @else
+                        <details class="group/nav" {{ $__g['active'] ? 'open' : '' }}>
+                            <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all {{ $__g['active'] ? 'text-white' : 'text-slate-400 hover:bg-slate-800/50' }}">
+                                <i class="fa-solid {{ $__g['icon'] }} w-5"></i>
+                                <span class="flex-1">{{ $__g['label'] }}</span>
+                                @if($__g['off'])
+                                    {!! $__offBadge !!}
+                                @elseif($__gKey === 'shop' && $__shopUnpublished)
+                                    <i class="fa-solid fa-eye-slash text-[10px] text-slate-500" title="La página /shop todavía no está publicada"></i>
+                                @endif
+                                @if($__gKey === 'shop' && $__pending > 0)
+                                    <span class="text-[10px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-md group-open/nav:hidden" title="Pedidos pendientes">{{ $__pending }}</span>
+                                @endif
+                                <i class="fa-solid fa-chevron-down text-[10px] transition-transform group-open/nav:rotate-180"></i>
+                            </summary>
+                            <div class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
+                                @foreach($__g['items'] as $__it)
+                                    <a href="{{ url($__it['url']) }}" class="{{ $__linkCls($__it['active']) }} text-sm {{ $__it['off'] && !$__g['off'] ? 'opacity-60' : '' }}" @if($__it['active']) aria-current="page" @endif>
+                                        <i class="fa-solid {{ $__it['icon'] }} w-4 text-xs"></i> {{ $__it['label'] }}
+                                        @if($__it['off'] && !$__g['off']){!! $__offBadge !!}@endif
+                                        @if($__it['key'] === 'orders' && $__pending > 0)
+                                            <span class="ml-auto text-[10px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-md" title="Pedidos pendientes">{{ $__pending }}</span>
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endif
                 @endforeach
             </nav>
 
@@ -112,6 +144,28 @@
                         <i class="fa-solid fa-bars text-sm"></i>
                     </button>
                     <div class="min-w-0">
+                        @php
+                            $__bc = \App\Services\AccessService::breadcrumbs(\App\Services\AccessService::currentPath());
+                            $__bcItems = $__bc['crumbs'];
+                            $__bcCurrent = $__bc['leaf'] ? (array_pop($__bcItems)['label'] ?? null) : trim($__env->yieldContent('title'));
+                        @endphp
+                        @if($__bcItems)
+                            <nav aria-label="Breadcrumb" class="mb-1">
+                                <ol class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                                    @foreach($__bcItems as $__crumb)
+                                        <li class="flex items-center gap-1.5">
+                                            <a href="{{ url($__crumb['url']) }}" class="hover:text-slate-300 transition-colors">
+                                                @if($loop->first)<i class="fa-solid fa-house text-[10px] mr-0.5"></i>@endif{{ $__crumb['label'] }}
+                                            </a>
+                                            <i class="fa-solid fa-chevron-right text-[8px] text-slate-700"></i>
+                                        </li>
+                                    @endforeach
+                                    @if($__bcCurrent)
+                                        <li class="text-slate-300 truncate max-w-[16rem]" aria-current="page">{{ $__bcCurrent }}</li>
+                                    @endif
+                                </ol>
+                            </nav>
+                        @endif
                         <h2 class="text-xl md:text-3xl font-bold text-white truncate">@yield('header')</h2>
                         <p class="text-slate-500 mt-0.5 text-sm hidden sm:block">@yield('subheader')</p>
                     </div>
@@ -172,6 +226,7 @@
         </main>
     </div>
 
+    @include('admin/partials/form-validation')
     @stack('scripts')
     <script>
         // Botón de loading al guardar formularios

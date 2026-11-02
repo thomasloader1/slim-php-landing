@@ -1,138 +1,114 @@
+{{--
+    Card de producto (tienda). Layout e-commerce: imagen con proporción fija, badges
+    sobre la imagen, título a 2 líneas, precio destacado y acción anclada abajo para
+    que todas las cards de una fila queden alineadas.
+    Variables: $item, $cat (sec-N), $ratio (clase aspect-*), $showDesc, $catLabel?, $shopOpen
+    El JS del carrito depende de: .menu-card, data-title/desc/cat, .shop-add (data-id,
+    data-title, data-stock, data-variants), .shop-variant y .shop-add-btn.
+--}}
 @php
-    $flavors = $item->flavors_array;   // array via accessor del modelo
-    $hasPriceLabel = !empty($item->price_label_1);
-    $hasPrice2     = $item->price_2 !== null;
-    $hasPrice3     = $item->price_3 !== null;
+    $flavors   = $item->flavors_array;
+    $oos       = (bool) $item->is_out_of_stock;
+    $titleId   = 'p-' . ($item->id ?? substr(md5($item->title . ($item->sku ?? '')), 0, 8)) . '-title';
+    $catLabel  = $catLabel ?? '';
+    $ratio     = $ratio ?? 'aspect-square';
+    $showDesc  = $showDesc ?? true;
+    $unit      = $item->unit ? ' ' . $item->unit : '';
+    $extraPrices = [];
+    if ($item->price_2 !== null) { $extraPrices[] = [$item->price_label_2, $item->price_2_formatted]; }
+    if ($item->price_3 !== null) { $extraPrices[] = [$item->price_label_3, $item->price_3_formatted]; }
+    $badge = match ($item->badge_type) {
+        'premium'  => ['Premium', 'p-badge-premium'],
+        'preorder' => ['Pedido previo', 'p-badge-preorder'],
+        'special'  => ['Especial', 'p-badge-special'],
+        default    => null,
+    };
 @endphp
 
-<article class="menu-card{{ $item->is_out_of_stock ? ' is-out-of-stock' : '' }}"
-         role="listitem"
-         data-title="{{ strtolower($item->title) }}"
-         data-desc="{{ strtolower($item->description ?? '') }} {{ strtolower($item->flavors ?? '') }}">
+<article class="menu-card product-card ds-card{{ $oos ? ' is-out-of-stock' : '' }}"
+         id="{{ $item->anchor }}"
+         aria-labelledby="{{ $titleId }}"
+         data-cat="{{ $cat ?? 'sec-0' }}"
+         data-title="{{ mb_strtolower($item->title) }}"
+         data-desc="{{ mb_strtolower(($item->description ?? '') . ' ' . ($item->flavors ?? '')) }}">
 
-    {{-- Imagen --}}
-    @if($item->image_url)
-        <img src="{{ $item->image_url }}" alt="{{ $item->title }}"
-             class="w-full h-44 object-cover"
-             loading="lazy">
-    @endif
-
-    <div class="p-5">
-
-        {{-- Encabezado: título + badges --}}
-        <div class="flex items-start gap-2 mb-2 flex-wrap">
-            <h3 class="font-bold text-lg leading-tight flex-1" style="color: var(--text);">
-                {{ $item->title }}
-            </h3>
-            <div class="flex flex-wrap gap-1 pt-0.5">
-                @if($item->is_out_of_stock)
-                    <span class="badge-out-of-stock">Sin stock</span>
-                @endif
-                @if($item->badge_type === 'premium')
-                    <span class="badge-premium" aria-label="Producto Premium">Premium</span>
-                @elseif($item->badge_type === 'preorder')
-                    <span class="badge-preorder" aria-label="Requiere pedido previo">Pedido previo</span>
-                @elseif($item->badge_type === 'special')
-                    <span class="badge-special" aria-label="Producto especial">Especial</span>
-                @endif
-            </div>
-        </div>
-
-        {{-- Descripción --}}
-        @if($item->description)
-            <p class="text-sm leading-relaxed mb-3" style="color: var(--text-muted);">
-                {{ $item->description }}
-            </p>
+    <div class="product-media {{ $ratio }}">
+        @if($item->image_url)
+            <img src="{{ $item->image_url }}" alt="{{ $item->title }}" loading="lazy" decoding="async">
+        @else
+            <div class="product-ph" aria-hidden="true"><i class="fa-regular fa-image"></i></div>
         @endif
 
-        {{-- Sabores --}}
+        @if($oos || $badge)
+            <div class="product-badges">
+                @if($oos)<span class="p-badge p-badge-oos">Sin stock</span>@endif
+                @if($badge)<span class="p-badge {{ $badge[1] }}">{{ $badge[0] }}</span>@endif
+            </div>
+        @endif
+    </div>
+
+    <div class="product-body">
+        @if($catLabel !== '')
+            <p class="product-cat">{{ $catLabel }}</p>
+        @endif
+
+        <h3 id="{{ $titleId }}" class="product-title">{{ $item->title }}</h3>
+
+        @if($showDesc && $item->description)
+            <p class="product-desc">{{ $item->description }}</p>
+        @endif
+
         @if(!empty($flavors))
-            <div class="mb-3" aria-label="Sabores disponibles">
-                @foreach($flavors as $flavor)
-                    <span class="flavor-chip">{{ $flavor }}</span>
+            <ul class="flex flex-wrap gap-1" aria-label="Variedades">
+                @foreach(array_slice($flavors, 0, 4) as $flavor)
+                    <li class="ds-chip">{{ $flavor }}</li>
                 @endforeach
-            </div>
+                @if(count($flavors) > 4)
+                    <li class="ds-chip" title="{{ implode(', ', array_slice($flavors, 4)) }}">+{{ count($flavors) - 4 }}</li>
+                @endif
+            </ul>
         @endif
 
-        {{-- Precios --}}
-        <div class="flex flex-wrap items-center gap-1.5 mt-auto" aria-label="Precios">
-
-            {{-- Precio 1 --}}
-            <div class="flex items-center gap-1.5">
-                @if($hasPriceLabel)
-                    <span class="price-size">{{ $item->price_label_1 }}</span>
-                @endif
-                <span class="price-badge"
-                      aria-label="{{ $hasPriceLabel ? $item->price_label_1 . ' ' : '' }}{{ $item->price_formatted }}{{ $item->unit ? ' '.$item->unit : '' }}">
-                    {{ $item->price_formatted }}{{ $item->unit && !$hasPrice2 ? ' ' . $item->unit : '' }}
-                </span>
-            </div>
-
-            {{-- Precio 2 --}}
-            @if($hasPrice2)
-                <span class="price-size opacity-30">·</span>
-                <div class="flex items-center gap-1.5">
-                    @if($item->price_label_2)
-                        <span class="price-size">{{ $item->price_label_2 }}</span>
-                    @endif
-                    <span class="price-badge"
-                          aria-label="{{ $item->price_label_2 ? $item->price_label_2 . ' ' : '' }}{{ $item->price_2_formatted }}{{ $item->unit && !$hasPrice3 ? ' '.$item->unit : '' }}">
-                        {{ $item->price_2_formatted }}{{ $item->unit && !$hasPrice3 ? ' ' . $item->unit : '' }}
-                    </span>
-                </div>
-            @endif
-
-            {{-- Precio 3 --}}
-            @if($hasPrice3)
-                <span class="price-size opacity-30">·</span>
-                <div class="flex items-center gap-1.5">
-                    @if($item->price_label_3)
-                        <span class="price-size">{{ $item->price_label_3 }}</span>
-                    @endif
-                    <span class="price-badge"
-                          aria-label="{{ $item->price_label_3 ? $item->price_label_3 . ' ' : '' }}{{ $item->price_3_formatted }}{{ $item->unit ? ' '.$item->unit : '' }}">
-                        {{ $item->price_3_formatted }}{{ $item->unit ? ' ' . $item->unit : '' }}
-                    </span>
-                </div>
-            @endif
-
+        <div class="product-price">
+            <p>
+                @if($item->price_label_1)<span class="label">{{ $item->price_label_1 }}</span>@endif
+                <span class="amount">{{ $item->price_formatted }}</span>@if($unit && empty($extraPrices))<span class="label">{{ $unit }}</span>@endif
+            </p>
+            @foreach($extraPrices as [$lbl, $price])
+                <p class="extra">
+                    @if($lbl)<span class="label">{{ $lbl }}</span>@endif
+                    <span>{{ $price }}</span>
+                </p>
+            @endforeach
         </div>
 
-        {{-- Nota regalo --}}
         @if($item->gift_note)
-            <div class="mt-2">
-                <span class="badge-gift">
-                    <i class="fa-solid fa-gift text-xs mr-0.5" aria-hidden="true"></i>
-                    {{ $item->gift_note }}
-                </span>
-            </div>
+            <p class="ds-chip ds-chip-accent self-start"><i class="fa-solid fa-gift text-[10px]" aria-hidden="true"></i> {{ $item->gift_note }}</p>
         @endif
 
-        {{-- Shop: agregar al pedido --}}
         @if(!empty($shopOpen) && $item->id)
             @php
                 $variants = [['v' => 1, 'label' => $item->price_label_1 ?: '', 'price' => (float) $item->price]];
                 if ($item->price_2 !== null) { $variants[] = ['v' => 2, 'label' => $item->price_label_2 ?: 'Opción 2', 'price' => (float) $item->price_2]; }
                 if ($item->price_3 !== null) { $variants[] = ['v' => 3, 'label' => $item->price_label_3 ?: 'Opción 3', 'price' => (float) $item->price_3]; }
             @endphp
-            <div class="shop-add mt-4 flex items-center gap-2"
+            <div class="shop-add product-actions"
                  data-id="{{ $item->id }}" data-title="{{ $item->title }}"
                  data-stock="{{ $item->stock === null ? '' : max(0, $item->stock) }}"
                  data-variants='@json($variants)'>
                 @if(count($variants) > 1)
-                    <select class="shop-variant" aria-label="Opción de {{ $item->title }}">
+                    <select class="shop-variant" aria-label="Opción de {{ $item->title }}" {{ $oos ? 'disabled' : '' }}>
                         @foreach($variants as $v)
                             <option value="{{ $v['v'] }}">{{ $v['label'] }} · {{ \App\Models\MenuItem::formatMoney($v['price']) }}</option>
                         @endforeach
                     </select>
                 @endif
-                <button type="button" class="shop-add-btn" {{ $item->is_out_of_stock ? 'disabled' : '' }}
-                        aria-label="Agregar {{ $item->title }} al pedido">
-                    <i class="fa-solid {{ $item->is_out_of_stock ? 'fa-ban' : 'fa-plus' }} text-xs" aria-hidden="true"></i>
-                    {{ $item->is_out_of_stock ? 'Sin stock' : 'Agregar' }}
+                <button type="button" class="shop-add-btn ds-btn ds-btn-accent w-full" {{ $oos ? 'disabled' : '' }}
+                        aria-label="{{ $oos ? $item->title . ': sin stock' : 'Agregar ' . $item->title . ' al pedido' }}">
+                    <i class="fa-solid {{ $oos ? 'fa-ban' : 'fa-cart-plus' }} text-sm" aria-hidden="true"></i>
+                    {{ $oos ? 'Sin stock' : 'Agregar' }}
                 </button>
             </div>
         @endif
-
     </div>
 </article>

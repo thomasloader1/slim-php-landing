@@ -138,7 +138,7 @@ class CsrfMiddlewareTest extends TestCase
     /** @test */
     public function hash_equals_is_constant_time(): void
     {
-        // Verify hash_equals is available (PHP 8.1 has it built-in)
+        // Verify hash_equals is available (built-in since PHP 5.6)
         $this->assertTrue(function_exists('hash_equals'));
     }
 

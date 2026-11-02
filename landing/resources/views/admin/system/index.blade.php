@@ -12,7 +12,7 @@
     $warns  = collect($checks)->where('status', 'warn')->count();
     $migLabels = ['applied' => 'Aplicada', 'pending' => 'Pendiente', 'changed' => 'Modificada', 'missing_file' => 'Falta archivo'];
 @endphp
-<div class="space-y-6 max-w-5xl">
+<div class="space-y-6">
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -48,6 +48,8 @@
         </div>
     @endif
 
+    {{-- Chequeos en 2 columnas en pantallas anchas --}}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
     @foreach($groups as $group => $items)
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <h3 class="text-white font-bold px-6 py-4 border-b border-slate-800">{{ $group }}</h3>
@@ -67,6 +69,7 @@
             </ul>
         </div>
     @endforeach
+    </div>
 
     @if(!empty($migrations))
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">

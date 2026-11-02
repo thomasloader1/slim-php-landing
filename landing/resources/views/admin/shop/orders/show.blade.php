@@ -65,12 +65,15 @@
 
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-3">
             @if($order->isPending())
+                @if(can('orders.manage'))
                 <form action="{{ url('admin/shop/orders/' . $order->id . '/accept') }}" method="POST">
                     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
                     <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-2">
                         <i class="fa-solid fa-check"></i> Aceptar pedido
                     </button>
                 </form>
+                @endif
+                @if(can('orders.manage'))
                 <form action="{{ url('admin/shop/orders/' . $order->id . '/reject') }}" method="POST"
                       onsubmit="return confirm('¿Rechazar el pedido {{ $order->code }}? El stock reservado vuelve a estar disponible.')">
                     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -78,6 +81,7 @@
                         <i class="fa-solid fa-xmark"></i> Rechazar
                     </button>
                 </form>
+                @endif
                 <p class="text-xs text-slate-500">Rechazar devuelve el stock reservado por este pedido.</p>
             @elseif($notifyUrl)
                 <a href="{{ $notifyUrl }}" data-wa-web="{{ $notifyWeb }}" target="_blank" rel="noopener"

@@ -18,7 +18,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  * Gestor de sitios (solo superadmin en el dominio master; ver MasterOnlyMiddleware).
  * Ciclo de vida de un sitio:
  *   1. Registrar (dominio + credenciales de su DB propia)
- *   2. Crear DB/usuario (local/VPS) — en cPanel se crea en cPanel o vía SSH (Servidores)
+ *   2. Crear DB/usuario (local/VPS) — en cPanel se crea desde cPanel
  *   3. Inicializar (esquema + admin del sitio)
  *   4. Apuntar el dominio (alias en cPanel) y verificarlo
  *   5. Administrar: entrar como, suspender, activar
@@ -148,7 +148,7 @@ class SiteAdminController
         } catch (\Throwable $e) {
             error_log('[SiteAdmin] createDatabase site ' . $site->id . ': ' . $e->getMessage());
             $_SESSION['flash_error'] = 'No se pudo crear la DB: ' . $this->safeError($e)
-                . ' — En cPanel creala desde "Bases de datos MySQL" o desde Servidores (SSH).';
+                . ' — En cPanel creala desde "Bases de datos MySQL".';
         }
         return $response->withHeader('Location', url('admin/sites/edit/' . $site->id))->withStatus(302);
     }

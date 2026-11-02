@@ -19,8 +19,9 @@ class PermissionMiddleware implements MiddlewareInterface
 {
     public function process(Request $request, RequestHandler $handler): Response
     {
-        $required = Permissions::forPath(self::adminPath($request));
-        if ($required === null || ($required !== '' && AccessService::can($required))) {
+        $path = self::adminPath($request);
+        $required = Permissions::forPath($path);
+        if ($required === null || ($required !== '' && AccessService::canRequest($required, $request->getMethod(), $path))) {
             return $handler->handle($request);
         }
 
@@ -28,7 +29,7 @@ class PermissionMiddleware implements MiddlewareInterface
             '[PermissionMiddleware] Acceso denegado a %s (rol=%s, permiso=%s)',
             $request->getUri()->getPath(),
             $_SESSION['user_role'] ?? '-',
-            $required === '' ? 'no registrado' : $required
+            $required === '' ? 'no registrado' : (Permissions::featureFor($required, $request->getMethod(), $path) ?? $required)
         ));
 
         if (self::wantsJson($request)) {

@@ -16,15 +16,13 @@ services:
       APP_BASE_PATH: ${APP_BASE_PATH:-}
       APP_ENV: ${APP_ENV:-development}
       MASTER_DOMAINS: ${MASTER_DOMAINS:-localhost}
-      SSH_KEYS_DIR: /run/secrets/ssh
+      # Ruta que lista Admin → Directorios (por defecto, la carpeta public_html junto a la app)
+      DIRECTORIES_ROOT: ${DIRECTORIES_ROOT:-/var/www}
       TENANT_ENCRYPTION_KEY: ${TENANT_ENCRYPTION_KEY:-}
       TENANT_ENCRYPTION_KEY_V2: ${TENANT_ENCRYPTION_KEY_V2:-}
       TENANT_ENCRYPTION_KEY_ACTIVE: ${TENANT_ENCRYPTION_KEY_ACTIVE:-v1}
     volumes:
       - ./landing:/var/www/html
-      # Claves SSH para administrar producción (Admin → Servidores). Solo lectura.
-      # Generar: ssh-keygen -t ed25519 -f secrets/ssh/landing_deploy
-      - ./secrets/ssh:/run/secrets/ssh:ro
     ports:
       - "8001:80"
     networks:

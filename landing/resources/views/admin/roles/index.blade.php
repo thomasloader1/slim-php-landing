@@ -7,6 +7,7 @@
     : 'Definí qué secciones del panel ve cada rol de este sitio.')
 
 @section('content')
+@include('admin/partials/section-tabs', ['group' => 'users'])
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
         <div>
@@ -34,9 +35,19 @@
                 </div>
                 <div class="flex-1 flex flex-wrap gap-1.5">
                     @forelse($catalog as $key => $perm)
+                        @php
+                            $__features = \App\Support\Permissions::FEATURES[$key] ?? [];
+                            $__partial = array_values(array_intersect(array_keys($__features), $granted));
+                        @endphp
                         @if(in_array($key, $granted, true))
                             <span class="px-2 py-1 bg-blue-500/10 text-blue-300 text-xs font-bold rounded-lg border border-blue-500/20">
                                 <i class="fa-solid {{ $perm['icon'] }} text-[10px]"></i> {{ $perm['label'] }}
+                            </span>
+                        @elseif($__partial)
+                            <span class="px-2 py-1 bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-700"
+                                  title="{{ implode(', ', array_map(fn ($f) => $__features[$f]['label'], $__partial)) }}">
+                                <i class="fa-solid {{ $perm['icon'] }} text-[10px]"></i> {{ $perm['label'] }}
+                                <span class="font-normal text-slate-500">· {{ count($__partial) }}/{{ count($__features) }}</span>
                             </span>
                         @endif
                     @empty

@@ -5,6 +5,7 @@
 @section('subheader', 'Comandas que llegan desde la tienda. El stock se reserva al pedir y se devuelve si rechazás.')
 
 @section('content')
+@include('admin/partials/section-tabs', ['group' => 'shop'])
 @php
     $badge = [
         'pending'  => 'bg-amber-500/10 text-amber-400 border-amber-500/20',

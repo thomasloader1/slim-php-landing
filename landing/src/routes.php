@@ -23,6 +23,7 @@ $app->get('/menu', function ($request, $response) {
 });
 $app->get('/sitemap.xml', [SitemapController::class, 'sitemap']);
 $app->get('/robots.txt',  [SitemapController::class, 'robots']);
+$app->get('/llms.txt',    [SitemapController::class, 'llms']);
 $app->get('/healthz', \App\Controllers\Front\HealthController::class);
 
 // API Routes
@@ -71,6 +72,9 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
     // UX Builder: orden de bloques, textos, componentes y botón de WhatsApp
     $group->get('/builder',  [\App\Controllers\Admin\BuilderAdminController::class, 'index']);
     $group->post('/builder', [\App\Controllers\Admin\BuilderAdminController::class, 'update']);
+    $group->post('/builder/upload', [\App\Controllers\Admin\BuilderAdminController::class, 'upload']);
+    $group->get('/builder/{page:landing|shop}',  [\App\Controllers\Admin\BuilderAdminController::class, 'index']);
+    $group->post('/builder/{page:landing|shop}', [\App\Controllers\Admin\BuilderAdminController::class, 'update']);
 
     // Users CRUD
     $group->group('/users', function (RouteCollectorProxy $userGroup) {
@@ -156,21 +160,10 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $sys->post('/rotate-keys', [\App\Controllers\Admin\SystemAdminController::class, 'rotateKeys']);
     })->add(\App\Middleware\MasterOnlyMiddleware::class);
 
-    // Servidores remotos por SSH (superadmin, solo dominio master)
-    $group->group('/servers', function (RouteCollectorProxy $srv) {
-        $c = \App\Controllers\Admin\ServerAdminController::class;
-        $srv->get('', [$c, 'index']);
-        $srv->get('/create', [$c, 'create']);
-        $srv->post('/create', [$c, 'store']);
-        $srv->get('/edit/{id:[0-9]+}', [$c, 'edit']);
-        $srv->post('/edit/{id:[0-9]+}', [$c, 'update']);
-        $srv->post('/delete/{id:[0-9]+}', [$c, 'delete']);
-        $srv->get('/{id:[0-9]+}', [$c, 'show']);
-        $srv->post('/{id:[0-9]+}/fingerprint', [$c, 'fingerprint']);
-        $srv->post('/{id:[0-9]+}/pin', [$c, 'pin']);
-        $srv->post('/{id:[0-9]+}/health', [$c, 'health']);
-        $srv->post('/{id:[0-9]+}/logs', [$c, 'logs']);
-        $srv->post('/{id:[0-9]+}/provision', [$c, 'provision']);
+    // Directorios: listado de solo lectura de una ruta local (superadmin, solo dominio master)
+    $group->group('/directories', function (RouteCollectorProxy $dir) {
+        $dir->get('', [\App\Controllers\Admin\DirectoryAdminController::class, 'index']);
+        $dir->post('', [\App\Controllers\Admin\DirectoryAdminController::class, 'update']);
     })->add(\App\Middleware\MasterOnlyMiddleware::class);
 
     // Gestor de Sitios (admin only)

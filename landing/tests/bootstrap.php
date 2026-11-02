@@ -12,4 +12,4 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..', basename($envFile));
 $dotenv->safeLoad();
 
 // Set testing constant
-define('PHPUNIT_RUNNING', true);
+defined('PHPUNIT_RUNNING') || define('PHPUNIT_RUNNING', true); // phpunit.xml ya la define

@@ -47,7 +47,7 @@ Landing page tipo Linktree con panel de administración. Una sola URL que centra
 
 | Capa | Tecnología |
 |---|---|
-| Lenguaje | PHP 8.1 |
+| Lenguaje | PHP 8.3 |
 | Framework HTTP | Slim 4 |
 | Templating | Blade (jenssegers/blade) |
 | ORM / DB | Illuminate Database (Eloquent) |
@@ -67,7 +67,7 @@ Landing page tipo Linktree con panel de administración. Una sola URL que centra
 ```
 template-2mez-landing/
 ├── docker/
-│   └── Dockerfile               # Imagen PHP 8.1-Apache
+│   └── Dockerfile               # Imagen PHP 8.3-Apache
 ├── docker-compose.yml           # Stack Docker completo
 └── landing/                     # Aplicación PHP
     ├── VERSION                  # Versión actual del código (ej: 1.1.0)
@@ -204,7 +204,7 @@ cp .env.example .env
 
 ### Requisitos del servidor
 
-- PHP 8.1+ con extensiones: `pdo`, `pdo_mysql`, `mbstring`, `json`, `fileinfo`
+- PHP 8.3+ con extensiones: `pdo`, `pdo_mysql`, `mbstring`, `json`, `fileinfo`
 - Apache 2.4+ con `mod_rewrite` habilitado y `AllowOverride All`
 - MySQL 5.7+ o MariaDB 10.3+
 - Acceso a la carpeta donde se aloja la app (para escribir `.env` y `uploads/`)
@@ -369,7 +369,7 @@ Una sola instalación sirve la landing principal (dominios en `MASTER_DOMAINS`) 
 | Sección | Para qué |
 |---|---|
 | **Sitios** | Registrar sitios, inicializar su DB (tablas + admin), verificar dominio, entrar como su admin, suspender/activar |
-| **Servidores** | Desde el panel **local**: conectar por SSH con clave a producción (cPanel), ver estado y logs, provisionar sitios (DB + usuario + inicialización) |
+| **Directorios** | Listar (solo lectura) las carpetas de una ruta del servidor, ej. `public_html/*`, con el sitio asociado y si tiene la app instalada |
 | **Sistema** | Diagnóstico de la instalación, aplicar migraciones, re-cifrar credenciales |
 
 Si no podés entrar al panel: `php bin/console help` (reset de contraseña, migraciones, diagnóstico).
@@ -507,7 +507,7 @@ Todo va en `landing/db/install.sql`:
 
 ## Roles y permisos
 
-- **Root**: vive en la DB master. Ve todo (incluidos Sitios, Servidores y Sistema) y es el
+- **Root**: vive en la DB master. Ve todo (incluidos Sitios, Directorios y Sistema) y es el
   único que edita **Roles y permisos**. El primer usuario de la master es root.
 - **Roles** (`admin`, `editor` y los que cree el root): cada uno tiene tildadas las secciones
   del panel que puede ver. Lo que no ve, desaparece del sidebar **y** su URL redirige al
@@ -557,7 +557,7 @@ Antes de publicar, verificá cada punto:
 ### Técnico
 
 - [ ] `mod_rewrite` habilitado en Apache
-- [ ] PHP 8.1+ con extensiones `pdo`, `pdo_mysql`, `mbstring`
+- [ ] PHP 8.3+ con extensiones `pdo`, `pdo_mysql`, `mbstring`
 - [ ] Permisos de escritura en `uploads/` y `storage/`
 - [ ] HTTPS configurado (certificado SSL activo)
 - [ ] Dependencias instaladas: `php composer.phar install --no-dev`

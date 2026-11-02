@@ -245,27 +245,6 @@ CREATE TABLE IF NOT EXISTS `sites` (
     KEY `idx_sites_plan_end` (`plan_end`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `servers` (
-    `id`                       INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name`                     VARCHAR(150) NOT NULL,
-    `host`                     VARCHAR(255) NOT NULL,
-    `port`                     INT UNSIGNED NOT NULL DEFAULT 22,
-    `username`                 VARCHAR(100) NOT NULL,
-    `key_path`                 VARCHAR(500) NOT NULL,
-    `key_passphrase_encrypted` TEXT             NULL,
-    `host_key_fingerprint`     VARCHAR(255)     NULL,
-    `cpanel_user`              VARCHAR(100)     NULL,
-    `remote_app_path`          VARCHAR(500) NOT NULL DEFAULT 'landing',
-    `php_bin`                  VARCHAR(200) NOT NULL DEFAULT 'php',
-    `mysql_host`               VARCHAR(255) NOT NULL DEFAULT 'localhost',
-    `last_check_at`            TIMESTAMP        NULL DEFAULT NULL,
-    `last_check_ok`            TINYINT(1)       NULL,
-    `created_at`               TIMESTAMP        NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`               TIMESTAMP        NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
 -- =============================================================
 --  2. ACTUALIZAR BASES VIEJAS
 --  MySQL no tiene "ADD COLUMN IF NOT EXISTS": cada bloque pregunta
@@ -400,7 +379,7 @@ FROM `roles` r
 JOIN (
     SELECT 'builder' AS `permission` UNION ALL SELECT 'links' UNION ALL SELECT 'locations'
     UNION ALL SELECT 'products' UNION ALL SELECT 'settings' UNION ALL SELECT 'seo'
-    UNION ALL SELECT 'favicon' UNION ALL SELECT 'modules' UNION ALL SELECT 'users'
+    UNION ALL SELECT 'favicon' UNION ALL SELECT 'users'
 ) p
 WHERE r.`slug` = 'admin'
   AND NOT EXISTS (SELECT 1 FROM `role_permissions` x WHERE x.`role_id` = r.`id`);
@@ -464,10 +443,12 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('seo_og_image',               ''),
     ('seo_locale',                 'es_AR'),
     ('seo_twitter_handle',         ''),
-    ('seo_schema_type',            'Person'),
+    ('seo_schema_type',            'LocalBusiness'),
     ('seo_business_type',          ''),
     ('seo_address',                ''),
     ('seo_noindex',                '0'),
+    ('seo_shop_description',       ''),
+    ('seo_currency',               'ARS'),
     -- Módulos visibles
     ('module_title_enabled',       '1'),
     ('module_avatar_enabled',      '1'),
@@ -475,6 +456,17 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
     ('module_bio_enabled',         '1'),
     ('module_locations_enabled',   '1'),
     ('module_menu_enabled',        '1'),
+    ('module_orders_enabled',      '1'),
+    ('module_builder_enabled',     '1'),
+    ('module_users_enabled',       '1'),
+    ('module_settings_enabled',    '1'),
+    ('module_seo_enabled',         '1'),
+    ('module_favicon_enabled',     '1'),
+    -- Footer de la landing (solo lo edita el root en Módulos)
+    ('landing_footer_enabled',     '1'),
+    ('landing_footer_text',        'Desarrollado por'),
+    ('landing_footer_link_label',  'gomepab.com.ar'),
+    ('landing_footer_url',         'https://gomepab.com.ar'),
     ('module_site_manager_enabled','0'),
     ('site_manager_default_redirect_url', ''),
     -- Shop: página pública /shop (apagada hasta configurarla)

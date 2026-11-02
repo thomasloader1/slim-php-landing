@@ -3,159 +3,253 @@
 @section('title', 'Editar Enlace')
 @section('header', 'Editar Enlace')
 @section('subheader', 'Modifica la información de tu link.')
-
 @section('content')
-<div class="max-w-2xl">
-    <form action="{{ url('admin/links/edit/' . $link->id) }}" method="POST" class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
+    <form action="{{ url('admin/links/edit/' . $link->id) }}" method="POST">
         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-1">
-                <label class="block text-sm font-medium text-slate-400 mb-2">Título del Enlace</label>
-                <input type="text" name="title" value="{{ $link->title }}" required
-                       class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-            </div>
-            
-            <div class="md:col-span-1">
-                <label class="block text-sm font-medium text-slate-400 mb-2">URL / Destino</label>
-                <input type="url" name="url" value="{{ $link->url }}" required
-                       class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
-            </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+            <div class="xl:col-span-2 space-y-6">
+                <div class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
+                    <h3 class="text-lg font-bold text-white">Datos del Enlace</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Título del Enlace</label>
+                            <input type="text" name="title" value="{{ $link->title }}" required maxlength="150"
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
+                        </div>
 
-            <div class="md:col-span-1">
-                <label class="block text-sm font-medium text-slate-400 mb-2">Icono</label>
-                <input type="hidden" name="icon" id="icon-value" value="{{ $link->icon }}">
-                <button type="button" id="icon-picker-btn"
-                        class="flex items-center gap-3 w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white hover:border-blue-500/50 transition-all">
-                    <span id="icon-preview" class="w-6 h-6 flex items-center justify-center text-lg">
-                        <i class="{{ $link->icon }}"></i>
-                    </span>
-                    <span id="icon-label" class="flex-1 text-left text-sm text-slate-300">{{ $link->icon }}</span>
-                    <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
-                </button>
-                <!-- Panel selector de iconos -->
-                <div id="icon-panel" class="hidden mt-2 bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-xl">
-                    <input type="text" id="icon-search" placeholder="Buscar icono..."
-                           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 mb-3">
-                    <div id="icon-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto"></div>
-                </div>
-            </div>
-
-            <div class="md:col-span-1">
-                <label class="block text-sm font-medium text-slate-400 mb-2">Color de Acento</label>
-                <div class="flex gap-2">
-                    <input type="color" name="color" value="{{ $link->color }}"
-                           class="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 focus:border-blue-500/50 outline-none transition-all cursor-pointer">
-                    <input type="text" value="{{ $link->color }}" readonly
-                           class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-500 text-sm">
-                </div>
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700 shrink-0">
-                        <input type="checkbox" name="bg_color_enabled" id="bg_color_enabled" {{ $link->bg_color ? 'checked' : '' }} class="sr-only peer">
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-400 mb-2">URL / Destino</label>
+                            <input type="url" name="url" value="{{ $link->url }}" required
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-blue-500/50 outline-none transition-all text-white">
+                        </div>
                     </div>
-                    <span class="text-sm font-medium text-slate-400">Color de fondo del icono</span>
-                </label>
-                <div id="bg-color-picker" class="{{ $link->bg_color ? '' : 'hidden' }} mt-3">
-                    <div class="flex gap-2">
-                        <input type="color" name="bg_color" value="{{ $link->bg_color ?? '#fec771' }}"
-                               class="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 focus:border-blue-500/50 outline-none transition-all cursor-pointer">
-                        <input type="text" value="{{ $link->bg_color ?? '#fec771' }}" readonly id="bg_color_hex"
-                               class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-500 text-sm">
+
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
+                                <input type="checkbox" name="active" {{ $link->active ? 'checked' : '' }} class="sr-only peer">
+                                <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
+                            </div>
+                            <span class="text-sm font-medium text-slate-400">Enlace activo</span>
+                        </label>
                     </div>
                 </div>
             </div>
 
-            <div class="md:col-span-2">
-                <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700">
-                        <input type="checkbox" name="active" {{ $link->active ? 'checked' : '' }} class="sr-only peer">
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
+            <aside class="space-y-6 xl:sticky xl:top-6">
+                <div class="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-sm space-y-6">
+                    <h3 class="text-lg font-bold text-white">Apariencia</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Icono</label>
+                        <input type="hidden" name="icon" id="icon-value" value="{{ $link->icon }}">
+                        <button type="button" id="icon-picker-btn"
+                                class="flex items-center gap-3 w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white hover:border-blue-500/50 transition-all">
+                            <span id="icon-preview" class="w-6 h-6 flex items-center justify-center text-lg">
+                                <i class="{{ $link->icon }}"></i>
+                            </span>
+                            <span id="icon-label" class="flex-1 text-left text-sm text-slate-300">{{ $link->icon }}</span>
+                            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+                        </button>
+                        <!-- Panel selector de iconos -->
+                        <div id="icon-panel" class="hidden mt-2 bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-xl">
+                            <input type="text" id="icon-search" placeholder="Buscar icono..."
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 mb-3">
+                            <!-- Category tabs -->
+                            <div id="icon-categories" class="flex flex-wrap gap-1 mb-3" role="tablist" aria-label="Categorías de iconos"></div>
+                            <div id="icon-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto"></div>
+                        </div>
                     </div>
-                    <span class="text-sm font-medium text-slate-400">Enlace activo</span>
-                </label>
-            </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Color de Acento</label>
+                        <div class="flex gap-2">
+                            <input type="color" name="color" value="{{ $link->color }}"
+                                   class="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 focus:border-blue-500/50 outline-none transition-all cursor-pointer">
+                            <input type="text" value="{{ $link->color }}" readonly
+                                   class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <div class="relative w-12 h-6 bg-slate-800 rounded-full transition-colors group-hover:bg-slate-700 shrink-0">
+                                <input type="checkbox" name="bg_color_enabled" id="bg_color_enabled" {{ $link->bg_color ? 'checked' : '' }} class="sr-only peer">
+                                <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-7 peer-checked:bg-blue-500"></div>
+                            </div>
+                            <span class="text-sm font-medium text-slate-400">Color de fondo del icono</span>
+                        </label>
+                        <div id="bg-color-picker" class="{{ $link->bg_color ? '' : 'hidden' }} mt-3">
+                            <div class="flex gap-2">
+                                <input type="color" name="bg_color" value="{{ $link->bg_color ?? '#fec771' }}"
+                                       class="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 focus:border-blue-500/50 outline-none transition-all cursor-pointer">
+                                <input type="text" value="{{ $link->bg_color ?? '#fec771' }}" readonly id="bg_color_hex"
+                                       class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </div>
 
-        <div class="pt-4 border-t border-slate-800 flex flex-wrap gap-3">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
-                Guardar Cambios
-            </button>
+        {{-- Barra de guardado: queda visible al hacer scroll --}}
+        <div class="sticky bottom-0 z-20 -mx-4 sm:-mx-6 lg:-mx-10 px-4 sm:px-6 lg:px-10 py-4 bg-slate-950/90 backdrop-blur border-t border-slate-800 flex justify-end gap-3">
             <a href="{{ url('admin/links') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-8 py-3 rounded-xl font-bold transition-all">
                 Cancelar
             </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
+                Guardar Cambios
+            </button>
         </div>
     </form>
-</div>
 @push('scripts')
 <script>
 (function() {
-    var icons = [
-        { name: 'fa-brands fa-instagram', label: 'Instagram' },
-        { name: 'fa-brands fa-twitter', label: 'Twitter/X' },
-        { name: 'fa-brands fa-x-twitter', label: 'X' },
-        { name: 'fa-brands fa-facebook', label: 'Facebook' },
-        { name: 'fa-brands fa-youtube', label: 'YouTube' },
-        { name: 'fa-brands fa-tiktok', label: 'TikTok' },
-        { name: 'fa-brands fa-linkedin', label: 'LinkedIn' },
-        { name: 'fa-brands fa-github', label: 'GitHub' },
-        { name: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
-        { name: 'fa-brands fa-telegram', label: 'Telegram' },
-        { name: 'fa-brands fa-discord', label: 'Discord' },
-        { name: 'fa-brands fa-pinterest', label: 'Pinterest' },
-        { name: 'fa-brands fa-snapchat', label: 'Snapchat' },
-        { name: 'fa-brands fa-twitch', label: 'Twitch' },
-        { name: 'fa-brands fa-spotify', label: 'Spotify' },
-        { name: 'fa-brands fa-soundcloud', label: 'SoundCloud' },
-        { name: 'fa-brands fa-patreon', label: 'Patreon' },
-        { name: 'fa-brands fa-paypal', label: 'PayPal' },
-        { name: 'fa-brands fa-etsy', label: 'Etsy' },
-        { name: 'fa-brands fa-shopify', label: 'Shopify' },
-        { name: 'fa-solid fa-link', label: 'Link' },
-        { name: 'fa-solid fa-globe', label: 'Web' },
-        { name: 'fa-solid fa-envelope', label: 'Email' },
-        { name: 'fa-solid fa-phone', label: 'Teléfono' },
-        { name: 'fa-solid fa-store', label: 'Tienda' },
-        { name: 'fa-solid fa-map-location-dot', label: 'Ubicación' },
-        { name: 'fa-solid fa-cart-shopping', label: 'Compras' },
-        { name: 'fa-solid fa-bag-shopping', label: 'Bolsa' },
-        { name: 'fa-solid fa-star', label: 'Estrella' },
-        { name: 'fa-solid fa-heart', label: 'Corazón' },
-        { name: 'fa-solid fa-calendar', label: 'Calendario' },
-        { name: 'fa-solid fa-camera', label: 'Cámara' },
-        { name: 'fa-solid fa-video', label: 'Video' },
-        { name: 'fa-solid fa-music', label: 'Música' },
-        { name: 'fa-solid fa-podcast', label: 'Podcast' },
-        { name: 'fa-solid fa-book', label: 'Libro' },
-        { name: 'fa-solid fa-graduation-cap', label: 'Educación' },
-        { name: 'fa-solid fa-briefcase', label: 'Portafolio' },
-        { name: 'fa-solid fa-newspaper', label: 'Blog' },
-        { name: 'fa-solid fa-rss', label: 'RSS' },
-        { name: 'fa-solid fa-fire', label: 'Fire' },
-        { name: 'fa-solid fa-bolt', label: 'Bolt' },
-        { name: 'fa-solid fa-crown', label: 'Corona' },
-        { name: 'fa-solid fa-gift', label: 'Regalo' },
-        { name: 'fa-solid fa-handshake', label: 'Contacto' },
-        { name: 'fa-solid fa-comment', label: 'Chat' },
-        { name: 'fa-solid fa-address-card', label: 'Tarjeta' },
-        { name: 'fa-solid fa-qrcode', label: 'QR Code' },
+    // Categorized icon data
+    var iconCategories = [
+        {
+            id: 'social',
+            label: 'Redes sociales',
+            icons: [
+                { name: 'fa-brands fa-instagram', label: 'Instagram' },
+                { name: 'fa-brands fa-x-twitter', label: 'X / Twitter' },
+                { name: 'fa-brands fa-facebook', label: 'Facebook' },
+                { name: 'fa-brands fa-youtube', label: 'YouTube' },
+                { name: 'fa-brands fa-tiktok', label: 'TikTok' },
+                { name: 'fa-brands fa-linkedin', label: 'LinkedIn' },
+                { name: 'fa-brands fa-github', label: 'GitHub' },
+                { name: 'fa-brands fa-pinterest', label: 'Pinterest' },
+                { name: 'fa-brands fa-snapchat', label: 'Snapchat' },
+                { name: 'fa-brands fa-twitch', label: 'Twitch' },
+            ]
+        },
+        {
+            id: 'messaging',
+            label: 'Mensajería y audio',
+            icons: [
+                { name: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
+                { name: 'fa-brands fa-telegram', label: 'Telegram' },
+                { name: 'fa-brands fa-discord', label: 'Discord' },
+                { name: 'fa-brands fa-spotify', label: 'Spotify' },
+                { name: 'fa-brands fa-soundcloud', label: 'SoundCloud' },
+                { name: 'fa-brands fa-patreon', label: 'Patreon' },
+            ]
+        },
+        {
+            id: 'contact',
+            label: 'Contacto',
+            icons: [
+                { name: 'fa-solid fa-envelope', label: 'Email' },
+                { name: 'fa-solid fa-phone', label: 'Teléfono' },
+                { name: 'fa-solid fa-map-location-dot', label: 'Ubicación' },
+                { name: 'fa-solid fa-handshake', label: 'Contacto' },
+                { name: 'fa-solid fa-comment', label: 'Chat' },
+                { name: 'fa-solid fa-address-card', label: 'Tarjeta' },
+                { name: 'fa-solid fa-qrcode', label: 'QR Code' },
+            ]
+        },
+        {
+            id: 'ecommerce',
+            label: 'E-commerce',
+            icons: [
+                { name: 'fa-brands fa-paypal', label: 'PayPal' },
+                { name: 'fa-brands fa-etsy', label: 'Etsy' },
+                { name: 'fa-brands fa-shopify', label: 'Shopify' },
+                { name: 'fa-solid fa-store', label: 'Tienda' },
+                { name: 'fa-solid fa-cart-shopping', label: 'Compras' },
+            ]
+        },
+        {
+            id: 'web',
+            label: 'Web / General',
+            icons: [
+                { name: 'fa-solid fa-link', label: 'Link' },
+                { name: 'fa-solid fa-globe', label: 'Web' },
+                { name: 'fa-solid fa-calendar', label: 'Calendario' },
+                { name: 'fa-solid fa-camera', label: 'Cámara' },
+                { name: 'fa-solid fa-video', label: 'Video' },
+                { name: 'fa-solid fa-music', label: 'Música' },
+                { name: 'fa-solid fa-podcast', label: 'Podcast' },
+            ]
+        },
+        {
+            id: 'content',
+            label: 'Contenido',
+            icons: [
+                { name: 'fa-solid fa-book', label: 'Libro' },
+                { name: 'fa-solid fa-graduation-cap', label: 'Educación' },
+                { name: 'fa-solid fa-briefcase', label: 'Portafolio' },
+                { name: 'fa-solid fa-newspaper', label: 'Blog' },
+                { name: 'fa-solid fa-rss', label: 'RSS' },
+            ]
+        },
     ];
+
+    // Flatten all icons for search across categories
+    var allIcons = [];
+    iconCategories.forEach(function(cat) {
+        cat.icons.forEach(function(ic) {
+            allIcons.push({ name: ic.name, label: ic.label, category: cat.id });
+        });
+    });
 
     var btn = document.getElementById('icon-picker-btn');
     var panel = document.getElementById('icon-panel');
     var grid = document.getElementById('icon-grid');
     var search = document.getElementById('icon-search');
+    var categoriesEl = document.getElementById('icon-categories');
     var iconValue = document.getElementById('icon-value');
     var iconPreview = document.getElementById('icon-preview');
     var iconLabel = document.getElementById('icon-label');
 
+    var activeCategory = 'all';
+
+    function renderCategories() {
+        categoriesEl.innerHTML = '';
+        // "All" tab
+        var allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.role = 'tab';
+        allBtn.setAttribute('aria-selected', activeCategory === 'all');
+        allBtn.dataset.category = 'all';
+        allBtn.textContent = 'Todos';
+        allBtn.className = 'px-3 py-1.5 text-xs font-medium rounded-full border transition-all ' +
+            (activeCategory === 'all' 
+                ? 'bg-blue-600 border-blue-600 text-white' 
+                : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-blue-500/50 hover:text-white');
+        allBtn.addEventListener('click', function() { setCategory('all'); });
+        categoriesEl.appendChild(allBtn);
+
+        iconCategories.forEach(function(cat) {
+            var catBtn = document.createElement('button');
+            catBtn.type = 'button';
+            catBtn.role = 'tab';
+            catBtn.setAttribute('aria-selected', activeCategory === cat.id);
+            catBtn.dataset.category = cat.id;
+            catBtn.textContent = cat.label;
+            catBtn.className = 'px-3 py-1.5 text-xs font-medium rounded-full border transition-all ' +
+                (activeCategory === cat.id
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-blue-500/50 hover:text-white');
+            catBtn.addEventListener('click', function() { setCategory(cat.id); });
+            categoriesEl.appendChild(catBtn);
+        });
+    }
+
+    function setCategory(catId) {
+        activeCategory = catId;
+        renderCategories();
+        renderGrid(search.value || '');
+        search.focus();
+    }
+
     function renderGrid(filter) {
         filter = (filter || '').toLowerCase();
-        var filtered = filter ? icons.filter(function(ic) {
+        var source = activeCategory === 'all' ? allIcons : allIcons.filter(function(ic) {
+            return ic.category === activeCategory;
+        });
+        var filtered = filter ? source.filter(function(ic) {
             return ic.label.toLowerCase().includes(filter) || ic.name.toLowerCase().includes(filter);
-        }) : icons;
+        }) : source;
         grid.innerHTML = '';
         filtered.forEach(function(ic) {
             var btn2 = document.createElement('button');
@@ -178,6 +272,7 @@
         e.stopPropagation();
         panel.classList.toggle('hidden');
         if (!panel.classList.contains('hidden')) {
+            renderCategories();
             renderGrid('');
             search.value = '';
             search.focus();

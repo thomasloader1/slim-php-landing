@@ -9,7 +9,7 @@ use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Psr7\Response as SlimResponse;
 
 /**
- * Rutas del root (gestor de sitios, servidores, sistema):
+ * Rutas del root (gestor de sitios, directorios, sistema):
  * solo en el contexto master y con rol root. En un sitio cliente responden 404
  * para no revelar que existen.
  */

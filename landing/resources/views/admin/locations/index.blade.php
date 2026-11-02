@@ -7,6 +7,7 @@
 @section('content')
 
 {{-- ── Panel de visualización ───────────────────────────────── --}}
+@if(can('locations.edit'))
 <form action="{{ url('admin/locations/display') }}" method="POST"
       class="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6 flex flex-wrap items-end gap-5">
     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -48,15 +49,18 @@
         <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar
     </button>
 </form>
+@endif
 
 {{-- ── Lista de ubicaciones ─────────────────────────────────── --}}
 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
     <div class="p-4 sm:p-6 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 bg-slate-900/50">
         <h3 class="text-lg font-bold text-white">Lista de Ubicaciones</h3>
+        @if(can('locations.edit'))
         <a href="{{ url('admin/locations/create') }}"
            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Nueva Ubicación
         </a>
+        @endif
     </div>
 
     <div class="overflow-x-auto">
@@ -124,10 +128,13 @@
                         </td>
                         <td class="px-3 py-3 md:px-6 md:py-4 text-right">
                             <div class="flex justify-end gap-2">
+                                @if(can('locations.edit'))
                                 <a href="{{ url('admin/locations/edit/' . $loc->id) }}"
                                    class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all">
                                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                                 </a>
+                                @endif
+                                @if(can('locations.delete'))
                                 <form action="{{ url('admin/locations/delete/' . $loc->id) }}" method="POST"
                                       onsubmit="return confirm('¿Estás seguro de eliminar esta ubicación?')" data-no-loading>
                                     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
@@ -136,6 +143,7 @@
                                         <i class="fa-solid fa-trash-can text-sm"></i>
                                     </button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

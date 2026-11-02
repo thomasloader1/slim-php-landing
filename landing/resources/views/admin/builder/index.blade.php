@@ -2,16 +2,38 @@
 
 @section('title', 'UX Builder')
 @section('header', 'UX Builder')
-@section('subheader', 'Ordená las secciones, editá los textos y sumá componentes a tu landing.')
+@section('subheader', $page === 'shop' ? 'Diseñá tu tienda: banners, carrusel, textos y cómo se muestran los productos.' : 'Ordená las secciones, editá los textos y sumá componentes a tu landing.')
 
 @section('content')
 @php
     $input  = 'w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all';
     $label  = 'block text-xs font-medium text-slate-400 mb-1.5';
     $waOn   = ($settings['whatsapp_enabled'] ?? '0') === '1';
+    $previewUrl = url($pages[$page]['path']);
 @endphp
 
-<form id="builder-form" action="{{ url('admin/builder') }}" method="POST"
+{{-- Páginas editables --}}
+@if(count($pages) > 1)
+<nav class="mb-6 -mx-1 overflow-x-auto" aria-label="Página a diseñar">
+    <div class="flex gap-1 px-1 border-b border-slate-800 min-w-max">
+        @foreach($pages as $key => $meta)
+            <a href="{{ url($key === 'landing' ? 'admin/builder' : 'admin/builder/' . $key) }}" @if($key === $page) aria-current="page" @endif
+               class="px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 -mb-px transition-colors
+                      {{ $key === $page ? 'border-blue-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300' }}">
+                <i class="fa-solid {{ $key === 'shop' ? 'fa-store' : 'fa-house' }} text-xs" aria-hidden="true"></i> {{ $meta['label'] }}
+            </a>
+        @endforeach
+    </div>
+</nav>
+@endif
+
+<div class="mb-6 flex items-start gap-3 bg-blue-500/5 border border-blue-500/20 rounded-2xl px-4 py-3 text-sm text-slate-300">
+    <i class="fa-solid fa-palette text-blue-400 mt-0.5" aria-hidden="true"></i>
+    <p>Colores, fondo y logo son los mismos para la landing y la tienda. Se cambian en
+        <a href="{{ url('admin/settings') }}" class="text-blue-400 hover:text-blue-300 font-semibold">Configuración → Apariencia</a>.</p>
+</div>
+
+<form id="builder-form" action="{{ url($page === 'landing' ? 'admin/builder' : 'admin/builder/' . $page) }}" method="POST"
       class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-6 items-start">
     <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="layout" id="layout-input">
@@ -49,6 +71,7 @@
             </ul>
         </div>
 
+        @if($page === 'landing')
         {{-- ── WhatsApp flotante ────────────────────────────────── --}}
         <div class="bg-slate-900/40 border border-slate-800 rounded-3xl p-4 sm:p-6 space-y-5">
             <label class="flex items-start gap-4 cursor-pointer group">
@@ -65,7 +88,7 @@
             <div id="wa-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-4 {{ $waOn ? '' : 'hidden' }}">
                 <div>
                     <label class="{{ $label }}">Número (con código de país)</label>
-                    <input type="tel" name="whatsapp_number" id="wa-number" maxlength="30" value="{{ $settings['whatsapp_number'] ?? '' }}"
+                    <input type="tel" name="whatsapp_number" id="wa-number" maxlength="30" data-required-if="whatsapp_enabled" pattern="[\s+\(\)\-]*(?:\d[\s\(\)\-]*){8,15}" title="Número con código de país, entre 8 y 15 dígitos (ej: 5491155551234)" value="{{ $settings['whatsapp_number'] ?? '' }}"
                            placeholder="+54 9 11 1234-5678" class="{{ $input }} font-mono">
                     <p id="wa-number-hint" class="text-xs text-slate-500 mt-1">Argentina celular: +54 9 + código de área + número.</p>
                 </div>
@@ -103,6 +126,8 @@
             </div>
         </div>
 
+        @endif
+
         <div class="flex items-center justify-end gap-3 sticky bottom-0 z-10 -mx-1 px-1 py-3 bg-slate-950/90 backdrop-blur border-t border-slate-800/60">
             <span id="dirty-flag" class="hidden text-xs text-amber-400 bg-slate-950/90 px-3 py-2 rounded-xl border border-amber-500/20">
                 <i class="fa-solid fa-circle text-[6px] align-middle mr-1"></i> Cambios sin guardar
@@ -120,11 +145,11 @@
                 <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-mobile-screen mr-2 text-slate-500"></i>Vista previa</h3>
                 <div class="flex items-center gap-1">
                     <button type="button" id="preview-reload" class="p-2 rounded-lg text-slate-400 hover:bg-slate-800" title="Recargar"><i class="fa-solid fa-rotate-right"></i></button>
-                    <a href="{{ url('/') }}" target="_blank" class="p-2 rounded-lg text-slate-400 hover:bg-slate-800" title="Abrir en otra pestaña"><i class="fa-solid fa-up-right-from-square"></i></a>
+                    <a href="{{ $previewUrl }}" target="_blank" class="p-2 rounded-lg text-slate-400 hover:bg-slate-800" title="Abrir en otra pestaña" aria-label="Abrir la página en otra pestaña"><i class="fa-solid fa-up-right-from-square"></i></a>
                 </div>
             </div>
             <div class="mx-auto rounded-[2rem] border-4 border-slate-800 overflow-hidden bg-slate-950" style="width: 100%; max-width: 375px; height: 700px;">
-                <iframe id="preview-frame" src="{{ url('/') }}" title="Vista previa de la landing" class="w-full h-full" style="border:0;"></iframe>
+                <iframe id="preview-frame" src="{{ $previewUrl }}" title="Vista previa de {{ $pages[$page]['label'] }}" class="w-full h-full" style="border:0;"></iframe>
             </div>
             <p class="text-[11px] text-slate-500 mt-3 text-center">Muestra la versión guardada. Guardá para ver los cambios.</p>
         </div>
@@ -139,6 +164,9 @@
         </template>
     @endunless
 @endforeach
+<template id="tpl-slide">
+    @include('admin/builder/_slide', ['s' => []])
+</template>
 
 @push('scripts')
 <style>
@@ -163,6 +191,86 @@
     });
 
     Sortable.create(list, { handle: '.drag-handle', animation: 150, onEnd: markDirty });
+
+    /* Carrusel: diapositivas (agregar, quitar, ordenar) */
+    var MAX_SLIDES = {{ \App\Services\PageLayoutService::MAX_SLIDES }};
+    function renumberSlides(block) {
+        var items = block.querySelectorAll('.slide-item');
+        items.forEach(function (li, i) { li.querySelector('.slide-number').textContent = 'Diapositiva ' + (i + 1); });
+        var add = block.querySelector('.slide-add');
+        if (add) { add.disabled = items.length >= MAX_SLIDES; add.classList.toggle('opacity-40', items.length >= MAX_SLIDES); }
+        var summary = block.querySelector('.block-summary');
+        if (summary) { summary.textContent = items.length + ' diapositiva(s)'; }
+    }
+    function bindSlides(block) {
+        var slidesList = block.querySelector('.slides-list');
+        if (!slidesList) return;
+        Sortable.create(slidesList, { handle: '.slide-handle', animation: 150, onEnd: function () { renumberSlides(block); markDirty(); } });
+        block.querySelector('.slide-add').addEventListener('click', function () {
+            if (slidesList.children.length >= MAX_SLIDES) return;
+            var li = document.getElementById('tpl-slide').content.firstElementChild.cloneNode(true);
+            slidesList.appendChild(li);
+            renumberSlides(block);
+            li.querySelector('input').focus();
+            markDirty();
+        });
+        slidesList.addEventListener('click', function (e) {
+            var rm = e.target.closest('.slide-remove');
+            if (rm && confirm('¿Eliminar esta diapositiva?')) { rm.closest('.slide-item').remove(); renumberSlides(block); markDirty(); }
+        });
+        renumberSlides(block);
+    }
+
+    /* Imágenes: subir archivo o pegar link (delegado: sirve para bloques y diapositivas nuevas) */
+    var UPLOAD_URL = @json(url('admin/builder/upload'));
+    var CSRF = @json($_SESSION['csrf_token'] ?? '');
+    function setImage(field, url) {
+        var input = field.querySelector('.img-url'), thumb = field.querySelector('.img-thumb');
+        input.value = url;
+        thumb.src = url;
+        thumb.classList.toggle('hidden', !url);
+        field.querySelector('.img-empty').classList.toggle('hidden', !!url);
+        field.querySelector('.img-clear').classList.toggle('hidden', !url);
+        markDirty();
+    }
+    form.addEventListener('change', function (e) {
+        if (!e.target.classList.contains('img-file') || !e.target.files.length) return;
+        var field = e.target.closest('.img-field'), status = field.querySelector('.img-status');
+        var fd = new FormData();
+        fd.append('image', e.target.files[0]);
+        status.textContent = 'Subiendo…';
+        status.className = 'img-status text-xs text-slate-400';
+        fetch(UPLOAD_URL, { method: 'POST', body: fd, headers: { 'X-CSRF-Token': CSRF, 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.success) throw new Error(res.message || 'No se pudo subir la imagen.');
+                setImage(field, res.url);
+                status.textContent = 'Imagen subida. Guardá el diseño para publicarla.';
+                status.className = 'img-status text-xs text-green-400';
+            })
+            .catch(function (err) {
+                status.textContent = err.message || 'No se pudo subir la imagen.';
+                status.className = 'img-status text-xs text-red-400';
+            })
+            .finally(function () { e.target.value = ''; });
+    });
+    form.addEventListener('input', function (e) {
+        if (e.target.classList.contains('img-url')) {
+            var field = e.target.closest('.img-field'), url = e.target.value.trim(), thumb = field.querySelector('.img-thumb');
+            thumb.src = url;
+            thumb.classList.toggle('hidden', !url);
+            field.querySelector('.img-empty').classList.toggle('hidden', !!url);
+            field.querySelector('.img-clear').classList.toggle('hidden', !url);
+        }
+        if (e.target.type === 'range') {
+            var out = e.target.parentElement.querySelector('[data-range-out]');
+            if (out) out.textContent = e.target.value;
+        }
+    });
+    form.addEventListener('click', function (e) {
+        var clear = e.target.closest('.img-clear');
+        if (clear) setImage(clear.closest('.img-field'), '');
+    });
 
     function newId() {
         return 'b_' + Math.random().toString(36).slice(2, 12).replace(/[^a-z0-9]/g, '0').padEnd(10, '0');
@@ -203,7 +311,7 @@
             });
         }
     }
-    list.querySelectorAll('.block-item').forEach(bindBlock);
+    list.querySelectorAll('.block-item').forEach(function (item) { bindBlock(item); bindSlides(item); });
 
     /* Agregar componente */
     var addToggle  = document.getElementById('add-toggle');
@@ -223,6 +331,7 @@
             list.appendChild(item);
             if (window.initRichEditors) window.initRichEditors(item);
             bindBlock(item);
+            bindSlides(item);
             item.querySelector('.block-toggle').click();
             item.scrollIntoView({ behavior: 'smooth', block: 'center' });
             var firstInput = item.querySelector('[data-field]');
@@ -237,7 +346,18 @@
         var layout = [];
         list.querySelectorAll('.block-item').forEach(function (item) {
             var data = {};
-            item.querySelectorAll('[data-field]').forEach(function (f) { data[f.dataset.field] = f.value; });
+            item.querySelectorAll('[data-field]').forEach(function (f) {
+                data[f.dataset.field] = f.type === 'checkbox' ? f.checked : f.value;
+            });
+            var slidesList = item.querySelector('.slides-list');
+            if (slidesList) {
+                data.slides = [];
+                slidesList.querySelectorAll('.slide-item').forEach(function (li) {
+                    var slide = {};
+                    li.querySelectorAll('[data-slide-field]').forEach(function (f) { slide[f.dataset.slideField] = f.value; });
+                    data.slides.push(slide);
+                });
+            }
             layout.push({
                 id: item.dataset.id,
                 type: item.dataset.type,
@@ -249,8 +369,9 @@
         dirty = false;
     });
 
-    /* WhatsApp: mostrar campos + vista previa del enlace */
+    /* WhatsApp: mostrar campos + vista previa del enlace (solo en la landing) */
     var waEnabled = document.getElementById('wa-enabled');
+    if (waEnabled) {
     var waFields  = document.getElementById('wa-fields');
     var waNumber  = document.getElementById('wa-number');
     var waMessage = document.getElementById('wa-message');
@@ -287,6 +408,7 @@
         el.addEventListener('change', refreshWa);
     });
     refreshWa();
+    }
 
     /* Vista previa */
     document.getElementById('preview-reload').addEventListener('click', function () {

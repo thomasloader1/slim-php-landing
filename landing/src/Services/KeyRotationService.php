@@ -12,8 +12,7 @@ class KeyRotationService
 {
     /** tabla => columnas cifradas */
     private const FIELDS = [
-        'sites'   => ['db_pass_encrypted'],
-        'servers' => ['key_passphrase_encrypted'],
+        'sites' => ['db_pass_encrypted'],
     ];
 
     private EncryptionService $encryption;

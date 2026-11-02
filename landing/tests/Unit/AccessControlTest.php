@@ -117,9 +117,149 @@ class AccessControlTest extends TestCase
         foreach (['builder', 'links', 'locations', 'products', 'seo', 'favicon'] as $k) {
             $this->assertTrue(AccessService::can($k), $k);
         }
-        foreach (['users', 'modules', 'settings', 'roles', 'sites', 'system', 'servers'] as $k) {
+        foreach (['users', 'modules', 'settings', 'roles', 'sites', 'system', 'directories'] as $k) {
             $this->assertFalse(AccessService::can($k), $k);
         }
+    }
+
+    /** @test */
+    public function nav_groups_related_sections_and_marks_the_active_item(): void
+    {
+        $this->as('root');
+        $nav = AccessService::visibleNav('/admin/menu/sections/edit/3');
+
+        $this->assertSame(['content', 'shop', 'users', 'site', 'platform', 'root'], array_keys($nav));
+        $this->assertSame(['modules'], array_column($nav['root']['items'], 'key'), 'Módulos va solo, fuera de Sitio');
+        $this->assertNotContains('modules', array_column($nav['site']['items'], 'key'));
+        $this->assertSame(['Productos', 'Categorías', 'Configuración', 'Pedidos'], array_column($nav['shop']['items'], 'label'));
+        $this->assertSame(['users', 'roles'], array_column($nav['users']['items'], 'key'));
+        $this->assertContains('directories', array_column($nav['platform']['items'], 'key'));
+        $this->assertNotContains('servers', array_keys(Permissions::CATALOG));
+
+        $this->assertTrue($nav['shop']['active']);
+        $this->assertSame(['Categorías'], array_column(array_filter($nav['shop']['items'], fn ($i) => $i['active']), 'label'));
+        $this->assertFalse($nav['users']['active']);
+
+        // Rutas de Productos sin sub-link propio (import) caen en "Productos"
+        $nav = AccessService::visibleNav('/admin/menu/items/import');
+        $this->assertSame(['Productos'], array_column(array_filter($nav['shop']['items'], fn ($i) => $i['active']), 'label'));
+    }
+
+    /** @test */
+    public function every_route_of_a_section_with_features_maps_to_a_feature(): void
+    {
+        // Rutas de routes.php con su método y path completo (resolviendo grupos anidados)
+        $src = file_get_contents(dirname(__DIR__, 2) . '/src/routes.php');
+        $prefixes = ['group' => '/admin'];
+        preg_match_all('#\$(\w+)->group\(\'([^\']*)\',\s*function\s*\(RouteCollectorProxy\s+\$(\w+)\)#', $src, $g, PREG_SET_ORDER);
+        foreach ($g as [, $parent, $prefix, $child]) {
+            $prefixes[$child] ??= ($prefixes[$parent] ?? '') . $prefix; // /admin/demo reusa \$group: vale el primero
+        }
+        preg_match_all('#\$(\w+)->(get|post)\(\'([^\']*)\'#', $src, $m, PREG_SET_ORDER);
+        $checked = 0;
+        foreach ($m as [, $var, $method, $path]) {
+            if (!isset($prefixes[$var])) {
+                continue; // rutas públicas ($app)
+            }
+            $full = preg_replace('#\{[^}]+\}#', '1', $prefixes[$var] . $path);
+            $section = Permissions::forPath($full);
+            if (!$section || empty(Permissions::FEATURES[$section])) {
+                continue;
+            }
+            $checked++;
+            $this->assertNotNull(
+                Permissions::featureFor($section, strtoupper($method), $full),
+                strtoupper($method) . " {$full} no está asignada a ninguna función de '{$section}'"
+            );
+        }
+        $this->assertGreaterThan(30, $checked, 'el test no encontró las rutas');
+    }
+
+    /** @test */
+    public function partial_role_only_reaches_its_features(): void
+    {
+        $role = Role::create(['slug' => 'catalogo-test', 'name' => 'Catálogo Test', 'is_system' => 0]);
+        $role->syncPermissions(['products.view', 'products.sections']);
+        $this->as('catalogo-test');
+
+        $this->assertTrue(AccessService::can('products'));
+        $this->assertTrue(AccessService::canRequest('products', 'GET', '/admin/menu/items'));
+        $this->assertTrue(AccessService::canRequest('products', 'POST', '/admin/menu/sections/create'));
+        $this->assertFalse(AccessService::canRequest('products', 'POST', '/admin/menu/items/delete/3'));
+        $this->assertFalse(AccessService::canRequest('products', 'GET', '/admin/menu/items/import'));
+        $this->assertFalse(AccessService::canRequest('products', 'POST', '/admin/menu/items/adjust-prices'));
+        $this->assertFalse(AccessService::canRequest('products', 'GET', '/admin/menu/settings'));
+
+        [$called] = $this->hit('/admin/menu/settings');
+        $this->assertFalse($called, 'el middleware bloquea la función no otorgada');
+        [$called] = $this->hit('/admin/menu/sections');
+        $this->assertTrue($called);
+
+        $nav = AccessService::visibleNav('/admin/menu/items');
+        $this->assertSame(['Productos', 'Categorías'], array_column($nav['shop']['items'], 'label'), 'sin Configuración ni Pedidos');
+    }
+
+    /** @test */
+    public function edit_implies_view_and_full_section_grants_everything(): void
+    {
+        $role = Role::create(['slug' => 'editor-links-test', 'name' => 'Links Test', 'is_system' => 0]);
+        $role->syncPermissions(['links.edit', 'orders']);
+        $this->as('editor-links-test');
+
+        $this->assertTrue(AccessService::canRequest('links', 'GET', '/admin/links'), 'editar incluye ver');
+        $this->assertTrue(AccessService::canRequest('links', 'POST', '/admin/links/edit/2'));
+        $this->assertFalse(AccessService::canRequest('links', 'POST', '/admin/links/delete/2'));
+        $this->assertTrue(AccessService::canRequest('orders', 'POST', '/admin/shop/orders/7/accept'), 'sección completa = todas');
+    }
+
+    /** @test */
+    public function grants_are_normalized_when_saving_a_role(): void
+    {
+        $this->assertSame(['links'], Permissions::normalizeGrants(['links.view', 'links.edit', 'links.delete']), 'todas → sección');
+        $this->assertSame(['links.delete', 'links.view'], Permissions::normalizeGrants(['links.delete']), 'eliminar agrega ver');
+        $this->assertSame(['builder'], Permissions::normalizeGrants(['builder', 'roles', 'modules', 'system', 'basura.x']), 'solo asignables');
+    }
+
+    /** @test */
+    public function nav_entry_goes_to_the_first_allowed_screen(): void
+    {
+        $role = Role::create(['slug' => 'faq-test', 'name' => 'FAQ Test', 'is_system' => 0]);
+        $role->syncPermissions(['seo.faq']);
+        $this->as('faq-test');
+        $this->assertSame('admin/seo/faq', AccessService::entryUrl('seo'));
+
+        $this->as('root');
+        $this->assertSame('admin/seo', AccessService::entryUrl('seo'));
+    }
+
+    /** @test */
+    public function breadcrumbs_follow_group_and_section(): void
+    {
+        $this->as('root');
+        $labels = fn (string $path) => array_column(AccessService::breadcrumbs($path)['crumbs'], 'label');
+
+        $this->assertSame(['Dashboard', 'Shop', 'Categorías'], $labels('/admin/menu/sections'));
+        $this->assertTrue(AccessService::breadcrumbs('/admin/menu/sections')['leaf']);
+
+        $edit = AccessService::breadcrumbs('/admin/menu/items/edit/4');
+        $this->assertSame(['Dashboard', 'Shop', 'Productos'], array_column($edit['crumbs'], 'label'));
+        $this->assertSame('admin/menu/items', end($edit['crumbs'])['url'], 'volver al listado');
+        $this->assertFalse($edit['leaf'], 'la vista agrega su título como último nivel');
+
+        $this->assertSame(['Dashboard', 'Usuarios'], $labels('/admin/users/create'), 'grupo y sección con el mismo nombre no se repiten');
+        $this->assertSame([], $labels('/admin'), 'el dashboard no lleva migas');
+    }
+
+    /** @test */
+    public function editor_nav_hides_platform_and_role_management(): void
+    {
+        $this->as('editor');
+        $nav = AccessService::visibleNav('/admin/links');
+
+        $this->assertArrayNotHasKey('platform', $nav);
+        $this->assertArrayNotHasKey('root', $nav, 'Módulos es solo del root');
+        $this->assertArrayNotHasKey('users', $nav, 'el editor por defecto no gestiona usuarios');
+        $this->assertTrue($nav['content']['active']);
     }
 
     /** @test */
@@ -158,12 +298,43 @@ class AccessControlTest extends TestCase
     }
 
     /** @test */
-    public function a_disabled_module_is_hidden_even_for_root(): void
+    public function a_disabled_module_is_hidden_for_users_but_root_sees_it_marked_off(): void
     {
         $this->setModule('module_links_enabled', '0');
-        $this->as('root');
+
+        $this->as('admin', 'site:5');
         $this->assertFalse(AccessService::can('links'));
         $this->assertArrayNotHasKey('links', AccessService::visibleSections());
+        [$called] = $this->hit('/admin/links');
+        $this->assertFalse($called, 'la ruta también se bloquea');
+
+        $this->as('root');
+        $this->assertTrue(AccessService::can('links'));
+        $this->assertTrue(AccessService::isOff('links'));
+        $items = array_column(AccessService::visibleNav()['content']['items'], 'off', 'key');
+        $this->assertTrue($items['links']);
+        $this->assertFalse($items['builder']);
+    }
+
+    /** @test */
+    public function orders_needs_the_shop_catalog_module(): void
+    {
+        $this->setModule('module_menu_enabled', '0');
+        $this->assertTrue(AccessService::isOff('orders'));
+
+        $this->setModule('module_menu_enabled', '1');
+        $this->setModule('module_orders_enabled', '0');
+        $this->assertFalse(AccessService::isOff('products'));
+        $this->assertTrue(AccessService::isOff('orders'));
+    }
+
+    /** @test */
+    public function modules_page_is_root_only(): void
+    {
+        $this->as('admin', 'site:5');
+        $this->assertFalse(AccessService::can('modules'));
+        $this->as('admin', 'site:5', true); // root por SSO
+        $this->assertTrue(AccessService::can('modules'));
     }
 
     /** @test */

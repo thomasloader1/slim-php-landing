@@ -5,10 +5,10 @@
 @section('subheader', 'Modificá los datos de este producto.')
 
 @section('content')
-<div class="max-w-2xl">
     <form action="{{ url('admin/menu/items/edit/' . $item->id) }}" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
-        <div class="space-y-5">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+            <div class="xl:col-span-2 space-y-6">
 
             {{-- ── DATOS BÁSICOS ── --}}
             <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
@@ -23,7 +23,7 @@
                                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-slate-300 mb-2">Código (SKU)</label>
                             <input type="text" name="sku" maxlength="64" value="{{ $item->sku }}"
@@ -33,7 +33,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-300 mb-2">Stock</label>
-                            <input type="number" name="stock" min="0" step="1" value="{{ $item->stock }}"
+                            <input type="number" name="stock" min="0" step="1" max="999999999" value="{{ $item->stock }}"
                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
                                    placeholder="Sin control">
                             <p class="text-xs text-slate-500 mt-1">Vacío = no se controla. 0 = "Sin stock".</p>
@@ -58,33 +58,6 @@
                         <textarea name="description" rows="2"
                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors resize-none"
                                   placeholder="Ingredientes, preparación, alérgenos...">{{ $item->description }}</textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">Insignia especial</label>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach([
-                                'none'     => ['Sin insignia', 'text-slate-500', 'border-slate-700'],
-                                'premium'  => ['Premium', 'text-amber-300', 'border-amber-500/30'],
-                                'preorder' => ['Pedido previo', 'text-orange-300', 'border-orange-500/30'],
-                                'special'  => ['Especial', 'text-purple-300', 'border-purple-500/30'],
-                            ] as $val => [$lbl, $textCls, $borderCls])
-                            <label class="badge-radio flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all hover:bg-slate-800 {{ $borderCls }} {{ ($item->badge_type ?? 'none') === $val ? 'ring-2 ring-amber-400 bg-slate-700' : '' }}">
-                                <input type="radio" name="badge_type" value="{{ $val }}"
-                                       {{ ($item->badge_type ?? 'none') === $val ? 'checked' : '' }}
-                                       class="sr-only">
-                                <span class="text-sm font-medium {{ $textCls }}">{{ $lbl }}</span>
-                            </label>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="active" value="1" class="sr-only peer" {{ $item->active ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                        </label>
-                        <span class="text-sm text-slate-300">Producto activo</span>
                     </div>
 
                 </div>
@@ -173,7 +146,7 @@
                         <i class="fa-solid fa-circle-plus text-amber-400 text-base"></i> Extras
                     </h3>
                 </div>
-                <div class="p-6 space-y-5">
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
 
                     <div>
                         <label class="block text-sm font-bold text-slate-300 mb-2">Sabores / Variedades</label>
@@ -190,46 +163,100 @@
                                placeholder="Ej: con salsa de regalo · incluye guarnición">
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">Foto del producto</label>
-                        @if($item->image_url)
-                            <div class="mb-3 flex items-start gap-4">
-                                <img src="{{ $item->image_url }}" alt="{{ $item->title }}"
-                                     class="w-32 h-24 object-cover rounded-xl border border-slate-700">
-                                <div class="flex items-center gap-2 mt-2">
-                                    <input type="checkbox" name="clear_image" value="1" id="clear_image"
-                                           class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-0">
-                                    <label for="clear_image" class="text-sm text-slate-400 cursor-pointer">Quitar foto actual</label>
-                                </div>
-                            </div>
-                        @endif
-                        <input type="file" name="image_file" accept="image/*" id="image_file_input"
-                               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 focus:outline-none focus:border-amber-500 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500/10 file:text-amber-400">
-                        <p class="text-xs text-slate-500 mt-1">Subí un archivo (JPG, PNG o WebP, máx 2 MB) o pegá un link para reemplazar la foto. Opcional.</p>
-                        @php $isUploaded = $item->image_url && str_contains((string) parse_url($item->image_url, PHP_URL_PATH), '/uploads/'); @endphp
-                        <input type="url" name="image_link" maxlength="500" value="{{ $isUploaded ? '' : $item->image_url }}"
-                               class="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
-                               placeholder="https://… (link a la foto)">
-                        <div id="image_preview" class="mt-3 hidden">
-                            <img id="preview_img" src="" alt="Vista previa" class="w-32 h-24 object-cover rounded-xl border border-slate-700">
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
-            <div class="flex gap-3">
-                <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition-all">
-                    Guardar Cambios
-                </button>
-                <a href="{{ url('admin/menu/items') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-2.5 rounded-xl transition-all">
-                    Cancelar
-                </a>
             </div>
 
+            <aside class="space-y-6 xl:sticky xl:top-6">
+
+                {{-- ── FOTO ── --}}
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+                    <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-image text-amber-400 text-base"></i> Foto
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Foto del producto</label>
+                            @if($item->image_url)
+                                <div class="mb-3 flex items-start gap-4">
+                                    <img src="{{ $item->image_url }}" alt="{{ $item->title }}"
+                                         class="w-32 h-24 object-cover rounded-xl border border-slate-700">
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <input type="checkbox" name="clear_image" value="1" id="clear_image"
+                                               class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-0">
+                                        <label for="clear_image" class="text-sm text-slate-400 cursor-pointer">Quitar foto actual</label>
+                                    </div>
+                                </div>
+                            @endif
+                            <input type="file" name="image_file" accept=".png,.jpg,.jpeg,.gif,.webp" data-max-mb="2" id="image_file_input"
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 focus:outline-none focus:border-amber-500 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500/10 file:text-amber-400">
+                            <p class="text-xs text-slate-500 mt-1">Subí un archivo (JPG, PNG o WebP, máx 2 MB) o pegá un link para reemplazar la foto. Opcional.</p>
+                            @php $isUploaded = $item->image_url && str_contains((string) parse_url($item->image_url, PHP_URL_PATH), '/uploads/'); @endphp
+                            <input type="url" name="image_link" maxlength="500" value="{{ $isUploaded ? '' : $item->image_url }}"
+                                   class="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                                   placeholder="https://… (link a la foto)">
+                            <div id="image_preview" class="mt-3 hidden">
+                                <img id="preview_img" src="" alt="Vista previa" class="w-32 h-24 object-cover rounded-xl border border-slate-700">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ── VISIBILIDAD ── --}}
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+                    <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-eye text-amber-400 text-base"></i> Visibilidad
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Insignia especial</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach([
+                                    'none'     => ['Sin insignia', 'text-slate-500', 'border-slate-700'],
+                                    'premium'  => ['Premium', 'text-amber-300', 'border-amber-500/30'],
+                                    'preorder' => ['Pedido previo', 'text-orange-300', 'border-orange-500/30'],
+                                    'special'  => ['Especial', 'text-purple-300', 'border-purple-500/30'],
+                                ] as $val => [$lbl, $textCls, $borderCls])
+                                <label class="badge-radio flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all hover:bg-slate-800 {{ $borderCls }} {{ ($item->badge_type ?? 'none') === $val ? 'ring-2 ring-amber-400 bg-slate-700' : '' }}">
+                                    <input type="radio" name="badge_type" value="{{ $val }}"
+                                           {{ ($item->badge_type ?? 'none') === $val ? 'checked' : '' }}
+                                           class="sr-only">
+                                    <span class="text-sm font-medium {{ $textCls }}">{{ $lbl }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="active" value="1" class="sr-only peer" {{ $item->active ? 'checked' : '' }}>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                            </label>
+                            <span class="text-sm text-slate-300">Producto activo</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ── ACCIONES ── --}}
+
+            </aside>
+        </div>
+
+        {{-- Barra de guardado: queda visible al hacer scroll --}}
+        <div class="sticky bottom-0 z-20 -mx-4 sm:-mx-6 lg:-mx-10 px-4 sm:px-6 lg:px-10 py-4 bg-slate-950/90 backdrop-blur border-t border-slate-800 flex justify-end gap-3">
+            <a href="{{ url('admin/menu/items') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-2.5 rounded-xl transition-all">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition-all">
+                Guardar Cambios
+            </button>
         </div>
     </form>
-</div>
 @endsection
 
 @push('scripts')

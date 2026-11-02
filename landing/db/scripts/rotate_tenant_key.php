@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * Rotación de clave de cifrado de credenciales (sites, servers).
+ * Rotación de clave de cifrado de credenciales (sites).
  *
  * Uso:
  *   php rotate_tenant_key.php [--dry-run] [--to=v2]

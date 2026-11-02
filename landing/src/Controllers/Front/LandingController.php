@@ -8,6 +8,7 @@ use App\Models\FaqItem;
 use App\Entities\LinkEntity;
 use App\Services\DemoDataService;
 use App\Services\PageLayoutService;
+use App\Services\StructuredDataService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -48,10 +49,8 @@ class LandingController
             );
         }
 
-        // URL canónica
-        $pageUrl = !empty($settings['seo_site_url'])
-            ? rtrim($settings['seo_site_url'], '/') . '/'
-            : '';
+        // URL canónica (siempre absoluta: seo_site_url o el host del request)
+        $pageUrl = site_base_url($settings) . '/';
 
         // FAQ items para Schema.org
         $faqItems = FaqItem::active()->orderBy('sort_order')->get();
@@ -68,6 +67,19 @@ class LandingController
             fn (array $block) => $layoutService->isRenderable($block, $settings)
         ));
 
+        // Contenido demo nunca se indexa (datos ficticios)
+        if ($demoMode) {
+            $settings['seo_noindex'] = '1';
+        }
+
+        // JSON-LD: WebSite + WebPage + entidad; FAQPage solo si el bloque FAQ está visible
+        $seo = new StructuredDataService($settings);
+        $hasFaqBlock = (bool) array_filter($blocks, fn (array $b) => $b['type'] === 'faq');
+        $jsonLd = [$seo->landingGraph($links, $locations)];
+        if ($hasFaqBlock && ($faq = $seo->faqPage($faqItems))) {
+            $jsonLd[] = $faq;
+        }
+
         $html = $this->view->make('index', [
             'blocks'    => $blocks,
             'settings'  => $settings,
@@ -76,6 +88,8 @@ class LandingController
             'pageUrl'   => $pageUrl,
             'faqItems'  => $faqItems,
             'demoMode'  => $demoMode,
+            'jsonLd'    => $jsonLd,
+            'pageDescription' => $seo->description(),
         ])->render();
 
         $response->getBody()->write($html);

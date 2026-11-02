@@ -23,7 +23,7 @@ class MigrationService
 
     /** Tablas que deben existir según el scope. */
     public const SITE_TABLES = ['users', 'roles', 'role_permissions', 'links', 'settings', 'locations', 'menu_sections', 'menu_items', 'faq_items', 'orders', 'order_items', 'rate_limits'];
-    public const MASTER_TABLES = ['sites', 'servers'];
+    public const MASTER_TABLES = ['sites'];
 
     /** 1050 tabla existe, 1060 columna duplicada, 1061 índice duplicado, 1091 no se puede DROP (no existe) */
     private const ALREADY_APPLIED = [1050, 1060, 1061, 1091];

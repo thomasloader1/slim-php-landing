@@ -51,7 +51,9 @@ class DetailedErrorHandler extends ErrorHandler
      */
     protected function respond(): ResponseInterface
     {
-        $response = $this->responseFactory->createResponse($this->statusCode);
+        // Errores (404 de rutas inexistentes, 405, 500) nunca deben indexarse
+        $response = $this->responseFactory->createResponse($this->statusCode)
+            ->withHeader('X-Robots-Tag', 'noindex, nofollow');
 
         // Si el cliente espera JSON, devolvemos JSON
         $contentType = $this->determineContentType($this->request);

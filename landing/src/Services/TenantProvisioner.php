@@ -10,7 +10,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
  *
  *  - createDatabase(): crea DB + usuario MySQL desde la conexión master. Solo funciona
  *    si el usuario master tiene CREATE/CREATE USER/GRANT (Docker local, VPS).
- *    En cPanel no: ahí se crean desde cPanel o vía SSH (ServerProvisioner).
+ *    En cPanel no: ahí se crean desde cPanel (Bases de datos MySQL).
  *  - initialize(): aplica esquema + settings base y crea el admin del sitio.
  *    Funciona en cPanel porque la DB del cliente está en el mismo MySQL (localhost).
  */

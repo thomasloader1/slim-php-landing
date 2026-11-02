@@ -1,0 +1,97 @@
+[
+  {
+    "cmd": "open",
+    "url": "http://127.0.0.1:8001/admin/login"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=Backoffice"
+  },
+  {
+    "cmd": "type",
+    "target": "input[name='email']",
+    "text": "admin@gotogo.com.ar"
+  },
+  {
+    "cmd": "type",
+    "target": "input[name='password']",
+    "text": "password"
+  },
+  {
+    "cmd": "press",
+    "key": "enter"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=Enlaces"
+  },
+  {
+    "cmd": "click",
+    "target": "a[href*='links/create']"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=Crear Enlace"
+  },
+  {
+    "cmd": "click",
+    "target": "#icon-picker-btn"
+  },
+  {
+    "cmd": "wait",
+    "what": "selector=#icon-categories button"
+  },
+  {
+    "cmd": "shot",
+    "name": "icon-picker-categories"
+  },
+  {
+    "cmd": "click",
+    "target": "#icon-categories button[data-category='social']"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=Instagram"
+  },
+  {
+    "cmd": "shot",
+    "name": "icon-picker-social"
+  },
+  {
+    "cmd": "click",
+    "target": "#icon-categories button[data-category='contact']"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=Email"
+  },
+  {
+    "cmd": "shot",
+    "name": "icon-picker-contact"
+  },
+  {
+    "cmd": "type",
+    "target": "#icon-search",
+    "text": "github"
+  },
+  {
+    "cmd": "wait",
+    "what": "text=GitHub"
+  },
+  {
+    "cmd": "shot",
+    "name": "icon-picker-search"
+  },
+  {
+    "cmd": "click",
+    "target": "button[title='GitHub']"
+  },
+  {
+    "cmd": "wait",
+    "what": "selector=#icon-value[value*='github']"
+  },
+  {
+    "cmd": "shot",
+    "name": "icon-picker-selected"
+  }
+]

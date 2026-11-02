@@ -30,7 +30,7 @@ class RoleAdminController
 
     public function create(Request $request, Response $response): Response
     {
-        return $this->render($response, 'admin/roles/form', ['role' => null, 'granted' => [], 'catalog' => Permissions::assignable()]);
+        return $this->render($response, 'admin/roles/form', ['role' => null, 'granted' => []] + self::formData());
     }
 
     public function store(Request $request, Response $response): Response
@@ -60,8 +60,8 @@ class RoleAdminController
             return $this->fail($response, url('admin/roles'), 'El rol no existe.');
         }
         return $this->render($response, 'admin/roles/form', [
-            'role' => $role, 'granted' => $role->permissions(), 'catalog' => Permissions::assignable(),
-        ]);
+            'role' => $role, 'granted' => $role->permissions(),
+        ] + self::formData());
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -78,7 +78,9 @@ class RoleAdminController
         }
 
         $role->update(['name' => $name]); // el slug no cambia: lo referencian los usuarios
-        $role->syncPermissions(self::filterPermissions($data['permissions'] ?? []));
+        // Los módulos apagados no se muestran en el formulario: sus permisos guardados se conservan
+        $hidden = array_filter($role->permissions(), fn ($k) => AccessService::isOff(Permissions::sectionOf($k)));
+        $role->syncPermissions(array_merge(self::filterPermissions($data['permissions'] ?? []), $hidden));
 
         $_SESSION['flash_success'] = "Permisos de \"{$name}\" guardados. Aplican en el próximo clic de sus usuarios.";
         return $response->withHeader('Location', url('admin/roles'))->withStatus(302);
@@ -102,11 +104,33 @@ class RoleAdminController
         return $response->withHeader('Location', url('admin/roles'))->withStatus(302);
     }
 
-    /** Solo claves asignables del catálogo (descarta root/master y basura). */
+    /**
+     * Solo claves asignables (secciones o funciones; descarta root/master y basura).
+     * Todas las funciones de una sección tildadas → se guarda la sección completa.
+     */
     public static function filterPermissions($input): array
     {
-        $keys = array_map('strval', is_array($input) ? $input : []);
-        return array_values(array_intersect(array_keys(Permissions::assignable()), $keys));
+        return Permissions::normalizeGrants(is_array($input) ? $input : []);
+    }
+
+    /**
+     * Datos del formulario: las secciones asignables que están encendidas en Módulos,
+     * agrupadas como el sidebar, con sus funciones; y las apagadas aparte.
+     */
+    public static function formData(): array
+    {
+        $groups = [];
+        $off = [];
+        foreach (Permissions::assignable() as $key => $section) {
+            if (AccessService::isOff($key)) {
+                $off[$key] = $section['label'];
+                continue;
+            }
+            $group = $section['group'];
+            $groups[$group] ??= (Permissions::GROUPS[$group] ?? ['label' => $group, 'icon' => 'fa-folder']) + ['sections' => []];
+            $groups[$group]['sections'][$key] = $section + ['features' => Permissions::FEATURES[$key] ?? []];
+        }
+        return ['groups' => $groups, 'off' => $off, 'catalog' => Permissions::assignable()];
     }
 
     /** "Vendedor Sucursal" → "vendedor-sucursal" */

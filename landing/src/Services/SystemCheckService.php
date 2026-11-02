@@ -161,15 +161,18 @@ class SystemCheckService
 
     private function checkPhp(array &$checks): void
     {
-        $checks[] = version_compare(PHP_VERSION, '8.1.0', '>=')
+        $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=')
             ? $this->ok('PHP', 'Versión', PHP_VERSION)
-            : $this->error('PHP', 'Versión', PHP_VERSION, 'Se requiere PHP 8.1+');
+            : $this->error('PHP', 'Versión', PHP_VERSION, 'Se requiere PHP 8.3+');
 
         foreach (['pdo_mysql', 'openssl', 'mbstring', 'json', 'fileinfo'] as $ext) {
             $checks[] = extension_loaded($ext)
                 ? $this->ok('PHP', "ext-{$ext}", 'Cargada.')
                 : $this->error('PHP', "ext-{$ext}", 'No disponible.', "Habilitá {$ext} en el PHP del hosting.");
         }
+        $checks[] = function_exists('imagecreatetruecolor')
+            ? $this->ok('PHP', 'ext-gd', 'Cargada.')
+            : $this->warn('PHP', 'ext-gd', 'No disponible: las imágenes se guardan sin redimensionar y no se generan favicons.', 'Habilitá gd en el PHP del hosting.');
     }
 
     private function ok(string $g, string $l, string $d): array

@@ -27,12 +27,13 @@ class ShopOrderController
     public function store(Request $request, Response $response): Response
     {
         $settings = Capsule::table('settings')
-            ->whereIn('setting_key', ['menu_enabled', 'shop_enabled', 'whatsapp_number', 'module_menu_enabled'])
+            ->whereIn('setting_key', ['menu_enabled', 'shop_enabled', 'whatsapp_number', 'module_menu_enabled', 'module_orders_enabled'])
             ->pluck('setting_value', 'setting_key')->all();
 
         $open = ($settings['menu_enabled'] ?? '0') === '1'
             && ($settings['shop_enabled'] ?? '0') === '1'
-            && ($settings['module_menu_enabled'] ?? '1') === '1';
+            && ($settings['module_menu_enabled'] ?? '1') === '1'
+            && ($settings['module_orders_enabled'] ?? '1') === '1'; // Módulos → Pedidos
         if (!$open) {
             return $this->json($response, 404, ['error' => 'La tienda no está disponible.']);
         }

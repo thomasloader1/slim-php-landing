@@ -21,7 +21,7 @@ class PageLayoutServiceTest extends TestCase
 
     public function test_empty_or_invalid_json_returns_historic_order(): void
     {
-        $expected = ['profile', 'title', 'links', 'bio', 'locations'];
+        $expected = ['profile', 'title', 'links', 'bio', 'locations', 'faq'];
         $this->assertSame($expected, $this->types($this->svc->decode(null)));
         $this->assertSame($expected, $this->types($this->svc->decode('')));
         $this->assertSame($expected, $this->types($this->svc->decode('{not json')));
@@ -35,7 +35,7 @@ class PageLayoutServiceTest extends TestCase
             ['type' => 'title', 'visible' => false],
         ]);
 
-        $this->assertSame(['links', 'heading', 'title', 'profile', 'bio', 'locations'], $this->types($layout));
+        $this->assertSame(['links', 'heading', 'title', 'profile', 'bio', 'locations', 'faq'], $this->types($layout));
         $this->assertFalse($layout[2]['visible']);
         $this->assertFalse($layout[3]['visible']); // profile faltaba -> oculto
         $this->assertSame('b_abc123', $layout[1]['id']);
@@ -106,8 +106,8 @@ class PageLayoutServiceTest extends TestCase
     {
         $raw = array_fill(0, 100, ['type' => 'divider']);
         $layout = $this->svc->sanitize($raw);
-        // 40 permitidos + 5 core agregados al final
-        $this->assertCount(PageLayoutService::MAX_BLOCKS + 5, $layout);
+        // 40 permitidos + 6 core de la landing agregados al final
+        $this->assertCount(PageLayoutService::MAX_BLOCKS + 6, $layout);
     }
 
     public function test_renderable_respects_visibility_and_module_flags(): void
@@ -141,6 +141,92 @@ class PageLayoutServiceTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $text);
         $this->assertStringNotContainsString('onerror', $text);
         $this->assertSame($text, \App\Support\HtmlSanitizer::bio($text), 'sanitizar de nuevo no cambia nada');
+    }
+
+    /* ── Página tienda ──────────────────────────────────────────── */
+
+    public function test_shop_default_layout_and_setting_key(): void
+    {
+        $shop = new PageLayoutService('shop');
+        $this->assertSame('shop_layout', $shop->settingKey());
+        $this->assertSame('page_layout', $this->svc->settingKey());
+        $layout = $shop->decode(null);
+        $this->assertSame(['shop_header', 'products', 'payments'], $this->types($layout));
+        $this->assertSame('3', $layout[1]['data']['columns']);
+        $this->assertTrue($layout[1]['data']['show_search']);
+    }
+
+    public function test_unknown_page_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new PageLayoutService('admin');
+    }
+
+    public function test_pages_do_not_mix_core_blocks(): void
+    {
+        $shop = (new PageLayoutService('shop'))->sanitize([['type' => 'links'], ['type' => 'products'], ['type' => 'map']]);
+        $this->assertNotContains('links', $this->types($shop));
+        $this->assertNotContains('map', $this->types($shop), 'el mapa no es un componente de la tienda');
+
+        $landing = $this->svc->sanitize([['type' => 'products'], ['type' => 'banner', 'id' => 'b_ban1']]);
+        $this->assertNotContains('products', $this->types($landing));
+        $this->assertContains('banner', $this->types($landing));
+    }
+
+    public function test_products_options_are_bounded(): void
+    {
+        $block = (new PageLayoutService('shop'))->sanitize([[
+            'type' => 'products',
+            'data' => ['columns' => '9', 'card_ratio' => 'circle', 'show_search' => false, 'show_filters' => '0', 'group_by_category' => 'nope'],
+        ]])[0];
+        $this->assertSame('3', $block['data']['columns']);
+        $this->assertSame('square', $block['data']['card_ratio']);
+        $this->assertFalse($block['data']['show_search']);
+        $this->assertFalse($block['data']['show_filters']);
+        $this->assertTrue($block['data']['group_by_category'], 'valor inválido → default');
+    }
+
+    public function test_banner_image_urls_and_options_are_sanitized(): void
+    {
+        $banner = fn (array $data) => $this->svc->sanitize([['type' => 'banner', 'id' => 'b_ban1', 'data' => $data]])[0]['data'];
+
+        $this->assertSame('/uploads/banner_1.jpg', $banner(['image' => '/uploads/banner_1.jpg'])['image']);
+        $this->assertSame('https://cdn.ej.com/a.webp', $banner(['image' => 'cdn.ej.com/a.webp'])['image']);
+        $this->assertSame('', $banner(['image' => 'javascript:alert(1)'])['image']);
+        $this->assertSame('', $banner(['image' => 'http://inseguro.com/a.jpg'])['image'], 'solo https');
+        $this->assertSame('', $banner(['cta_url' => 'javascript:alert(1)'])['cta_url']);
+        $this->assertSame(80, $banner(['overlay' => 500])['overlay']);
+        $this->assertSame(35, $banner(['overlay' => 'x'])['overlay']);
+        $this->assertFalse($banner(['show_text' => false])['show_text']);
+        $this->assertTrue($banner([])['show_text']);
+        $this->assertSame('md', $banner(['height' => 'xxl'])['height']);
+    }
+
+    public function test_carousel_slides_are_sanitized_capped_and_need_image(): void
+    {
+        $slides = array_fill(0, 12, ['image' => '/uploads/s.jpg', 'title' => 'Hola', 'cta_url' => 'javascript:x', 'extra' => 'y']);
+        $slides[1] = ['title' => 'Sin imagen'];
+        $slides[2] = 'basura';
+        $data = $this->svc->sanitize([['type' => 'carousel', 'id' => 'b_car1', 'data' => ['slides' => $slides, 'interval' => 99]]])[0]['data'];
+
+        $this->assertLessThanOrEqual(PageLayoutService::MAX_SLIDES, count($data['slides']));
+        foreach ($data['slides'] as $s) {
+            $this->assertSame('/uploads/s.jpg', $s['image']);
+            $this->assertSame('', $s['cta_url']);
+            $this->assertArrayNotHasKey('extra', $s);
+        }
+        $this->assertSame(10, $data['interval']);
+        $this->assertSame([], $this->svc->sanitize([['type' => 'carousel', 'data' => ['slides' => 'x']]])[0]['data']['slides']);
+    }
+
+    public function test_shop_layout_roundtrip(): void
+    {
+        $shop = new PageLayoutService('shop');
+        $layout = $shop->sanitize([
+            ['type' => 'carousel', 'id' => 'b_car1', 'data' => ['slides' => [['image' => '/uploads/a.jpg', 'title' => 'Ñ']], 'show_text' => false]],
+            ['type' => 'products', 'data' => ['columns' => '4']],
+        ]);
+        $this->assertSame($layout, $shop->decode($shop->encode($layout)));
     }
 
     public function test_plain_text_sanitizing_is_idempotent(): void

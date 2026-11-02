@@ -68,6 +68,29 @@ class MenuItem extends Model
         return '$' . number_format($v, $decimals, ',', '.');
     }
 
+    /**
+     * Ancla estable del producto en /shop (deep link para JSON-LD, llms.txt y buscadores):
+     * "prod-{sku}" normalizado, o "prod-{id}" si no tiene SKU.
+     */
+    public function getAnchorAttribute(): string
+    {
+        $sku = strtolower(trim((string) $this->sku));
+        $sku = trim(preg_replace('/[^a-z0-9]+/', '-', $sku), '-');
+        if ($sku !== '') {
+            return 'prod-' . $sku;
+        }
+        return 'prod-' . ($this->id ?? substr(md5((string) $this->title), 0, 8));
+    }
+
+    /** Precios del ítem (principal + alternativos) como floats, sin nulos. */
+    public function getAllPricesAttribute(): array
+    {
+        return array_values(array_map('floatval', array_filter(
+            [$this->price, $this->price_2, $this->price_3],
+            fn ($p) => $p !== null && $p !== ''
+        )));
+    }
+
     /** Devuelve los sabores como array, descartando vacíos */
     public function getFlavorsArrayAttribute(): array
     {
