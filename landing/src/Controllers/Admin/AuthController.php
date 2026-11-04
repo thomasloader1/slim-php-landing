@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Middleware\TenantResolverMiddleware;
 use App\Services\AuthService;
 use App\Traits\AdminViewTrait;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -51,38 +52,50 @@ class AuthController
     /**
      * GET /admin/sso?token=... en el dominio de un sitio: el superadmin llega desde
      * el gestor de sitios (master) con un token HMAC de un solo uso.
+     * La sesión queda atada a la DB master (auth_source): el sitio no necesita
+     * tener usuarios propios para que el master entre.
      */
     public function sso(Request $request, Response $response): Response
     {
         $context = (string) $request->getAttribute('context');
+        if (!str_starts_with($context, 'site:')) {
+            return $response->withStatus(404);
+        }
         $site = $request->getAttribute('resolved_site');
-        if (!str_starts_with($context, 'site:') || !$site) {
+        // Modo SITE_ID (copia dedicada): el id viene del .env, no de la tabla sites
+        $expectedSiteId = $site ? (int) $site->id : (TenantResolverMiddleware::siteIdFromEnv() ?? 0);
+        if ($expectedSiteId <= 0) {
             return $response->withStatus(404);
         }
 
         $token = (string) ($request->getQueryParams()['token'] ?? '');
         try {
             $siteId = (new \App\Services\SsoTokenService())
-                ->consume($token, (int) $site->id, \Illuminate\Database\Capsule\Manager::connection('default'));
+                ->consume($token, $expectedSiteId, \Illuminate\Database\Capsule\Manager::connection('master'));
         } catch (\Throwable $e) {
-            error_log('[AuthController][SSO] ' . $e->getMessage());
+            log_error('[AuthController][SSO] ' . $e->getMessage(), null, [], $e);
             $siteId = null;
         }
         if ($siteId === null) {
-            error_log("[AuthController][SECURITY] Token SSO inválido/vencido/reusado para sitio {$site->id}");
+            log_error("[AuthController][SECURITY] Token SSO inválido/vencido/reusado para sitio {$expectedSiteId}");
             return $this->render($response->withStatus(403), 'admin/login', ['error' => 'Acceso expirado o inválido. Volvé a intentarlo desde el panel master.']);
         }
 
-        // La conexión default ya es la DB del sitio
-        $user = \App\Models\User::where('role', 'admin')->where('active', 1)->orderBy('id')->first();
-        if (!$user) {
-            return $this->render($response, 'admin/login', ['error' => 'El sitio no tiene administradores activos. Inicializalo desde el gestor de sitios.']);
+        // Root de la master (no un usuario de la DB del sitio)
+        $masterUser = $this->auth->masterRoot();
+        if (!$masterUser) {
+            return $this->render($response, 'admin/login', ['error' => 'La master no tiene un administrador root activo. Crealo desde la master y volvé a intentar.']);
         }
+
+        $user = new \App\Models\User();
+        $user->setRawAttributes((array) $masterUser);
+        $user->exists = true;
 
         // Dentro del sitio actúa como root (AccessService::isRoot por impersonated_by)
         $this->auth->loginAs($user, $context, 'superadmin');
+        $_SESSION['auth_source'] = 'master';
         $next = self::safeNext((string) ($request->getQueryParams()['next'] ?? ''));
-        error_log("[AuthController][AUDIT] SSO root -> sitio {$site->id} como {$user->email} ({$next})");
+        log_error("[AuthController][AUDIT] SSO root -> sitio {$siteId} como {$masterUser->email} ({$next})");
         return $response->withHeader('Location', url($next))->withStatus(302);
     }
 

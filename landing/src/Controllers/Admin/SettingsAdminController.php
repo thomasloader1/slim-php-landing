@@ -102,7 +102,7 @@ class SettingsAdminController
                 try {
                     $file->moveTo($targetPath);
                 } catch (\Exception $e) {
-                    error_log('[SettingsAdmin] No se pudo mover la subida a ' . $targetPath . ': ' . $e->getMessage());
+                    log_error('[SettingsAdmin] No se pudo mover la subida a ' . $targetPath . ': ' . $e->getMessage(), null, [], $e);
                     $rejected[] = $uploadLabels[$inputName] . ' (no se pudo guardar en el servidor: revisá permisos de public/uploads)';
                     continue;
                 }

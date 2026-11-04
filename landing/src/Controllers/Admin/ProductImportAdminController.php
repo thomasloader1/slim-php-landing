@@ -114,7 +114,7 @@ class ProductImportAdminController
         try {
             $stats = (new ProductCsvService())->apply($pending['columns'], $pending['rows']);
         } catch (\Throwable $e) {
-            error_log('[ProductImport] ' . $e->getMessage());
+            log_error('[ProductImport] ' . $e->getMessage(), null, [], $e);
             return $this->fail($response, 'La importación falló y no se guardó ningún cambio. Revisá el archivo e intentá de nuevo.');
         }
 

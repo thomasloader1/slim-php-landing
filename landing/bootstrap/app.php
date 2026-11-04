@@ -57,8 +57,24 @@ $dbConfig = [
     'prefix'    => '',
 ];
 
+// Conexión "master": en la master es su propia DB; en una copia de sitio hijo
+// (public_html/<cliente>/ con SITE_ID) apunta a la DB master vía MASTER_DB_* para
+// validar el login del root master y consumir tokens SSO sin tocar su propia DB.
+$masterConfig = $dbConfig;
+$masterDbName = getenv('MASTER_DB_NAME') !== false ? getenv('MASTER_DB_NAME') : ($_ENV['MASTER_DB_NAME'] ?? '');
+if (trim((string) $masterDbName) !== '') {
+    $masterConfig = array_merge($dbConfig, [
+        'host'     => getenv('MASTER_DB_HOST') ?: ($_SERVER['MASTER_DB_HOST'] ?? $_ENV['MASTER_DB_HOST'] ?? $dbConfig['host']),
+        'port'     => getenv('MASTER_DB_PORT') ?: ($_SERVER['MASTER_DB_PORT'] ?? $_ENV['MASTER_DB_PORT'] ?? $dbConfig['port']),
+        'database' => trim((string) $masterDbName),
+        'username' => getenv('MASTER_DB_USER') ?: ($_SERVER['MASTER_DB_USER'] ?? $_ENV['MASTER_DB_USER'] ?? $dbConfig['username']),
+        'password' => getenv('MASTER_DB_PASS') !== false ? getenv('MASTER_DB_PASS') : ($_SERVER['MASTER_DB_PASS'] ?? $_ENV['MASTER_DB_PASS'] ?? ''),
+    ]);
+}
+
 $capsule = new Capsule;
 $capsule->addConnection($dbConfig);
+$capsule->addConnection($masterConfig, 'master');
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
 

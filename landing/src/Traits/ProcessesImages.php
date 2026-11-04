@@ -29,7 +29,7 @@ trait ProcessesImages
         // Sin la extensión GD se guarda el original tal cual (sin redimensionar ni comprimir):
         // ya pasó la validación de tamaño, extensión y MIME real. Sistema avisa que falta GD.
         if (!function_exists('imagecreatetruecolor')) {
-            error_log('[ProcessesImages] Sin extensión GD: se guarda la imagen original sin optimizar.');
+            log_error('[ProcessesImages] Sin extensión GD: se guarda la imagen original sin optimizar.', 'warning');
             return true;
         }
 

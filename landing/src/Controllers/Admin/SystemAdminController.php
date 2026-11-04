@@ -56,7 +56,7 @@ class SystemAdminController
                 $_SESSION['flash_success'] = "Migraciones aplicadas (master + {$sites['ok']} sitio/s).";
             }
         } catch (\Throwable $e) {
-            error_log('[SystemAdmin] migrate: ' . $e->getMessage());
+            log_error('[SystemAdmin] migrate: ' . $e->getMessage(), null, [], $e);
             $_SESSION['flash_error'] = 'Error aplicando migraciones: ' . $e->getMessage();
         }
         return $this->back($response);

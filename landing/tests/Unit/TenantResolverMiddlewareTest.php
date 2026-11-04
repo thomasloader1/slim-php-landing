@@ -426,4 +426,55 @@ class TenantResolverMiddlewareTest extends TestCase
         // Cleanup
         $site->delete();
     }
+
+    /** @test */
+    public function site_id_env_resolves_site_context_without_host_lookup(): void
+    {
+        // Copia dedicada (public_html/<cliente>/ con SITE_ID): la identidad viene del
+        // .env, sin consultar dominio ni la tabla sites. El módulo apagado no aplica.
+        $this->setModule('0');
+        putenv('SITE_ID=42');
+        $_ENV['SITE_ID'] = '42';
+
+        try {
+            $handler = $this->captureHandler();
+            $request = $this->requestFactory->createServerRequest('GET', '/');
+            $request = $request->withUri($request->getUri()->withHost('no-importa.example.com'));
+
+            (new \App\Middleware\TenantResolverMiddleware())->process($request, $handler);
+
+            $this->assertNotNull($handler->capturedRequest, 'debe llegar al handler');
+            $this->assertSame('site:42', $handler->capturedRequest->getAttribute('context'));
+            $this->assertFalse($handler->capturedRequest->getAttribute('is_master'));
+            $this->assertFalse($handler->capturedRequest->getAttribute('is_master_admin'));
+            // La conexión default ya es la del sitio (DB_* del .env): no se cambia
+            $this->assertNull($handler->capturedRequest->getAttribute('tenant_connection'));
+            $this->assertNull($handler->capturedRequest->getAttribute('resolved_site'));
+        } finally {
+            putenv('SITE_ID');
+            unset($_ENV['SITE_ID']);
+        }
+    }
+
+    /** @test */
+    public function invalid_site_id_fails_closed_with_503(): void
+    {
+        $this->setModule('1');
+        putenv('SITE_ID=abc');
+        $_ENV['SITE_ID'] = 'abc';
+
+        try {
+            $handler = $this->captureHandler();
+            $request = $this->requestFactory->createServerRequest('GET', '/');
+            $request = $request->withUri($request->getUri()->withHost('cualquier.example.com'));
+
+            $response = (new \App\Middleware\TenantResolverMiddleware())->process($request, $handler);
+
+            $this->assertNull($handler->capturedRequest, 'fail-closed: el handler no se ejecuta');
+            $this->assertSame(503, $response->getStatusCode());
+        } finally {
+            putenv('SITE_ID');
+            unset($_ENV['SITE_ID']);
+        }
+    }
 }

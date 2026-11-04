@@ -180,3 +180,20 @@ if (!function_exists('seo_indexable')) {
         return ($settings['seo_noindex'] ?? '0') !== '1';
     }
 }
+
+if (!function_exists('log_error')) {
+    /**
+     * Registra un error/evento en la tabla error_logs (ver App\Services\ErrorLogService).
+     * Niveles: critical, error, warning, security, audit. Sin nivel explícito se
+     * deduce del prefijo del mensaje ([SECURITY], [AUDIT]) o queda en 'error'.
+     */
+    function log_error(string $message, ?string $level = null, array $context = [], ?\Throwable $e = null): void
+    {
+        \App\Services\ErrorLogService::log(
+            $level ?? \App\Services\ErrorLogService::levelFromMessage($message),
+            $message,
+            $context,
+            $e
+        );
+    }
+}

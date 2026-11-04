@@ -31,6 +31,12 @@
                                 <input type="text" name="domain" value="{{ $old['domain'] ?? $site->domain ?? '' }}" required maxlength="253" pattern="(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}" title="Dominio sin www ni https, ej: cliente.com.ar" autocapitalize="off" placeholder="ejemplo.com"
                                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors">
                             </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm text-slate-400 mb-2">Carpeta en public_html <span class="text-slate-600">(opcional)</span></label>
+                                <input type="text" name="folder" value="{{ $old['folder'] ?? $site->folder ?? '' }}" maxlength="190" pattern="[A-Za-z0-9][A-Za-z0-9._\- ]*" title="Solo un nombre de carpeta, sin / ni .. (ej: cliente)" placeholder="ej: cliente"
+                                       class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors">
+                                <p class="text-xs text-slate-600 mt-1">Carpeta donde está la copia de esta app para el sitio (public_html/<em>cliente</em>/). La usa la sección Directorios para asociar carpeta ↔ sitio.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -239,7 +245,9 @@
                 <h3 class="text-white font-bold">3. Dominio</h3>
                 <ol class="text-sm text-slate-400 list-decimal list-inside space-y-1">
                     <li>En el registrador, apuntá <code class="text-cyan-300">{{ $site->domain }}</code> (y <code>www</code>) a la IP del hosting, o usá los nameservers del hosting.</li>
-                    <li>En cPanel → <em>Dominios</em> → <em>Crear un nuevo dominio</em>: <code class="text-cyan-300">{{ $site->domain }}</code> con <strong>la misma raíz de documentos</strong> que el dominio master (la carpeta <code>public/</code> de esta app, ej. <code>landing/public</code>). No copies archivos: todos los dominios usan la misma instalación y la app elige la DB por dominio.</li>
+                    <li>En cPanel → <em>Dominios</em> → <em>Crear un nuevo dominio</em>: <code class="text-cyan-300">{{ $site->domain }}</code>.</li>
+                    <li><strong>Una raíz de documentos para todos</strong> (misma instalación): la misma carpeta <code>public/</code> de esta app (ej. <code>landing/public</code>). No copiás archivos: la app elige la DB por dominio.</li>
+                    <li><strong>Carpeta propia por sitio</strong> (copia en <code>public_html/{{ $site->folder ?: '<em>cliente</em>' }}/</code>): la raíz de documentos es <code>public_html/{{ $site->folder ?: '<em>cliente</em>' }}/public/</code> y la copia lleva su <code>.env</code> con <code>SITE_ID={{ $site->id }}</code> y <code>MASTER_DB_*</code> (ver <code>docs/multisitio-y-servidores.md</code> §2b).</li>
                     <li>Emití el SSL (cPanel → <em>SSL/TLS Status</em> → AutoSSL).</li>
                     <li>Verificá:</li>
                 </ol>

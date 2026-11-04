@@ -25,12 +25,12 @@ class PermissionMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        error_log(sprintf(
+        log_error(sprintf(
             '[PermissionMiddleware] Acceso denegado a %s (rol=%s, permiso=%s)',
             $request->getUri()->getPath(),
             $_SESSION['user_role'] ?? '-',
             $required === '' ? 'no registrado' : (Permissions::featureFor($required, $request->getMethod(), $path) ?? $required)
-        ));
+        ), 'warning');
 
         if (self::wantsJson($request)) {
             $response = new SlimResponse();

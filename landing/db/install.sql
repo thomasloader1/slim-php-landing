@@ -216,12 +216,33 @@ CREATE TABLE IF NOT EXISTS `rate_limits` (
     KEY `idx_rate_limits_reset` (`reset_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Errores y eventos de la app (ErrorLogService). Se purgan solos a los 30 días.
+CREATE TABLE IF NOT EXISTS `error_logs` (
+    `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `level`           ENUM('critical','error','warning','security','audit') NOT NULL DEFAULT 'error',
+    `message`         TEXT          NOT NULL,
+    `exception_class` VARCHAR(190)      NULL DEFAULT NULL,
+    `code`            INT               NULL DEFAULT NULL,
+    `file`            VARCHAR(255)      NULL DEFAULT NULL,
+    `line`            INT UNSIGNED      NULL DEFAULT NULL,
+    `uri`             VARCHAR(500)      NULL DEFAULT NULL,
+    `method`          VARCHAR(10)       NULL DEFAULT NULL,
+    `ip`              VARCHAR(45)       NULL DEFAULT NULL,
+    `user_agent`      VARCHAR(500)      NULL DEFAULT NULL,
+    `context`         MEDIUMTEXT        NULL,                       -- JSON saneado: usuario, stack, headers, body
+    `created_at`      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_error_logs_created` (`created_at`),
+    KEY `idx_error_logs_level` (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── Gestor de sitios (master). En un sitio cliente quedan vacías. ──
 
 CREATE TABLE IF NOT EXISTS `sites` (
     `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`              VARCHAR(150) NOT NULL,
     `domain`            VARCHAR(255) NOT NULL,
+    `folder`            VARCHAR(190) NULL DEFAULT NULL,               -- carpeta de la copia en public_html/* (asocia Directorios)
     `db_host`           VARCHAR(255) NOT NULL,
     `db_port`           INT UNSIGNED     NULL DEFAULT 3306,
     `db_name`           VARCHAR(100) NOT NULL,
@@ -243,6 +264,15 @@ CREATE TABLE IF NOT EXISTS `sites` (
     UNIQUE KEY `uq_sites_domain` (`domain`),
     KEY `idx_sites_status` (`status`),
     KEY `idx_sites_plan_end` (`plan_end`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Nonces de SSO: los emite la master (emisión/consumo en la DB master; en una copia
+-- de sitio hijo se usa la conexión `master`). Una fila por token, se borran al consumir.
+CREATE TABLE IF NOT EXISTS `sso_nonces` (
+    `nonce`      CHAR(32) NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    PRIMARY KEY (`nonce`),
+    KEY `idx_sso_nonces_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================
@@ -358,6 +388,12 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql = (SELECT IF(COUNT(*) = 0, "ALTER TABLE `sites` ADD COLUMN `initialized_at` TIMESTAMP NULL DEFAULT NULL AFTER `last_status_sync`", "DO 0")
     FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sites' AND COLUMN_NAME = 'initialized_at');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ── Sitios: carpeta de la copia en public_html/* ─────────────
+
+SET @sql = (SELECT IF(COUNT(*) = 0, "ALTER TABLE `sites` ADD COLUMN `folder` VARCHAR(190) NULL DEFAULT NULL AFTER `domain`", "DO 0")
+    FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sites' AND COLUMN_NAME = 'folder');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 

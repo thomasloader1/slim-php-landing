@@ -3,6 +3,7 @@
 namespace App\Middleware;
 
 use App\Services\AuthService;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
@@ -38,16 +39,14 @@ class AuthMiddleware implements MiddlewareInterface
         $requestContext = (string) ($request->getAttribute('context') ?? 'master');
         $sessionContext = $this->auth->sessionContext() ?? 'master';
         if ($sessionContext !== $requestContext) {
-            error_log("[AuthMiddleware][SECURITY] Sesión de '{$sessionContext}' usada en '{$requestContext}'. Logout forzado.");
+            log_error("[AuthMiddleware][SECURITY] Sesión de '{$sessionContext}' usada en '{$requestContext}'. Logout forzado.");
             $this->auth->logout();
             return $this->redirectToLogin();
         }
 
-        // La conexión default ya apunta a la DB del contexto (TenantResolverMiddleware)
-        $user = \App\Models\User::query()
-            ->where('id', $_SESSION['user_id'])
-            ->where('active', 1)
-            ->first();
+        // auth_source = 'master': el usuario vive en la DB master (login con
+        // credenciales del root en un sitio hijo o SSO); el resto valida en la DB actual.
+        $user = $this->loadSessionUser((string) ($_SESSION['auth_source'] ?? 'site'));
         if (!$user) {
             $this->auth->logout();
             return $this->redirectToLogin();
@@ -57,6 +56,28 @@ class AuthMiddleware implements MiddlewareInterface
         \App\Services\AccessService::reset(); // un cambio de rol/permisos aplica en este mismo request
 
         return $handler->handle($request);
+    }
+
+    /** Usuario activo de la sesión según su origen; null = no existe o no se pudo validar. */
+    private function loadSessionUser(string $source): ?object
+    {
+        if ($source === 'master') {
+            try {
+                return Capsule::connection('master')->table('users')
+                    ->where('id', $_SESSION['user_id'])
+                    ->where('active', 1)
+                    ->first() ?: null;
+            } catch (\Throwable $e) {
+                // Sin conexión master no se puede validar: fail-closed (logout)
+                log_error('[AuthMiddleware] validación de sesión master: ' . $e->getMessage(), null, [], $e);
+                return null;
+            }
+        }
+
+        return \App\Models\User::query()
+            ->where('id', $_SESSION['user_id'])
+            ->where('active', 1)
+            ->first();
     }
 
     private function redirectToLogin(): Response

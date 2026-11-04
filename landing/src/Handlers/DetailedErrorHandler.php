@@ -2,6 +2,7 @@
 
 namespace App\Handlers;
 
+use App\Services\ErrorLogService;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Handlers\ErrorHandler;
 use Throwable;
@@ -44,6 +45,56 @@ class DetailedErrorHandler extends ErrorHandler
         }
         $logFile = $logDir . '/errors-' . date('Y-m-d') . '.log';
         @file_put_contents($logFile, $log, FILE_APPEND | LOCK_EX);
+
+        $this->writeToDatabase();
+    }
+
+    /**
+     * Guarda el error en la tabla error_logs (el archivo queda como respaldo).
+     * 400/404/405 no se guardan: son ruido de bots y URLs viejas.
+     */
+    private function writeToDatabase(): void
+    {
+        $status = (int) $this->statusCode;
+        if (in_array($status, [400, 404, 405], true)) {
+            return;
+        }
+
+        try {
+            $req = $this->request;
+            $headers = [];
+            foreach ($req->getHeaders() as $name => $values) {
+                $headers[$name] = implode(', ', $values);
+            }
+            $parsed = $req->getParsedBody();
+            $body = is_array($parsed)
+                ? $parsed
+                : mb_substr(preg_replace(
+                    '/(password|pass|contraseña|secret|token|key|api_key)(=|\s*:\s*")[^&\s"]*/i',
+                    '$1$2[REDACTED]',
+                    (string) $req->getBody()
+                ), 0, 5000);
+
+            ErrorLogService::log(
+                $status >= 500 ? 'critical' : 'warning',
+                $this->exception->getMessage() !== '' ? $this->exception->getMessage() : get_class($this->exception),
+                array_filter([
+                    'status'  => $status,
+                    'query'   => $req->getQueryParams(),
+                    'body'    => $body,
+                    'headers' => $headers,
+                ]),
+                $this->exception,
+                [
+                    'uri'        => (string) $req->getUri(),
+                    'method'     => $req->getMethod(),
+                    'ip'         => $req->getServerParams()['REMOTE_ADDR'] ?? null,
+                    'user_agent' => $req->getHeaderLine('User-Agent') ?: null,
+                ]
+            );
+        } catch (Throwable $e) {
+            // el log nunca debe impedir la respuesta de error
+        }
     }
 
     /**

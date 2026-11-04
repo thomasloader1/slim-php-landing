@@ -104,6 +104,9 @@ class MenuController
             ? $settings['whatsapp_open_mode'] ?? 'auto'
             : 'auto';
 
+        // Contexto de tenant para la clave localStorage del carrito
+        $tenantContext = (string) ($request->getAttribute('context') ?? 'master');
+
         // Bloques en el orden del UX Builder → Tienda (default: encabezado, productos, pagos)
         $layoutService = new PageLayoutService('shop');
         $blocks = array_values(array_filter(
@@ -111,7 +114,7 @@ class MenuController
             fn (array $block) => $layoutService->isRenderable($block, $settings)
         ));
 
-        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode', 'shopOpen', 'waMode', 'blocks', 'jsonLd', 'pageDescription', 'shopTitle'))->render();
+        $html = $this->view->make('menu/index', compact('settings', 'sections', 'unsectioned', 'pageUrl', 'demoMode', 'shopOpen', 'waMode', 'blocks', 'jsonLd', 'pageDescription', 'shopTitle', 'tenantContext'))->render();
         $response->getBody()->write($html);
         return $response;
     }

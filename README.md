@@ -364,12 +364,17 @@ Accedé en `/admin/login` con tus credenciales.
 
 ## Multisitio, servidores y recuperación
 
-Una sola instalación sirve la landing principal (dominios en `MASTER_DOMAINS`) y las landings de clientes, cada una con **su propia base de datos y dominio**. Todo se administra desde el panel master:
+Una sola instalación sirve la landing principal (dominios en `MASTER_DOMAINS`) y las landings de clientes, cada una con **su propia base de datos y dominio**. Cada sitio se puede servir de dos formas:
+
+- **Una sola instalación, varios dominios**: todos los dominios apuntan a la misma raíz de documentos y la app elige la DB por dominio.
+- **Copia por carpeta** (hosting compartido): cada sitio es una copia completa de la app en `public_html/<cliente>/` con su propio `.env` (`SITE_ID` + `MASTER_DB_*`). El root de la master puede entrar al hijo con sus propias credenciales en `/admin/login` o con el SSO del panel master, **sin necesidad de usuarios en la DB del sitio**.
+
+Todo se administra desde el panel master:
 
 | Sección | Para qué |
 |---|---|
-| **Sitios** | Registrar sitios, inicializar su DB (tablas + admin), verificar dominio, entrar como su admin, suspender/activar |
-| **Directorios** | Listar (solo lectura) las carpetas de una ruta del servidor, ej. `public_html/*`, con el sitio asociado y si tiene la app instalada |
+| **Sitios** | Registrar sitios (dominio, DB y —opcional— carpeta), inicializar su DB (tablas + admin), verificar dominio, entrar como root (SSO o login directo), suspender/activar |
+| **Directorios** | Listar (solo lectura) las carpetas de una ruta del servidor, ej. `public_html/*`, con el sitio asociado (por `folder` o dominio) y si tiene la app instalada |
 | **Sistema** | Diagnóstico de la instalación, aplicar migraciones, re-cifrar credenciales |
 
 Si no podés entrar al panel: `php bin/console help` (reset de contraseña, migraciones, diagnóstico).

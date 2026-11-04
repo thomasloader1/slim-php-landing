@@ -24,7 +24,7 @@ final class DirectoryListingService
                 return trim($value);
             }
         } catch (\Throwable $e) {
-            error_log('[DirectoryListing] ' . $e->getMessage());
+            log_error('[DirectoryListing] ' . $e->getMessage(), null, [], $e);
         }
         return self::defaultRoot();
     }
@@ -111,15 +111,24 @@ final class DirectoryListingService
             || (is_file($path . '/.env') && (is_file($path . '/index.php') || is_file($path . '/public/index.php')));
     }
 
-    /** Dominios de la tabla sites indexados por nombre de carpeta probable (dominio y dominio sin www). */
+    /**
+     * Nombre de carpeta (minúsculas) => dominio registrado, para asociar las carpetas
+     * de public_html/* con su sitio: usa `folder` cuando está cargado y si no el
+     * dominio (y su variante sin www), como hasta ahora.
+     */
     public static function siteDomains(): array
     {
         try {
             $map = [];
-            foreach (Capsule::table('sites')->pluck('domain') as $domain) {
-                $d = strtolower((string) $domain);
-                $map[$d] = $domain;
-                $map[preg_replace('/^www\./', '', $d)] = $domain;
+            foreach (Capsule::table('sites')->get(['domain', 'folder']) as $row) {
+                $d = strtolower((string) $row->domain);
+                $map[$d] = $row->domain;
+                $map[preg_replace('/^www\./', '', $d)] = $row->domain;
+                // folder explícito gana sobre la coincidencia por dominio
+                $folder = trim((string) ($row->folder ?? ''));
+                if ($folder !== '') {
+                    $map[strtolower(basename($folder))] = $row->domain;
+                }
             }
             return $map;
         } catch (\Throwable $e) {

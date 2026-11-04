@@ -8,14 +8,15 @@ use Illuminate\Database\Connection;
  * Token de un solo uso para que el superadmin (master) entre al panel de un sitio.
  *
  * Formato: base64url(json{s:site_id, e:exp, n:nonce}) . "." . base64url(hmac_sha256)
- * - Clave HMAC derivada de TENANT_ENCRYPTION_KEY (master y sitios corren en la misma app).
- * - Vence en 60 s. El nonce se registra en la DB master al emitirlo y se borra al
- *   consumirlo: un token no se puede reusar.
+ * - Clave HMAC derivada de TENANT_ENCRYPTION_KEY (master y sitios comparten la clave).
+ * - Vence en 60 s. El nonce se registra en la DB master (tabla sso_nonces) al emitirlo
+ *   y se borra al consumirlo: un token no se puede reusar.
+ * - En una copia de sitio hijo el consume recibe la conexión `master` (MASTER_DB_*),
+ *   porque el token vive en la master, no en la DB del sitio.
  */
 class SsoTokenService
 {
     public const TTL = 60;
-    private const PREFIX = 'sso_nonce:';
 
     private string $key;
 
@@ -33,9 +34,9 @@ class SsoTokenService
         $nonce = bin2hex(random_bytes(16));
         $exp = time() + self::TTL;
 
-        $master->table('settings')->insert([
-            'setting_key'   => self::PREFIX . $nonce,
-            'setting_value' => (string) $exp,
+        $master->table('sso_nonces')->insert([
+            'nonce'      => $nonce,
+            'expires_at' => date('Y-m-d H:i:s', $exp),
         ]);
 
         $payload = self::b64(json_encode(['s' => $siteId, 'e' => $exp, 'n' => $nonce]));
@@ -66,16 +67,13 @@ class SsoTokenService
         }
 
         // Consumo atómico: solo una request puede borrar el nonce
-        $deleted = $master->table('settings')->where('setting_key', self::PREFIX . $data['n'])->delete();
+        $deleted = $master->table('sso_nonces')->where('nonce', $data['n'])->delete();
         if ($deleted !== 1) {
             return null;
         }
 
         // Limpieza oportunista de nonces vencidos
-        $master->table('settings')
-            ->where('setting_key', 'like', self::PREFIX . '%')
-            ->whereRaw('CAST(setting_value AS UNSIGNED) < ?', [time()])
-            ->delete();
+        $master->table('sso_nonces')->where('expires_at', '<', date('Y-m-d H:i:s'))->delete();
 
         return (int) $data['s'];
     }

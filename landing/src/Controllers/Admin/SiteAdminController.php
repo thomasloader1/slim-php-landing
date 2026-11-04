@@ -146,7 +146,7 @@ class SiteAdminController
             $_SESSION['site_log'] = (new TenantProvisioner())->createDatabase($site, $plain);
             $_SESSION['flash_success'] = 'Base de datos y usuario creados. Ahora inicializá el sitio.';
         } catch (\Throwable $e) {
-            error_log('[SiteAdmin] createDatabase site ' . $site->id . ': ' . $e->getMessage());
+            log_error('[SiteAdmin] createDatabase site ' . $site->id . ': ' . $e->getMessage(), null, [], $e);
             $_SESSION['flash_error'] = 'No se pudo crear la DB: ' . $this->safeError($e)
                 . ' — En cPanel creala desde "Bases de datos MySQL".';
         }
@@ -167,7 +167,7 @@ class SiteAdminController
             );
             $_SESSION['flash_success'] = 'Sitio inicializado. Ya podés entrar a su panel.';
         } catch (\Throwable $e) {
-            error_log('[SiteAdmin] initialize site ' . $site->id . ': ' . $e->getMessage());
+            log_error('[SiteAdmin] initialize site ' . $site->id . ': ' . $e->getMessage(), null, [], $e);
             $_SESSION['flash_error'] = 'No se pudo inicializar: ' . $this->safeError($e);
         }
         return $response->withHeader('Location', url('admin/sites/edit/' . $site->id))->withStatus(302);
@@ -259,7 +259,7 @@ class SiteAdminController
             $target .= '&next=' . urlencode($next);
         }
 
-        error_log("[SiteAdmin][AUDIT] {$_SESSION['user_name']} (master) entró como admin del sitio {$site->id} ({$site->domain})");
+        log_error("[SiteAdmin][AUDIT] {$_SESSION['user_name']} (master) entró como admin del sitio {$site->id} ({$site->domain})");
         return $response->withHeader('Location', $target)->withStatus(302);
     }
 
@@ -275,7 +275,7 @@ class SiteAdminController
             $_SESSION['flash_success'] = $status === 'active' ? 'Sitio activado.' : 'Sitio suspendido.';
         } catch (\Throwable $e) {
             // El estado en master ya cambió (el resolver deja de servirlo si no está activo)
-            error_log('[SiteAdmin] syncStatus site ' . $site->id . ': ' . $e->getMessage());
+            log_error('[SiteAdmin] syncStatus site ' . $site->id . ': ' . $e->getMessage(), null, [], $e);
             $_SESSION['flash_error'] = 'Estado guardado, pero no se pudo sincronizar con la DB del sitio: ' . $this->safeError($e);
         }
 
@@ -284,9 +284,11 @@ class SiteAdminController
 
     private function fields(array $data): array
     {
+        $folder = trim((string) ($data['folder'] ?? ''));
         return [
             'name'          => trim((string) $data['name']),
             'domain'        => strtolower(trim((string) $data['domain'])),
+            'folder'        => $folder === '' ? null : $folder,
             'db_host'       => trim((string) ($data['db_host'] ?? 'localhost')),
             'db_port'       => (int) ($data['db_port'] ?? 3306),
             'db_name'       => (string) $data['db_name'],

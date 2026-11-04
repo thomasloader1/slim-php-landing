@@ -15,6 +15,9 @@ use Slim\Psr7\Response as SlimResponse;
 /**
  * Resuelve el contexto de cada request:
  *
+ *  - Instancia dedicada (SITE_ID en .env): la copia de la app en public_html/<cliente>/
+ *    sabe quién es por su propia configuración. No se consulta la tabla `sites` ni se
+ *    cambia de conexión (el DB_* del .env ya apunta a la DB del sitio).
  *  - "master": el host está en MASTER_DOMAINS o el módulo site_manager está apagado.
  *    Se usa la DB master (conexión default). Es la landing principal + panel completo.
  *  - "site:<id>": cualquier otro host. Se busca en `sites` por dominio y la conexión
@@ -38,6 +41,16 @@ class TenantResolverMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandler $handler): Response
     {
+        // Copia dedicada: su identidad viene del .env, sin lookup por dominio.
+        $siteId = self::siteIdFromEnv();
+        if ($siteId !== null) {
+            if ($siteId <= 0) {
+                log_error('[TenantResolver][SECURITY] SITE_ID inválido en el .env. Request bloqueado.');
+                return $this->json(503, 'Invalid SITE_ID configuration');
+            }
+            return $handler->handle($this->asSite($request, $siteId));
+        }
+
         $host = self::normalizeHost($request->getUri()->getHost());
 
         if (self::isMasterHost($host) || !$this->moduleEnabled()) {
@@ -46,13 +59,13 @@ class TenantResolverMiddleware implements MiddlewareInterface
 
         // Módulo activo pero sin clave de cifrado: FAIL CLOSED
         if (!$this->encryption->hasKey('v1') && !$this->encryption->hasKey('v2')) {
-            error_log('[TenantResolver][SECURITY] Module site_manager enabled but no encryption key configured (TENANT_ENCRYPTION_KEY missing). Request blocked.');
+            log_error('[TenantResolver][SECURITY] Module site_manager enabled but no encryption key configured (TENANT_ENCRYPTION_KEY missing). Request blocked.');
             return $this->json(503, 'Tenant resolution unavailable: encryption key not configured');
         }
 
         $site = Site::where('domain', $host)->where('status', 'active')->first();
         if (!$site) {
-            error_log('[TenantResolver][SECURITY] No active site found for host: ' . $host . '. Request blocked.');
+            log_error('[TenantResolver][SECURITY] No active site found for host: ' . $host . '. Request blocked.');
             return $this->json(404, 'No active site configured for this domain');
         }
 
@@ -61,15 +74,11 @@ class TenantResolverMiddleware implements MiddlewareInterface
             Capsule::connection($connectionName)->getPdo(); // falla rápido si la DB no responde
             self::setDefaultConnection($connectionName);
         } catch (\Throwable $e) {
-            error_log('[TenantResolver][SECURITY] Failed to connect to tenant DB for site ' . $site->id . ': ' . $e->getMessage());
+            log_error('[TenantResolver][SECURITY] Failed to connect to tenant DB for site ' . $site->id . ': ' . $e->getMessage(), null, [], $e);
             return $this->json(503, 'Tenant database connection failed');
         }
 
-        $request = $request
-            ->withAttribute('context', 'site:' . $site->id)
-            ->withAttribute('is_master', false)
-            ->withAttribute('is_master_admin', false)
-            ->withAttribute('tenant_connection', $connectionName)
+        $request = $this->asSite($request, (int) $site->id, $connectionName)
             ->withAttribute('resolved_site', $site);
 
         return $handler->handle($request);
@@ -84,6 +93,32 @@ class TenantResolverMiddleware implements MiddlewareInterface
             ->withAttribute('is_master_admin', true);
     }
 
+    /** Contexto site:<id>. En modo SITE_ID la conexión default ya es la del sitio (tenant_connection = null). */
+    private function asSite(Request $request, int $siteId, ?string $connectionName = null): Request
+    {
+        return $request
+            ->withAttribute('context', 'site:' . $siteId)
+            ->withAttribute('is_master', false)
+            ->withAttribute('is_master_admin', false)
+            ->withAttribute('tenant_connection', $connectionName);
+    }
+
+    /**
+     * SITE_ID del .env: null si no está (instancia multi-dominio clásica),
+     * o el id del sitio si esta copia es un sitio hijo dedicado.
+     */
+    public static function siteIdFromEnv(): ?int
+    {
+        $raw = getenv('SITE_ID');
+        if ($raw === false) {
+            $raw = $_ENV['SITE_ID'] ?? null;
+        }
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+        return (int) $raw;
+    }
+
     private function moduleEnabled(): bool
     {
         try {
@@ -92,7 +127,7 @@ class TenantResolverMiddleware implements MiddlewareInterface
                 ->value('setting_value') === '1';
         } catch (\Throwable $e) {
             // Sin tabla settings (instalación incompleta): tratar como master para poder reparar
-            error_log('[TenantResolver] No se pudo leer settings: ' . $e->getMessage());
+            log_error('[TenantResolver] No se pudo leer settings: ' . $e->getMessage(), null, [], $e);
             return false;
         }
     }

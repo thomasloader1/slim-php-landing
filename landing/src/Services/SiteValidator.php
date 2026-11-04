@@ -34,6 +34,10 @@ final class SiteValidator
         if ($dup) {
             return 'Ya existe un sitio con ese dominio.';
         }
+        $folder = trim((string) ($data['folder'] ?? ''));
+        if ($folder !== '' && (str_contains($folder, '..') || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._\- ]{0,189}$/', $folder))) {
+            return 'Carpeta inválida: un solo nombre (letras, números, punto, guion o espacio), sin "/" ni ".." (ej: cliente).';
+        }
         foreach (['db_name' => 'Base de datos', 'db_user' => 'Usuario'] as $field => $label) {
             if (!preg_match(TenantProvisioner::IDENTIFIER, (string) ($data[$field] ?? ''))) {
                 return "{$label}: solo letras, números y _ (máx. 64).";

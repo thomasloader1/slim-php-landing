@@ -351,6 +351,8 @@
     (function () {
         'use strict';
         var ORDER_URL = @json(url('shop/orders'));
+        var CART_SAVE_URL = @json(url('shop/cart/save'));
+        var CART_SESSION_URL = @json(url('shop/cart/session'));
         var WA_MODE = @json($waMode);
         var MAX_ITEMS = @json(max(1, (int) ($settings['shop_max_items'] ?? 30)));
         var KEY = 'shop-cart:' + location.host;
@@ -359,12 +361,74 @@
         var cart = [];
         try { cart = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { cart = []; }
 
+        var sessionSaveTimer = null;
+
         function money(n) {
             var hasDec = Math.abs(n - Math.round(n)) >= 0.005;
             return '$' + n.toLocaleString('es-AR', { minimumFractionDigits: hasDec ? 2 : 0, maximumFractionDigits: hasDec ? 2 : 0 });
         }
         function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         function save() { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (e) {} }
+
+        function saveToSession() {
+            if (sessionSaveTimer) { clearTimeout(sessionSaveTimer); sessionSaveTimer = null; }
+            sessionSaveTimer = setTimeout(function () {
+                var payload = { items: cart.map(function (l) { return { id: l.id, variant: l.variant, qty: l.qty }; }) };
+                fetch(CART_SAVE_URL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(function (err) {
+                    console.warn('[cart] session save failed:', err);
+                });
+            }, 800);
+        }
+
+        function flushSessionSave() {
+            if (sessionSaveTimer) { clearTimeout(sessionSaveTimer); sessionSaveTimer = null; }
+            var payload = { items: cart.map(function (l) { return { id: l.id, variant: l.variant, qty: l.qty }; }) };
+            fetch(CART_SAVE_URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(function (err) {
+                console.warn('[cart] session flush failed:', err);
+            });
+        }
+
+        function reconcileWithSession() {
+            fetch(CART_SESSION_URL, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var sessionItems = data && data.items ? data.items : [];
+                var localItems = cart.map(function (l) { return { id: l.id, variant: l.variant, qty: l.qty }; });
+                var differ = JSON.stringify(sessionItems) !== JSON.stringify(localItems);
+                if (sessionItems.length > 0 && differ) {
+                    var onPage = {};
+                    document.querySelectorAll('.shop-add').forEach(function (box) {
+                        onPage[box.dataset.id] = { box: box, variants: JSON.parse(box.dataset.variants), max: box.dataset.stock === '' ? null : parseInt(box.dataset.stock, 10) };
+                    });
+                    cart = sessionItems.map(function (s) {
+                        var p = onPage[s.id];
+                        var v = p && p.variants.filter(function (x) { return x.v === s.variant; })[0];
+                        if (!v || p.max === 0) { return null; }
+                        return { id: s.id, variant: s.variant, title: p.box.dataset.title, label: v.label, price: v.price, qty: s.qty, max: p.max };
+                    }).filter(Boolean);
+                    save();
+                    render();
+                }
+            })
+            .catch(function (err) {
+                console.warn('[cart] session reconcile failed:', err);
+            });
+        }
+
         function units() { return cart.reduce(function (a, l) { return a + l.qty; }, 0); }
         function total() { return cart.reduce(function (a, l) { return a + l.qty * l.price; }, 0); }
         function usedStock(id) { return cart.reduce(function (a, l) { return a + (l.id === id ? l.qty : 0); }, 0); }
@@ -395,6 +459,7 @@
                     '<button type="button" class="qty-btn" data-inc="' + i + '" ' + (atMax ? 'disabled' : '') + ' aria-label="Agregar uno de ' + esc(l.title) + '">+</button>' +
                     '</div><span class="w-20 text-right font-bold">' + money(l.qty * l.price) + '</span></div>';
             }).join('');
+            updateSubmitButton();
         }
 
         function add(box) {
@@ -409,7 +474,7 @@
             if (line) { line.qty++; } else {
                 cart.push({ id: id, variant: v.v, title: box.dataset.title, label: v.label, price: v.price, qty: 1, max: max });
             }
-            save(); render(); return true;
+            save(); saveToSession(); render(); return true;
         }
 
         document.querySelectorAll('.shop-add').forEach(function (box) {
@@ -430,7 +495,7 @@
             var inc = e.target.closest('[data-inc]'), dec = e.target.closest('[data-dec]');
             if (inc) { var l = cart[+inc.dataset.inc]; if (l.max === null || usedStock(l.id) < l.max) { l.qty++; } }
             if (dec) { var i = +dec.dataset.dec; cart[i].qty--; if (cart[i].qty <= 0) { cart.splice(i, 1); } }
-            if (inc || dec) { save(); render(); }
+            if (inc || dec) { save(); saveToSession(); render(); }
         });
 
         function open() {
@@ -455,6 +520,14 @@
         var submitHtml = submitBtn.innerHTML;
         var generalErr = form.querySelector('[data-err="general"]');
 
+        function updateSubmitButton() {
+            var errs = validate();
+            if (submitBtn) { submitBtn.disabled = Object.keys(errs).length > 0; }
+        }
+
+        // Estado inicial del botón (después de que las variables estén definidas)
+        updateSubmitButton();
+
         function showErrors(errs) {
             form.querySelectorAll('[data-err]').forEach(function (p) { p.textContent = errs[p.dataset.err] || ''; });
             ['name', 'phone'].forEach(function (f) {
@@ -472,6 +545,7 @@
             form.elements[f].addEventListener('input', function () {
                 this.removeAttribute('aria-invalid');
                 form.querySelector('[data-err="' + f + '"]').textContent = '';
+                updateSubmitButton();
             });
         });
 
@@ -532,7 +606,7 @@
                 .then(function (res) {
                     if (res.status === 201 && res.body.code) {
                         var url = waUrl(res.body);
-                        cart = []; save(); render();
+                        cart = []; save(); flushSessionSave(); render();
                         showDone(res.body.code, url);
                         var win = window.open(url, '_blank');
                         if (win) { try { win.opener = null; } catch (err) {} }
@@ -568,6 +642,7 @@
         });
         save();
         render();
+        reconcileWithSession();
     })();
     </script>
     @endif

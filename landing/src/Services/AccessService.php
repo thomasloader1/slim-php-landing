@@ -83,7 +83,7 @@ final class AccessService
                 ->all();
         } catch (\Throwable $e) {
             // Base sin migrar todavía: sin permisos (solo el root entra)
-            error_log('[AccessService] ' . $e->getMessage());
+            log_error('[AccessService] ' . $e->getMessage(), null, [], $e);
             self::$permissions = [];
         }
         return self::$permissions;

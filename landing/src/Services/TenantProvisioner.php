@@ -59,7 +59,7 @@ class TenantProvisioner
             } catch (\Throwable $e) {
                 $failed++;
                 $log[] = "[{$site->domain}] ERROR: " . $e->getMessage();
-                error_log("[TenantProvisioner] migrate site {$site->id}: " . $e->getMessage());
+                log_error("[TenantProvisioner] migrate site {$site->id}: " . $e->getMessage(), null, [], $e);
             }
         }
         return ['log' => $log, 'ok' => $ok, 'failed' => $failed];

@@ -37,6 +37,10 @@
                     <i class="fa-solid fa-key text-xs mr-1"></i> Re-cifrar con clave activa
                 </button>
             </form>
+            <a href="{{ url('admin/system/logs') }}"
+               class="w-full text-center bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-4 py-2 rounded-xl text-sm transition-all">
+                <i class="fa-solid fa-list text-xs mr-1"></i> Ver logs de errores
+            </a>
         </div>
     </div>
 

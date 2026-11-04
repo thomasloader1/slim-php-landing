@@ -83,8 +83,23 @@ class SiteStatusMiddleware implements MiddlewareInterface
 
         // Get resolved site from request attributes
         $resolvedSite = $request->getAttribute('resolved_site');
-        if ($resolvedSite && $resolvedSite->domain) {
-            $allowedDomain = strtolower($resolvedSite->domain);
+        $domain = $resolvedSite->domain ?? null;
+
+        // Copia dedicada (SITE_ID): no hay resolved_site; el dominio del sitio
+        // se consulta en la DB master solo cuando hace falta validar una URL absoluta.
+        if ($domain === null) {
+            $siteId = \App\Middleware\TenantResolverMiddleware::siteIdFromEnv();
+            if ($siteId !== null) {
+                try {
+                    $domain = Capsule::connection('master')->table('sites')->where('id', $siteId)->value('domain');
+                } catch (\Throwable $e) {
+                    $domain = null;
+                }
+            }
+        }
+
+        if ($domain) {
+            $allowedDomain = strtolower((string) $domain);
             $redirectDomain = strtolower($host);
 
             // Remove www. prefix for comparison

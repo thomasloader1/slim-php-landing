@@ -15,6 +15,7 @@ class SiteManagementServicesTest extends TestCase
 
     protected function tearDown(): void
     {
+        Capsule::table('sso_nonces')->delete();
         Capsule::table('settings')->where('setting_key', 'like', 'sso_nonce:%')->delete();
         parent::tearDown();
     }
@@ -78,6 +79,41 @@ class SiteManagementServicesTest extends TestCase
         $this->assertNull($sso->consume($token, 8, $master), 'otro sitio');
         $this->assertSame(7, $sso->consume($token, 7, $master));
         $this->assertNull($sso->consume($token, 7, $master), 'reuso');
+    }
+
+    /** @test */
+    public function sso_nonce_is_stored_in_sso_nonces_and_deleted_on_consume(): void
+    {
+        // El nonce vive en la tabla sso_nonces (DB master), no en settings: una copia
+        // de sitio hijo la consume vía la conexión `master` con un usuario mínimo.
+        $master = Capsule::connection('default');
+        $sso = new SsoTokenService(self::KEY);
+
+        $before = (int) $master->table('sso_nonces')->count();
+        $token = $sso->issue(11, $master);
+        $this->assertSame($before + 1, (int) $master->table('sso_nonces')->count(), 'nonce registrado al emitir');
+
+        $this->assertSame(11, $sso->consume($token, 11, $master));
+        $this->assertSame($before, (int) $master->table('sso_nonces')->count(), 'nonce borrado al consumir');
+    }
+
+    /** @test */
+    public function sso_rejects_expired_tokens(): void
+    {
+        $master = Capsule::connection('default');
+        $sso = new SsoTokenService(self::KEY);
+
+        // Token firmado con la clave correcta pero vencido (exp en el pasado)
+        $nonce = str_repeat('c', 32);
+        $master->table('sso_nonces')->insert(['nonce' => $nonce, 'expires_at' => date('Y-m-d H:i:s', time() + 60)]);
+
+        $payload = rtrim(strtr(base64_encode(json_encode(['s' => 5, 'e' => time() - 5, 'n' => $nonce])), '+/', '-_'), '=');
+        $key = (new \ReflectionProperty(SsoTokenService::class, 'key'))->getValue($sso);
+        $token = $payload . '.' . rtrim(strtr(base64_encode(hash_hmac('sha256', $payload, $key, true)), '+/', '-_'), '=');
+
+        $this->assertNull($sso->consume($token, 5, $master), 'token vencido');
+        // El chequeo de expiración va antes del consumo: el nonce sigue ahí
+        $this->assertSame(1, $master->table('sso_nonces')->where('nonce', $nonce)->delete());
     }
 
     /** @test */

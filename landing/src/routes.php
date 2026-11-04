@@ -18,6 +18,8 @@ $app->get('/', LandingController::class);
 // Shop: catálogo público + pedidos por WhatsApp (/menu queda como alias viejo)
 $app->get('/shop', \App\Controllers\Front\MenuController::class);
 $app->post('/shop/orders', [\App\Controllers\Front\ShopOrderController::class, 'store']);
+$app->post('/shop/cart/save', [\App\Controllers\Front\ShopCartSessionController::class, 'save']);
+$app->get('/shop/cart/session', [\App\Controllers\Front\ShopCartSessionController::class, 'session']);
 $app->get('/menu', function ($request, $response) {
     return $response->withHeader('Location', url('shop'))->withStatus(301);
 });
@@ -158,6 +160,9 @@ $app->group('/admin', function (RouteCollectorProxy $group) {
         $sys->get('', [\App\Controllers\Admin\SystemAdminController::class, 'index']);
         $sys->post('/migrate', [\App\Controllers\Admin\SystemAdminController::class, 'migrate']);
         $sys->post('/rotate-keys', [\App\Controllers\Admin\SystemAdminController::class, 'rotateKeys']);
+        $sys->get('/logs', [\App\Controllers\Admin\ErrorLogAdminController::class, 'index']);
+        $sys->get('/logs/{source:master|[0-9]+}/{id:[0-9]+}', [\App\Controllers\Admin\ErrorLogAdminController::class, 'show']);
+        $sys->post('/logs/clear', [\App\Controllers\Admin\ErrorLogAdminController::class, 'clear']);
     })->add(\App\Middleware\MasterOnlyMiddleware::class);
 
     // Directorios: listado de solo lectura de una ruta local (superadmin, solo dominio master)
