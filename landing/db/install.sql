@@ -282,6 +282,12 @@ CREATE TABLE IF NOT EXISTS `sso_nonces` (
 --  está, ejecuta "DO 0" (no hace nada). En una base nueva no cambia nada.
 -- =============================================================
 
+-- ── Links: color de fondo ────────────────────────────────────
+
+SET @sql = (SELECT IF(COUNT(*) = 0, "ALTER TABLE `links` ADD COLUMN `bg_color` VARCHAR(20) NULL DEFAULT NULL AFTER `color`", "DO 0")
+    FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'links' AND COLUMN_NAME = 'bg_color');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- ── Categorías: icono y aviso ────────────────────────────────
 
 SET @sql = (SELECT IF(COUNT(*) = 0, "ALTER TABLE `menu_sections` ADD COLUMN `icon` VARCHAR(80) NULL DEFAULT NULL AFTER `name`", "DO 0")
